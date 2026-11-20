@@ -23,87 +23,105 @@ import kotlin.random.Random
  */
 class MainActivity : AppCompatActivity() {
 
-    // الخانات (عربي -> عدة كلمات بحث) — نساء فقط
-    // كل خانة إلها أكثر من نص بحث حتى تطلع نتائج مختلفة بكل مرة
+    // كل خانة إلها كلمات بحث إنكليزية وعربية منفصلة.
+    // الكلمة المهمة بين علامات تنصيص "" حتى جوجل يلتزم بنوع اللبس وما تختلط الأقسام.
+    private class Cat(val en: List<String>, val ar: List<String>)
+
     private val styles = linkedMapOf(
-        "محتشم" to listOf(
-            "modest fashion outfit", "modest maxi skirt outfit", "modest wide leg pants outfit",
-            "modest oversized shirt outfit", "modest kimono outfit", "modest layered outfit",
-            "modest fashion lookbook", "modest chic outfit"
+        "محتشم" to Cat(
+            listOf("\"modest\" outfit", "\"modest\" maxi skirt outfit", "\"modest\" wide leg pants outfit",
+                "\"modest\" fashion look", "\"modest\" long cardigan outfit"),
+            listOf("ملابس \"محتشمة\"", "اطلالة \"محتشمة\"", "تنورة طويلة \"محتشمة\"",
+                "تنسيق ملابس \"محتشمة\"", "لبس \"محتشم\" كاجوال")
         ),
-        "محجبات" to listOf(
-            "hijab fashion outfit", "hijab street style outfit", "hijab casual outfit ideas",
-            "turkish hijab fashion", "hijab outfit with jeans", "hijab blazer outfit",
-            "hijab maxi skirt outfit", "hijab fashion week look", "hijab summer outfit",
-            "hijab chic outfit"
+        "محجبات" to Cat(
+            listOf("\"hijab\" outfit", "\"hijab\" outfit with jeans", "\"hijab\" blazer outfit",
+                "\"hijab\" maxi skirt outfit", "turkish \"hijab\" outfit", "\"hijab\" casual outfit"),
+            listOf("اطلالات \"محجبات\"", "ملابس \"محجبات\" كاجوال", "ستايلات \"محجبات\"",
+                "تنسيق ملابس \"محجبات\"", "لبس \"محجبات\" تركي", "\"محجبات\" بالجينز")
         ),
-        "عباية" to listOf(
-            "abaya fashion", "modern abaya design", "open abaya outfit", "black abaya elegant",
-            "colored abaya fashion", "abaya kimono style", "embroidered abaya"
+        "عباية" to Cat(
+            listOf("\"abaya\" outfit", "modern \"abaya\"", "open \"abaya\" outfit",
+                "black \"abaya\" elegant", "embroidered \"abaya\""),
+            listOf("\"عباية\" مودرن", "\"عبايات\" خليجية", "\"عباية\" مفتوحة",
+                "\"عباية\" سوداء راقية", "\"عبايات\" ملونة")
         ),
-        "فساتين طويلة محتشمة" to listOf(
-            "modest long dress fashion", "maxi dress modest", "long sleeve maxi dress",
-            "floral maxi dress modest", "satin maxi dress modest", "evening long dress modest"
+        "فساتين طويلة محتشمة" to Cat(
+            listOf("modest \"maxi dress\"", "long sleeve \"maxi dress\"",
+                "floral \"maxi dress\" modest", "satin \"maxi dress\" modest"),
+            listOf("\"فستان طويل\" محتشم", "\"فساتين طويلة\" بأكمام",
+                "\"فستان طويل\" ورد", "\"فستان طويل\" ستان")
         ),
-        "رسمي / عمل" to listOf(
-            "modest business attire", "women office outfit blazer", "women pant suit outfit",
-            "women workwear chic", "women office look trousers", "women formal suit fashion",
-            "women blazer dress office"
+        "رسمي / عمل" to Cat(
+            listOf("\"office outfit\"", "\"business attire\"", "\"pant suit\" outfit",
+                "\"blazer\" office outfit", "\"workwear\" outfit"),
+            listOf("\"ملابس عمل\" نسائية رسمية", "\"بدلة\" نسائية رسمية",
+                "\"ملابس رسمية\" نسائية", "\"بليزر\" نسائي رسمي")
         ),
-        "شتوي" to listOf(
-            "modest winter coat outfit", "women wool coat outfit", "women puffer jacket outfit",
-            "women knit sweater outfit", "women winter boots outfit", "women trench coat outfit",
-            "women cardigan winter outfit", "women turtleneck outfit"
+        "شتوي" to Cat(
+            listOf("\"winter outfit\"", "\"wool coat\" outfit", "\"puffer jacket\" outfit",
+                "\"knit sweater\" outfit", "\"trench coat\" outfit"),
+            listOf("\"ملابس شتوية\" نسائية", "\"معطف\" نسائي شتوي", "\"جاكيت\" شتوي نسائي",
+                "\"بلوفر\" نسائي شتوي", "اطلالة \"شتوية\" نسائية")
         ),
-        "شورت جينز" to listOf(
-            "denim shorts outfit women", "jean shorts summer outfit", "high waisted denim shorts outfit",
-            "denim shorts street style women", "denim shorts with shirt outfit"
+        "شورت جينز" to Cat(
+            listOf("\"denim shorts\" outfit", "\"jean shorts\" outfit",
+                "high waisted \"denim shorts\" outfit", "\"denim shorts\" street style"),
+            listOf("\"شورت جينز\" نسائي", "اطلالة \"شورت جينز\"",
+                "تنسيق \"شورت جينز\"", "\"شورت جينز\" صيفي")
         ),
-        "شورت بوكسر نسائي" to listOf(
-            "women boxer shorts outfit", "women lounge shorts set", "women pajama shorts set",
-            "women cotton boxer shorts", "women loungewear set"
+        "شورت بوكسر نسائي" to Cat(
+            listOf("\"boxer shorts\" outfit", "\"lounge shorts\" set",
+                "\"pajama shorts\" set", "\"loungewear\" shorts set"),
+            listOf("\"شورت بوكسر\" نسائي", "\"بيجامة شورت\" نسائية",
+                "\"ملابس بيت\" شورت نسائي", "\"طقم بيت\" شورت نسائي")
         ),
-        "رياضة ويوغا" to listOf(
-            "yoga outfit women", "yoga set leggings top", "women activewear set",
-            "women gym outfit", "pilates outfit women", "women running outfit",
-            "women tennis outfit", "modest activewear women"
+        "رياضة ويوغا" to Cat(
+            listOf("\"yoga\" outfit", "\"yoga\" leggings set", "\"gym\" outfit",
+                "\"pilates\" outfit", "\"activewear\" set", "\"running\" outfit"),
+            listOf("ملابس \"يوغا\" نسائية", "ملابس \"رياضية\" نسائية", "طقم \"رياضي\" نسائي",
+                "ملابس \"جيم\" نسائية", "ليقنز \"رياضي\" نسائي")
         ),
-        "بوركيني" to listOf(
-            "burkini modest swimwear", "burkini fashion", "modest swimsuit women",
-            "burkini two piece", "modest swimwear beach outfit"
+        "بوركيني" to Cat(
+            listOf("\"burkini\"", "\"burkini\" swimwear", "\"modest swimsuit\"", "\"burkini\" beach"),
+            listOf("\"بوركيني\"", "\"مايوه شرعي\"", "\"بوركيني\" بحر", "\"مايوه محجبات\"")
         ),
-        "ملابس سباحة / بيكيني" to listOf(
-            "bikini swimwear fashion model", "swimwear fashion collection", "one piece swimsuit fashion"
+        "ملابس سباحة / بيكيني" to Cat(
+            listOf("\"bikini\" swimwear fashion", "\"one piece swimsuit\" fashion", "\"swimwear\" collection"),
+            listOf("\"ملابس سباحة\" نسائية", "\"مايوه\" نسائي", "\"بكيني\" نسائي")
         )
     )
 
     private val modes = linkedMapOf(
-        "الكل" to listOf(""),
-        "ستوديو" to listOf("studio photo", "lookbook photoshoot", "editorial photoshoot"),
-        "شارع" to listOf("street style", "city street outfit", "outdoor photo"),
-        "إطلالة كاملة" to listOf("")
+        "الكل" to Cat(listOf(""), listOf("")),
+        "ستوديو" to Cat(listOf("studio photoshoot", "lookbook photoshoot"), listOf("جلسة تصوير ستوديو", "لوك بوك")),
+        "شارع" to Cat(listOf("street style", "outdoor photo"), listOf("ستريت ستايل", "تصوير خارجي")),
+        "إطلالة كاملة" to Cat(listOf(""), listOf(""))
     )
 
-    // كل بحث يميل للإطلالة الكاملة للمودل (من الراس للقدم)
-    private val fullBody = listOf(
-        "full body model", "full length outfit model", "head to toe look model",
-        "full body shot", "standing full body pose", "full length fashion photo"
-    )
+    // امرأة لابسة الملابس (مو صورة منتج)، بعمر العشرينات
+    private val wearerEn = listOf("woman in her 20s wearing", "20s female model wearing", "young adult woman in her twenties wearing")
+    private val wearerAr = listOf("موديل شابة عشرينية ترتدي", "امرأة شابة عشرينية لابسة", "عارضة أزياء شابة ترتدي")
 
-    private val colors = listOf(
-        "black", "white", "beige", "pink", "blue", "green", "red", "brown",
-        "navy", "olive", "grey", "burgundy", "cream", "pastel"
-    )
-    private val variations = listOf(
-        "elegant", "simple", "trendy", "2026", "classy", "chic", "minimal",
-        "luxury", "casual", "new collection", "aesthetic", "inspiration"
-    )
-    // فلاتر جوجل العشوائية (حجم كبير، صور فوتوغرافية، آخر سنة...)
-    private val tbsOptions = listOf("", "", "isz:l", "itp:photo", "qdr:y", "isz:m")
+    // إطلالة كاملة للمودل (من الراس للقدم)
+    private val fullBodyEn = listOf("full body", "full length photo", "head to toe")
+    private val fullBodyAr = listOf("اطلالة كاملة", "صورة كاملة", "من الراس للقدم")
 
-    // استبعاد الأطفال والرجال وإعلانات المنتجات
-    private val exclude =
-        "-kids -kid -child -children -baby -toddler -teen -girl -girls -boy -boys -men -man -shampoo -product"
+    private val colorsEn = listOf("black", "white", "beige", "pink", "blue", "green", "red", "brown", "navy", "olive", "grey", "burgundy")
+    private val colorsAr = listOf("أسود", "أبيض", "بيج", "وردي", "أزرق", "أخضر", "أحمر", "بني", "كحلي", "زيتي", "رمادي", "عنابي")
+
+    // فلاتر جوجل العشوائية (صور كبيرة، صور فوتوغرافية، آخر سنة...)
+    private val tbsOptions = listOf("", "", "isz:l", "itp:photo", "qdr:y")
+
+    // استبعاد: الأطفال والمراهقات، الرجال، الكبيرات بالعمر، وصور المنتجات بدون لابسة
+    private val excludeEn =
+        "-kids -kid -child -children -baby -toddler -teen -teens -girl -girls -boy -boys -men -man " +
+        "-elderly -senior -grandma -granny -mature -mannequin -flatlay -hanger -product -shampoo"
+    private val excludeAr =
+        "-أطفال -طفلة -بناتي -ولادي -رجالي -عجوز -مسنة -مانيكان -شامبو"
+
+    // البحث يتناوب: مرة عربي ومرة إنكليزي
+    private var searchArabic = Random.nextBoolean()
 
     private lateinit var spStyle: Spinner
     private lateinit var spMode: Spinner
@@ -117,7 +135,6 @@ class MainActivity : AppCompatActivity() {
     private val handler = Handler(Looper.getMainLooper())
     private var images: List<String> = emptyList()
     private var index = 0
-    private var lastVariation = ""
     private var currentVariation = ""
     private var searchToken = 0
     private var loadedToken = -1
@@ -184,49 +201,48 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    /** يبني نص بحث جديد بكل مرة (كلمة + ستايل + لون/وصف عشوائي) وما يعيد آخر 40 نص */
-    private fun buildQuery(): String {
-        val pool = styles[spStyle.selectedItem as String] ?: styles.values.flatten()
-        val modePool = modes[spMode.selectedItem as String] ?: listOf("")
+    /** يبني نص بحث للخانة المختارة فقط، بالعربي أو الإنكليزي، وما يعيد آخر 40 نص */
+    private fun buildQuery(arabic: Boolean): String {
+        val cat = styles[spStyle.selectedItem as String] ?: styles.values.first()
+        val mode = modes[spMode.selectedItem as String] ?: modes.values.first()
+        val items = if (arabic) cat.ar else cat.en
+        val modePool = if (arabic) mode.ar else mode.en
         var q = ""
-        var v = ""
         for (attempt in 0 until 15) {
-            val base = pool.random()
-            val parts = mutableListOf<String>()
-            if (!base.contains("women")) parts.add("women")
-            parts.add(base)
+            val parts = mutableListOf(
+                (if (arabic) wearerAr else wearerEn).random(),
+                items.random(),
+                (if (arabic) fullBodyAr else fullBodyEn).random()
+            )
             val m = modePool.random()
             if (m.isNotEmpty()) parts.add(m)
-            parts.add(fullBody.random())
-            val extra = mutableListOf<String>()
-            if (Random.nextInt(100) < 55) extra.add(colors.random())
-            if (Random.nextInt(100) < 45) extra.add(variations.random())
-            parts.addAll(extra)
+            if (Random.nextInt(100) < 25) parts.add((if (arabic) colorsAr else colorsEn).random())
             q = parts.joinToString(" ")
-            v = extra.joinToString(" ")
             if (q !in recentQueries) break
         }
         recentQueries.addLast(q)
         while (recentQueries.size > 40) recentQueries.removeFirst()
-        currentVariation = v
+        currentVariation = if (arabic) "بحث عربي" else "English"
         return q
     }
 
-    /** بحث جديد بجوجل (بالنافذة المخفية) — صفحة وفلتر عشوائي حتى تتجدد النتائج */
+    /** بحث جديد بجوجل (بالنافذة المخفية) — كل دفعة جديدة تبدّل اللغة */
     private fun newSearch() {
-        val q = "${buildQuery()} $exclude".trim().replace(Regex("\\s+"), " ")
-        val start = if (retryRounds == 0) listOf(0, 0, 20, 40, 60).random()
-                    else listOf(40, 60, 80, 100, 120).random()
+        if (retryRounds == 0) searchArabic = !searchArabic
+        val arabic = searchArabic
+        val q = "${buildQuery(arabic)} ${if (arabic) excludeAr else excludeEn}".trim().replace(Regex("\\s+"), " ")
+        // صفحات أولى فقط حتى تبقى النتائج دقيقة ومطابقة للخانة
+        val start = if (retryRounds == 0) listOf(0, 0, 20).random() else listOf(20, 40).random()
         val tbs = tbsOptions.random()
         // safe=active: البحث الآمن مقفول دائماً، tbm=isch: صور جوجل
-        val url = "https://www.google.com/search?tbm=isch&safe=active&hl=ar&q=" +
-                URLEncoder.encode(q, "UTF-8") + "&start=$start" +
+        val url = "https://www.google.com/search?tbm=isch&safe=active&hl=" + (if (arabic) "ar" else "en") +
+                "&q=" + URLEncoder.encode(q, "UTF-8") + "&start=$start" +
                 (if (tbs.isNotEmpty()) "&tbs=$tbs" else "")
         searchToken++
         images = emptyList()
         index = 0
         progress.visibility = View.VISIBLE
-        txtCredit.text = "جاري البحث..."
+        txtCredit.text = if (arabic) "جاري البحث بالعربي..." else "جاري البحث بالإنكليزي..."
         searchWeb.loadUrl(url)
     }
 
@@ -351,7 +367,7 @@ class MainActivity : AppCompatActivity() {
     for(var i=0;i<imgs.length;i++){ if(imgs[i].naturalWidth>=100) add(imgs[i].src); }
   }
   // إذا عدنا صور طولية كافية نعرضها هي، وإلا نقدمها أول القائمة
-  var res = tall.length>=15 ? tall : tall.concat(out.filter(function(x){return tall.indexOf(x)<0;}));
+  var res = tall.length>=10 ? tall : tall.concat(out.filter(function(x){return tall.indexOf(x)<0;}));
   Android.onImages(__T__, JSON.stringify(res.slice(0,100)));
 })();
 """.replace("__T__", token.toString())
