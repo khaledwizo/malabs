@@ -1,0 +1,12 @@
+.gradle/
+build/
+local.properties
+*.log
+.idea/
+*.iml
+game/dist/
+game/test/shots/
+app/src/main/assets/index.html
+app/src/main/assets/fonts/
+*.jks
+*.keystore

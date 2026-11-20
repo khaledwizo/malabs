@@ -1,0 +1,75 @@
+name: Build Rafidain APK
+
+on:
+  push:
+    branches: [rafidain-game]
+    paths-ignore: ['apk/**']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rafidain-apk
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Copy the game page
+        run: |
+          mkdir -p app/src/main/assets
+          cp game/index.html app/src/main/assets/index.html
+
+      - name: Bundle fonts for offline play
+        continue-on-error: true
+        run: python3 game/tools/apk_fonts.py app/src/main/assets
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+
+      - name: Build APK
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p ~/.android
+          [ -f ~/.android/debug.keystore ] || keytool -genkeypair -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          gradle assembleRelease --no-daemon -PvCode=${{ github.run_number }} 2>&1 | tee build-log.txt
+
+      - name: Commit APK back to the branch
+        shell: bash
+        run: |
+          mkdir -p apk
+          cp app/build/outputs/apk/release/app-release.apk apk/rafidain.apk
+          rm -f apk/build-log.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f -A apk
+          git commit -m "APK build #${{ github.run_number }} [skip ci]"
+          for i in 1 2 3; do git pull --rebase origin rafidain-game && git push origin HEAD:rafidain-game && break; sleep 5; done
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Rafidain-APK
+          path: apk/rafidain.apk
+
+      - name: Save build log on failure
+        if: failure()
+        shell: bash
+        run: |
+          mkdir -p apk
+          cp build-log.txt apk/build-log.txt 2>/dev/null || echo "no log (failed before gradle)" > apk/build-log.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f apk/build-log.txt
+          git commit -m "Build log (failed) #${{ github.run_number }} [skip ci]"
+          for i in 1 2 3; do git pull --rebase origin rafidain-game && git push origin HEAD:rafidain-game && break; sleep 5; done
