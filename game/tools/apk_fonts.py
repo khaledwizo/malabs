@@ -5,7 +5,7 @@
 import re, sys, os, hashlib, urllib.request
 
 assets = sys.argv[1]
-page = os.path.join(assets, 'index.html')
+page = os.path.join(assets, sys.argv[2] if len(sys.argv) > 2 else 'index.html')
 html = open(page, encoding='utf-8').read()
 m = re.search(r'<link[^>]+href="(https://fonts\.googleapis\.com/css2\?[^"]+)"[^>]*>', html)
 if not m:
@@ -29,4 +29,4 @@ css = re.sub(r'url\((https://fonts\.gstatic\.com/[^)]+)\)', local, css)
 html = html.replace(m.group(0), '<style>\n' + css + '\n</style>')
 html = re.sub(r'<link[^>]+href="https://fonts\.(googleapis|gstatic)\.com[^"]*"[^>]*>\s*', '', html)
 open(page, 'w', encoding='utf-8').write(html)
-print('fonts bundled:', len(os.listdir(os.path.join(assets, 'fonts'))), 'files,', total // 1024, 'KB')
+print(os.path.basename(page), 'fonts bundled:', len(os.listdir(os.path.join(assets, 'fonts'))), 'files,', total // 1024, 'KB')

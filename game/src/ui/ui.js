@@ -25,7 +25,11 @@ export const UI = {
     $('#pLoadout').addEventListener('click', () => this.open('loadout'));
     $('#pSettings').addEventListener('click', () => this.open('settings'));
     $('#pQuit').addEventListener('click', () => { this.game.quit(); this.showMenu(); });
-    $('#eAgain').addEventListener('click', () => this.startMatch());
+    $('#eAgain').addEventListener('click', () => { if (this.game.sim && this.game.sim.online) { this.closeScreens(); this.hud(true); this.toast('المباراة التالية تبدأ بعد لحظات'); return; } this.startMatch(); });
+    $('#btnJoin').addEventListener('click', () => { Audio.init(); this.joinOnline(); });
+    $('#roomIn').value = (() => { try { return localStorage.getItem('rafidain.room') || ''; } catch (e) { return ''; } })();
+    $('#roomIn').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5); });
+    $('#roomIn').addEventListener('keydown', e => { if (e.key === 'Enter') this.joinOnline(); });
     $('#eMenu').addEventListener('click', () => { this.game.quit(); this.showMenu(); });
     $('#buyOpen').addEventListener('click', () => { if (this.game.sim) this.open('loadout'); });
     $('#nameIn').value = Settings.name; $('#nameIn').addEventListener('change', e => setSetting('name', e.target.value.trim().slice(0, 16) || 'لاعب'));
@@ -33,7 +37,7 @@ export const UI = {
     $('#tbScore').addEventListener('touchstart', e => { e.preventDefault(); this.showScore(true); }, { passive: false });
     $('#tbScore').addEventListener('touchend', () => this.showScore(false));
     document.getElementById('weapBar').addEventListener('click', e => { const b = e.target.closest('[data-slot]'); if (b) this.game.queueSlot(+b.dataset.slot); });
-    this.buildSetup(); this.buildChars(); this.buildSettings();
+    this.buildSetup(); this.buildChars(); this.buildSettings(); this.buildOnline();
     this.applyTouch();
     window.addEventListener('resize', () => this.applyTouch());
     this.showMenu();
@@ -80,6 +84,34 @@ export const UI = {
     this.game.startMatch({ mode: S.mode, roundsToWin: S.rounds, difficulty: S.diff, size: S.size, team: S.team, char: Settings.char, name: Settings.name, loadout: this.getLoadout(S.mode) });
   },
   getLoadout(mode) { return validLoadout(this.loadout[mode] || {}, mode); },
+  // ---------- اللعب أونلاين ----------
+  onTeam: -1,
+  buildOnline() {
+    const el = $('#onTeam');
+    el.innerHTML = [[-1, 'تلقائي', 'يوزّعنا السيرفر بالتساوي'], [0, TEAMS[0].name, 'من الشريعة'], [1, TEAMS[1].name, 'من صحن الجامع']].map(([v, l, sub]) => `<button class="opt ${this.onTeam === v ? 'sel' : ''}" data-v="${v}"><b>${l}</b><small>${sub}</small></button>`).join('');
+    el.querySelectorAll('.opt').forEach(b => b.addEventListener('click', () => { Audio.play('ui'); this.onTeam = +b.dataset.v; this.buildOnline(); }));
+  },
+  onlineStatus(t, cls = '') { const e = $('#onStatus'); e.textContent = t; e.className = 'status ' + cls; },
+  async joinOnline() {
+    if (this.joining) return;
+    const room = $('#roomIn').value.trim().toUpperCase();
+    if (room.length < 4) { this.onlineStatus('اكتب رمز الغرفة الظاهر في تطبيق السيرفر', 'bad'); return; }
+    try { localStorage.setItem('rafidain.room', room); } catch (e) { }
+    this.joining = true; $('#btnJoin').disabled = true;
+    this.onlineStatus('جارٍ الاتصال…');
+    try {
+      const ns = await this.game.joinOnline({ room, name: Settings.name, char: Settings.char, team: this.onTeam, loadout: this.getLoadout(Settings.mode || 'epic'), onStatus: s => this.onlineStatus(s) });
+      ns.setLoadout(ns.me, this.getLoadout(ns.mode));
+      ns.onlost = why => {
+        this.banner('انقطع الاتصال', why, 'lose', 3);
+        setTimeout(() => { if (this.game.sim === ns) { this.game.quit(); this.showMenu(); this.open('online'); this.onlineStatus(why, 'bad'); } }, 2500);
+      };
+      this.onlineStatus('تم الاتصال ✓', 'ok');
+      this.closeScreens(); this.hud(true);
+      this.game.startOnline(ns);
+    } catch (e) { this.onlineStatus(e.message || 'تعذّر الاتصال', 'bad'); }
+    this.joining = false; $('#btnJoin').disabled = false;
+  },
   // ---------- الشخصيات ----------
   buildChars() {
     const el = $('#charList');
@@ -135,7 +167,7 @@ export const UI = {
   showScore(on) { $('#score').classList.toggle('on', on); if (on) this.renderScore(); },
   renderScore() {
     const sim = this.game.sim; if (!sim) return;
-    const rows = t => [...sim.players.values()].filter(p => p.team === t).sort((a, b) => b.kills - a.kills).map(p => `<tr class="${p.alive ? '' : 'dead'} ${p.id === this.game.me ? 'me' : ''}"><td>${esc(p.name)}${p.bot ? ' <i>بوت</i>' : ''}</td><td>${CHARS[p.char].name}</td><td>${p.kills}</td><td>${p.assists}</td><td>${p.deaths}</td><td>${Math.round(p.dmgDone)}</td></tr>`).join('');
+    const rows = t => [...sim.players.values()].filter(p => p.team === t).sort((a, b) => b.kills - a.kills).map(p => `<tr class="${p.alive ? '' : 'dead'} ${p.id === this.game.me ? 'me' : ''}"><td>${esc(p.name)}${p.bot ? ' <i>بوت</i>' : ''}${sim.online && !p.bot && sim.roster.get(p.id) && sim.roster.get(p.id).rtt ? ` <i>${sim.roster.get(p.id).rtt}ms</i>` : ''}</td><td>${CHARS[p.char].name}</td><td>${p.kills}</td><td>${p.assists}</td><td>${p.deaths}</td><td>${Math.round(p.dmgDone)}</td></tr>`).join('');
     $('#scoreBody').innerHTML = [0, 1].map(t => `<div class="team t${t}"><h4>${TEAMS[t].name} <b>${sim.score[t]}</b></h4><table><tr><th>اللاعب</th><th>الشخصية</th><th>ق</th><th>م</th><th>س</th><th>الضرر</th></tr>${rows(t)}</table></div>`).join('');
   },
   feed(k, v, w, hs, wall, mine) {
@@ -170,6 +202,7 @@ function clsName(c) { return { rifle: 'بندقية', smg: 'رشاش خفيف', 
 const TEMPLATE = `
 <div id="hud">
   <div id="fps"></div>
+  <div id="net"></div>
   <canvas id="radar" width="160" height="160"></canvas>
   <div id="topbar"><div class="sc t0"><b id="sc0">0</b><span id="al0"></span></div><div id="timer">1:55</div><div class="sc t1"><span id="al1"></span><b id="sc1">0</b></div></div>
   <div id="phase"></div>
@@ -206,7 +239,7 @@ const TEMPLATE = `
   <div class="title"><h1>جبهة الرافدين</h1><div class="sub">معارك تكتيكية في أزقّة بغداد القديمة</div></div>
   <div class="menu">
     <button class="btn primary" id="btnPlay">ابدأ القتال</button>
-    <button class="btn" data-go="online">اللعب أونلاين <small>قريباً</small></button>
+    <button class="btn" data-go="online">اللعب أونلاين <small>2 ضد 2</small></button>
     <button class="btn" data-go="chars">الشخصيات</button>
     <button class="btn" data-go="loadout">العتاد والأسلحة</button>
     <button class="btn" data-go="settings">الإعدادات</button>
@@ -253,9 +286,12 @@ const TEMPLATE = `
 </section>
 
 <section class="scr" id="s-online">
-  <div class="panel"><div class="head"><h2>اللعب أونلاين</h2><button class="x" data-back>✕</button></div>
-  <p>اللعب 2 ضد 2 عبر الإنترنت يحتاج تطبيق «سيرفر جبهة الرافدين» على هاتف ثالث يدير المباراة. سيُضاف في التحديث القادم.</p>
-  <p class="note">حتى ذلك الحين: العب ضد البوتات بالوضع الذي تريده.</p></div>
+  <div class="panel online"><div class="head"><h2>اللعب أونلاين</h2><button class="x" data-back>✕</button></div>
+  <p class="note">شغّل تطبيق «سيرفر الرافدين» على الهاتف الوسيط واتركه يعمل، ثم اكتب رمز الغرفة الظاهر فيه. كل اللاعبين يكتبون الرمز نفسه.</p>
+  <label class="room">رمز الغرفة<input id="roomIn" maxlength="5" dir="ltr" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="•••••"></label>
+  <h5>الفريق المفضّل</h5><div class="opts" id="onTeam"></div>
+  <div id="onStatus" class="status"></div>
+  <div class="menu row"><button class="btn sm" data-go="chars">الشخصية</button><button class="btn sm" data-go="loadout">العتاد</button><button class="btn primary" id="btnJoin">اتصال ⟵</button></div></div>
 </section>
 
 <section class="scr" id="s-pause">

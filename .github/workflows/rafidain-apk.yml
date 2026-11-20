@@ -1,4 +1,4 @@
-name: Build Rafidain APK
+name: Build Rafidain APKs
 
 on:
   push:
@@ -19,14 +19,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Copy the game page
+      - name: Copy the game and server pages
         run: |
-          mkdir -p app/src/main/assets
+          mkdir -p app/src/main/assets server/src/main/assets
           cp game/index.html app/src/main/assets/index.html
+          cp game/server.html server/src/main/assets/server.html
 
-      - name: Bundle fonts for offline play
+      - name: Bundle fonts for offline use
         continue-on-error: true
-        run: python3 game/tools/apk_fonts.py app/src/main/assets
+        run: |
+          python3 game/tools/apk_fonts.py app/src/main/assets index.html
+          python3 game/tools/apk_fonts.py server/src/main/assets server.html
 
       - uses: actions/setup-java@v4
         with:
@@ -37,19 +40,27 @@ jobs:
         with:
           gradle-version: "8.7"
 
-      - name: Build APK
+      # مفتاح توقيع ثابت بين البنايات (محفوظ في ذاكرة GitHub المؤقتة، لا في المستودع) كي تُثبَّت التحديثات فوق بعضها
+      - name: Restore signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: rafidain-debug-keystore-v1
+
+      - name: Build APKs
         shell: bash
         run: |
           set -o pipefail
           mkdir -p ~/.android
           [ -f ~/.android/debug.keystore ] || keytool -genkeypair -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
-          gradle assembleRelease --no-daemon -PvCode=${{ github.run_number }} 2>&1 | tee build-log.txt
+          gradle :app:assembleRelease :server:assembleRelease --no-daemon -PvCode=${{ github.run_number }} 2>&1 | tee build-log.txt
 
-      - name: Commit APK back to the branch
+      - name: Commit APKs back to the branch
         shell: bash
         run: |
           mkdir -p apk
           cp app/build/outputs/apk/release/app-release.apk apk/rafidain.apk
+          cp server/build/outputs/apk/release/server-release.apk apk/rafidain-server.apk
           rm -f apk/build-log.txt
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -59,8 +70,10 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Rafidain-APK
-          path: apk/rafidain.apk
+          name: Rafidain-APKs
+          path: |
+            apk/rafidain.apk
+            apk/rafidain-server.apk
 
       - name: Save build log on failure
         if: failure()

@@ -1,0 +1,117 @@
+// طبقة الاتصال: ترحيل عبر وسيط MQTT عام (يعمل خلف أي شبكة) + ترقية تلقائية إلى اتصال مباشر WebRTC عند الإمكان
+import { connectAny, brokerList, Mqtt, utf8 } from './mqtt.js';
+
+const ICE = [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }, { urls: 'stun:stun.cloudflare.com:3478' }];
+const NS = 'rafidain/v1/';
+const NO_RTC = (() => { try { return /[?&]nortc/.test(location.search); } catch (e) { return false; } })();
+export const newId = () => Math.random().toString(36).slice(2, 10);
+export function roomCode() { const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s = ''; for (let i = 0; i < 5; i++) s += A[Math.floor(Math.random() * A.length)]; return s; }
+
+function waitIce(pc, ms = 2500) {
+  return new Promise(res => { if (pc.iceGatheringState === 'complete') return res(); const t = setTimeout(res, ms); pc.addEventListener('icegatheringstatechange', () => { if (pc.iceGatheringState === 'complete') { clearTimeout(t); res(); } }); });
+}
+
+// ---------- جهة السيرفر ----------
+// السيرفر يتصل بكل الوسطاء معاً: أي لاعب يصل عبر أي وسيط متاح عنده، ونردّ عليه من الوسيط نفسه
+export class HostLink {
+  constructor(room, opt = {}) { this.room = room; this.mqs = []; this.peers = new Map(); this.onmsg = null; this.onstatus = opt.onStatus || (() => { }); this.useRtc = opt.rtc !== false && !NO_RTC && typeof RTCPeerConnection !== 'undefined'; this.urls = opt.brokers || brokerList(); this.closed = false; }
+  async open() {
+    this.onstatus('الاتصال بالوسطاء…');
+    const res = await Promise.allSettled(this.urls.map(u => this.connectOne(u)));
+    if (!res.some(r => r.status === 'fulfilled')) throw new Error('لا يوجد اتصال بالإنترنت أو الوسطاء محجوبة');
+    this.report();
+    return this;
+  }
+  async connectOne(url) {
+    const m = new Mqtt(url); await m.connect();
+    if (this.closed) { m.close(); return; }
+    m.subscribe(NS + this.room + '/up');
+    m.onmessage = (topic, payload) => { let x; try { x = JSON.parse(utf8.dec(payload)); } catch (e) { return; } if (!x || !x.from) return; this.handle(x.from, x, 'mqtt', m); };
+    m.onclose = () => { this.mqs = this.mqs.filter(q => q !== m); this.report(); if (!this.closed) setTimeout(() => this.retry(url), 2000); };
+    this.mqs.push(m);
+    return m;
+  }
+  async retry(url) { if (this.closed) return; try { await this.connectOne(url); this.report(); } catch (e) { setTimeout(() => this.retry(url), 5000); } }
+  report() { const n = this.mqs.length; this.onstatus(n ? `متصل بالإنترنت عبر ${n} ${n > 1 ? 'وسطاء' : 'وسيط'} · بانتظار اللاعبين` : 'انقطع الإنترنت — إعادة المحاولة…'); }
+  handle(from, m, via, mq) {
+    const p = this.peers.get(from) || { dc: null, via: 'relay', mq: null }; this.peers.set(from, p);
+    if (mq) p.mq = mq;
+    if (m.k === 'rtc-offer') { if (this.useRtc) this.acceptRtc(from, m.sdp); return; }
+    if (this.onmsg) this.onmsg(from, m, via);
+  }
+  async acceptRtc(from, sdp) {
+    try {
+      const p = this.peers.get(from); if (p.pc) p.pc.close();
+      const pc = new RTCPeerConnection({ iceServers: ICE }); p.pc = pc;
+      pc.ondatachannel = ev => { const dc = ev.channel; dc.onopen = () => { p.dc = dc; p.via = 'p2p'; }; dc.onclose = () => { if (p.dc === dc) { p.dc = null; p.via = 'relay'; } }; dc.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch (x) { return; } this.handle(from, m, 'p2p'); }; };
+      await pc.setRemoteDescription({ type: 'offer', sdp });
+      await pc.setLocalDescription(await pc.createAnswer());
+      await waitIce(pc);
+      this.sendTo(from, { k: 'rtc-answer', sdp: pc.localDescription.sdp }, true);
+    } catch (e) { }
+  }
+  mqFor(p) { return p && p.mq && this.mqs.includes(p.mq) ? [p.mq] : this.mqs; }
+  sendTo(cid, m, forceRelay) {
+    const p = this.peers.get(cid), s = JSON.stringify(m);
+    if (!forceRelay && p && p.dc && p.dc.readyState === 'open') { try { p.dc.send(s); return; } catch (e) { } }
+    for (const q of this.mqFor(p)) q.publish(NS + this.room + '/to/' + cid, s);
+  }
+  // بث للجميع: مباشر لمن يملك قناة، وعبر كل وسيط فيه لاعبون بلا قناة (مرة واحدة لكل وسيط)
+  broadcast(m) {
+    const s = JSON.stringify(m), via = new Set();
+    for (const p of this.peers.values()) {
+      if (p.dc && p.dc.readyState === 'open') { try { p.dc.send(s); continue; } catch (e) { } }
+      for (const q of this.mqFor(p)) via.add(q);
+    }
+    for (const q of via) q.publish(NS + this.room + '/dn', s);
+  }
+  drop(cid) { const p = this.peers.get(cid); if (p && p.pc) p.pc.close(); this.peers.delete(cid); }
+  via(cid) { const p = this.peers.get(cid); return p ? p.via : 'relay'; }
+  close() { this.closed = true; for (const p of this.peers.values()) if (p.pc) p.pc.close(); this.peers.clear(); for (const q of this.mqs) { q.onclose = null; q.close(); } this.mqs = []; }
+}
+
+// ---------- جهة اللاعب ----------
+export class ClientLink {
+  constructor(room, opt = {}) { this.room = room; this.cid = opt.cid || newId(); this.mq = null; this.pc = null; this.dc = null; this.onmsg = null; this.onstatus = opt.onStatus || (() => { }); this.via = 'relay'; this.useRtc = opt.rtc !== false && !NO_RTC && typeof RTCPeerConnection !== 'undefined'; this.brokers = opt.brokers; this.closed = false; this.tries = 0; }
+  async open() {
+    const mq = this.mq = await connectAny(this.brokers, this.onstatus);
+    this.url = mq.url;
+    mq.subscribe(NS + this.room + '/dn'); mq.subscribe(NS + this.room + '/to/' + this.cid);
+    mq.onmessage = (topic, payload) => {
+      let m; try { m = JSON.parse(utf8.dec(payload)); } catch (e) { return; }
+      if (m.k === 'rtc-answer') { this.gotAnswer(m.sdp); return; }
+      if (this.dc && this.dc.readyState === 'open' && topic.endsWith('/dn')) return; // لدينا قناة مباشرة
+      this.onmsg && this.onmsg(m);
+    };
+    mq.onclose = () => { if (this.closed) return; this.onstatus('انقطع الوسيط — إعادة الاتصال…'); this.reopen(); };
+    this.tries = 0;
+    return this;
+  }
+  async reopen() {
+    if (this.closed) return;
+    if (++this.tries > 4) { this.onclosed && this.onclosed(); return; }
+    await new Promise(r => setTimeout(r, 800 * this.tries));
+    try { this.brokers = [this.url]; await this.open(); this.onstatus('عاد الاتصال ✓'); this.onreopen && this.onreopen(); } catch (e) { this.reopen(); }
+  }
+  async tryRtc() {
+    if (!this.useRtc || this.closed) return;
+    try {
+      if (this.pc) this.pc.close();
+      const pc = this.pc = new RTCPeerConnection({ iceServers: ICE });
+      const dc = pc.createDataChannel('g', { ordered: false, maxRetransmits: 0 });
+      dc.onopen = () => { this.dc = dc; this.via = 'p2p'; this.onstatus('اتصال مباشر ✓'); };
+      dc.onclose = () => { if (this.dc === dc) { this.dc = null; this.via = 'relay'; } };
+      dc.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch (x) { return; } if (m.k === 'rtc-answer') return; this.onmsg && this.onmsg(m); };
+      await pc.setLocalDescription(await pc.createOffer());
+      await waitIce(pc);
+      this.send({ k: 'rtc-offer', sdp: pc.localDescription.sdp }, true);
+    } catch (e) { }
+  }
+  async gotAnswer(sdp) { try { if (this.pc && !this.pc.currentRemoteDescription) await this.pc.setRemoteDescription({ type: 'answer', sdp }); } catch (e) { } }
+  send(m, relay) {
+    m.from = this.cid; const s = JSON.stringify(m);
+    if (!relay && this.dc && this.dc.readyState === 'open') { try { this.dc.send(s); return; } catch (e) { } }
+    this.mq && this.mq.publish(NS + this.room + '/up', s);
+  }
+  close() { if (this.closed) return; try { this.send({ k: 'bye' }, true); } catch (e) { } this.closed = true; if (this.pc) this.pc.close(); if (this.mq) { this.mq.onclose = null; setTimeout(() => this.mq.close(), 150); } }
+}

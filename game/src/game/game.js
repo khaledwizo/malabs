@@ -13,6 +13,7 @@ import { CHAR_ORDER } from './chardefs.js';
 import { FX } from '../gfx/fx.js';
 import { UI } from '../ui/ui.js';
 import { F } from '../world/collide.js';
+import { NetSim } from '../net/client.js';
 
 const STEP = 1 / 60;
 const BOT_NAMES = ['يوسف', 'حيدر', 'زيد', 'عمر', 'مصطفى', 'ليث', 'أنمار', 'كرار', 'بلال', 'طارق', 'سجّاد', 'مرتضى', 'حسين', 'رعد', 'وسام'];
@@ -71,7 +72,25 @@ export class Game {
     UI.banner('الجولة 1', 'استعد — ' + TEAMS[me.team].name, '', 2.4);
     Audio.play('roundStart');
   }
+  // ---------- اللعب أونلاين ----------
+  async joinOnline(o) {
+    const ns = new NetSim(this.world, o);
+    await ns.connect();
+    return ns;
+  }
+  startOnline(ns) {
+    this.quit(true);
+    this.sim = ns; this.me = ns.me;
+    const me = this.mp;
+    this.yaw = me ? (me.spawnYaw ?? me.yaw) : 0; this.pitch = 0; this.acc = 0; this.paused = false; this.spec = null;
+    for (const m of this.lineup) m.root.visible = false;
+    this.vm.setChar(me ? me.char : Settings.char);
+    Input.enabled = true; if (!Input.isTouch) Input.requestLock();
+    UI.banner('متصل بالغرفة ' + ns.room, 'فريقك: ' + TEAMS[me ? me.team : 0].name, '', 2.6);
+    Audio.play('roundStart');
+  }
   quit(keep) {
+    if (this.sim && this.sim.online) { try { this.sim.onlost = null; this.sim.close(); } catch (e) { } }
     if (this.sim) { for (const m of this.models.values()) this.scene.remove(m.root); this.models.clear(); for (const n of this.nadeMeshes.values()) this.scene.remove(n); this.nadeMeshes.clear(); }
     this.sim = null; this.me = -1; this.paused = false; Input.exitLock();
     if (!keep) for (const m of this.lineup) m.root.visible = true;
@@ -87,6 +106,7 @@ export class Game {
     this.t += dt;
     Input.update();
     if (!this.sim) { this.updateMenu(dt); this.renderMenu(dt); Input.endFrame(); return; }
+    if (this.sim.online) this.me = this.sim.me; // قد يتغير رقمنا إن أعيد تشغيل السيرفر
     const sim = this.sim, me = this.mp;
     if (Input.take('pause') && !this.paused) { this.pause(); }
     if (Input.take('buy') && sim.phase === 'buy') UI.open('loadout');
@@ -96,13 +116,14 @@ export class Game {
     const zoom = this.zoomNow();
     const ss = Settings.sens * (zoom > 1.05 ? Settings.adsSens / Math.pow(zoom, 0.85) : 1);
     if (!this.paused && me && me.alive) { this.yaw -= lx * ss; this.pitch -= ly * ss * (Settings.invertY ? -1 : 1); this.pitch = Math.max(-1.5, Math.min(1.5, this.pitch)); }
-    if (!this.paused) {
-      // الأوامر
-      const cmd = {
+    if (!this.paused || sim.online) {
+      // الأوامر (في اللعب الشبكي تستمر المحاكاة أثناء الاستراحة بأمر محايد)
+      const idle = this.paused;
+      const cmd = idle ? { mx: 0, mz: 0, yaw: this.yaw, pitch: this.pitch, jump: false, crouch: false, walk: false, fire: false, ads: false, reload: false, slot: 0, swap: false } : {
         mx: Input.mx, mz: Input.mz, yaw: this.yaw, pitch: this.pitch, jump: Input.held('jump'), crouch: Input.held('crouch'), walk: Input.held('walk'),
         fire: (Input.held('fire') || Input.held('fire2')) && !UI.screen, ads: Input.held('ads'), reload: Input.take('reload') || this.queued.reload, slot: 0, swap: Input.take('swap') || Input.wheel !== 0,
       };
-      for (let s = 1; s <= 4; s++) if (Input.take('slot' + s)) cmd.slot = s;
+      if (!idle) for (let s = 1; s <= 4; s++) if (Input.take('slot' + s)) cmd.slot = s;
       if (Input.take('grenade')) cmd.slot = me && me.slot === 4 ? me.prevSlot : 4;
       if (this.queued.slot) cmd.slot = this.queued.slot;
       if (Input.take('inspect')) this.vm.inspect();
@@ -135,7 +156,7 @@ export class Game {
       switch (e.t) {
         case 'shot': {
           const p = sim.players.get(e.id), wd = WEAPONS[e.w]; if (!p) break;
-          const mine = e.id === this.me;
+          const mine = e.id === this.me && (!sim.online || e.loc);
           let mz;
           if (mine) { this.vm.fire(wd.cls === 'sniper' || wd.cls === 'shotgun'); mz = this.vmMuzzleWorld(); this.shake += wd.cls === 'sniper' ? 0.6 : 0.15; if (wd.bolt) setTimeout(() => { if (this.sim) { this.vm.bolt(); Audio.play('bolt'); } }, 280); }
           else { const m = this.models.get(e.id); mz = m && m.gun ? m.gun.P.muzzleObj.getWorldPosition(new THREE.Vector3()).toArray() : e.o; }
@@ -169,11 +190,11 @@ export class Game {
           if (e.v === this.me) { this.spec = { id: e.k >= 0 && e.k !== this.me ? e.k : -1, t: 0, pos: me.pos.slice() }; UI.banner('سقطت', k && k !== me ? 'على يد ' + k.name : '', 'lose', 2.2); }
           break;
         }
-        case 'reload': if (e.id === this.me) { const wd = WEAPONS[e.w]; this.vm.reload(wd.reload); } Audio.play('reload', e.id === this.me ? null : sim.players.get(e.id).pos); break;
+        case 'reload': if (e.id === this.me) { const wd = WEAPONS[e.w]; this.vm.reload(wd.reload); } Audio.play('reload', e.id === this.me ? null : this.posOf(e.id)); break;
         case 'draw': if (e.id === this.me) Audio.play('draw'); break;
         case 'dry': if (e.id === this.me) Audio.play('dry'); break;
-        case 'knife': if (e.id === this.me) this.vm.slash(); Audio.play(e.hit ? 'knifeHit' : 'knife', e.id === this.me ? null : sim.players.get(e.id).pos); break;
-        case 'throw': if (e.id === this.me) this.vm.throwNade(); Audio.play('pin', e.id === this.me ? null : sim.players.get(e.id).pos); break;
+        case 'knife': if (e.id === this.me) this.vm.slash(); Audio.play(e.hit ? 'knifeHit' : 'knife', e.id === this.me ? null : this.posOf(e.id)); break;
+        case 'throw': if (e.id === this.me) this.vm.throwNade(); Audio.play('pin', e.id === this.me ? null : this.posOf(e.id)); break;
         case 'bounce': Audio.play('bounce', e.p); break;
         case 'boom': {
           this.fx.explosion(e.p, e.kind);
@@ -185,7 +206,10 @@ export class Game {
           break;
         }
         case 'round':
-          if (e.phase === 'buy') { UI.banner('الجولة ' + e.n, 'جهّز عتادك', '', 2.2); Audio.play('roundStart'); this.spec = null; if (me) { this.yaw = me.yaw; this.pitch = 0; } Input.clearToggles(); }
+          if (e.phase === 'buy') {
+            if (sim.online && UI.screen === 'end') { UI.closeScreens(); UI.hud(true); if (!Input.isTouch) Input.requestLock(); }
+            UI.banner('الجولة ' + e.n, 'جهّز عتادك', '', 2.2); Audio.play('roundStart'); this.spec = null; if (me) { this.yaw = me.spawnYaw ?? me.yaw; this.pitch = 0; } Input.clearToggles();
+          }
           else UI.banner('انطلق!', '', '', 1.2);
           break;
         case 'roundEnd': {
@@ -201,6 +225,7 @@ export class Game {
     if (me && me.flash > 0) { this.flashA = Math.max(this.flashA, Math.min(1, me.flash / 2)); if (!this.ringing) { this.ringing = true; Audio.play('ring', null, { dur: me.flash }); setTimeout(() => this.ringing = false, me.flash * 1000); } }
     ev.length = 0;
   }
+  posOf(id) { const p = this.sim && this.sim.players.get(id); return p ? p.pos : null; }
   buzz(ms) { try { if (window.RafidainAndroid) window.RafidainAndroid.vibrate(ms); else if (navigator.vibrate) navigator.vibrate(ms); } catch (e) { } }
   vmMuzzleWorld() {
     // نقطة الفوهة من منظور الشخص الأول محوّلة إلى العالم تقريبياً
@@ -365,6 +390,12 @@ export class Game {
     $('flashov').style.opacity = this.flashA.toFixed(3); $('hurtov').style.opacity = Math.max(this.hurtA, me.alive && me.hp < 30 ? 0.35 + Math.sin(this.t * 6) * 0.1 : 0).toFixed(3);
     // الرادار
     this.drawRadar(me);
+    // حالة الشبكة
+    if ((this.netT = (this.netT || 0) - dt) <= 0) {
+      this.netT = 0.5; const el = $('net');
+      if (sim.online) { const ms = Math.round(sim.ping * 1000); el.className = 'on' + (ms > 220 ? ' bad' : ms > 120 ? ' mid' : ''); el.textContent = `◉ ${ms || '…'}ms · ${sim.via === 'p2p' ? 'مباشر' : 'عبر الوسيط'}`; }
+      else el.className = '';
+    }
   }
   drawRadar(me) {
     const c = document.getElementById('radar'), x = c.getContext('2d'), S = c.width, s = this.radarS, R = 10; // متر لكل … مقياس

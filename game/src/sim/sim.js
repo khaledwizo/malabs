@@ -54,7 +54,7 @@ export class Sim {
     const S = this.w.spawns[p.team]; const used = [...this.players.values()].filter(q => q.team === p.team && q !== p && q.alive).length;
     const sp = S[(used + (p.id % S.length)) % S.length] || [0, 0, 0, 0];
     p.pos = [sp[0] + (this.rng() - 0.5) * 0.6, sp[1] + 0.05, sp[2] + (this.rng() - 0.5) * 0.6]; p.vel = [0, 0, 0];
-    p.yaw = sp[3]; p.pitch = 0; p.crouch = 0; p.hp = 100; p.armor = 100; p.alive = true; p.flash = 0; p.onGround = true; p.dmgBy.clear();
+    p.yaw = sp[3]; p.spawnYaw = sp[3]; p.pitch = 0; p.crouch = 0; p.hp = 100; p.armor = 100; p.alive = true; p.flash = 0; p.onGround = true; p.dmgBy.clear();
     p.spawnProt = 0; this.equip(p);
     if (p.brain) p.brain.reset();
   }
@@ -77,6 +77,7 @@ export class Sim {
   }
   // ---------- الخطوة الرئيسية ----------
   step(dt) {
+    if (this.beforeStep) this.beforeStep(dt);
     this.t += dt; this.tick++;
     this.phaseT -= dt;
     if (this.phase === 'buy' && this.phaseT <= 0) { this.phase = 'live'; this.phaseT = this.roundTime; this.events.push({ t: 'round', n: this.round, phase: 'live' }); }
@@ -98,11 +99,23 @@ export class Sim {
       this.stepPlayer(p, dt);
     }
     this.stepNades(dt);
-    // سجلّ المواضع لتعويض التأخير
-    if (this.tick % 2 === 0) { this.history.push({ t: this.t, p: [...this.players.values()].map(p => [p.id, p.pos[0], p.pos[1], p.pos[2], p.crouch]) }); if (this.history.length > 40) this.history.shift(); }
+    // سجلّ المواضع لتعويض التأخير (لاعبو الشبكة يرون الآخرين في الماضي القريب)
+    const snap = new Map(); for (const p of this.players.values()) snap.set(p.id, [p.pos[0], p.pos[1], p.pos[2], p.crouch]);
+    this.history.push({ t: this.t, m: snap }); if (this.history.length > 90) this.history.shift();
+    if (this.onStep) this.onStep(dt);
+  }
+  posAt(q, back) {
+    const H = this.history, tq = this.t - back;
+    if (!H.length || back <= 0) return null;
+    for (let i = H.length - 1; i > 0; i--) {
+      const a = H[i - 1], b = H[i];
+      if (a.t <= tq && b.t >= tq) { const pa = a.m.get(q.id), pb = b.m.get(q.id); if (!pa || !pb) return null; const k = (tq - a.t) / Math.max(1e-6, b.t - a.t); return [pa[0] + (pb[0] - pa[0]) * k, pa[1] + (pb[1] - pa[1]) * k, pa[2] + (pb[2] - pa[2]) * k, pa[3] + (pb[3] - pa[3]) * k]; }
+    }
+    const f = H[0].m.get(q.id); return f ? f.slice() : null;
   }
   stepPlayer(p, dt) {
     if (!p.alive) return;
+    if (p.netWait) { p.netWait = false; return; } // لاعب شبكي لم يصل أمره بعد: ينتظر بدل أن نخمّن حركته
     const c = p.cmd;
     p.yaw = c.yaw; p.pitch = Math.max(-1.5, Math.min(1.5, c.pitch));
     const frozen = this.phase === 'buy' || this.phase === 'over';
@@ -142,7 +155,7 @@ export class Sim {
       p.reloadT = wd.perShell ? wd.reload : wd.reload; p.ads = false; this.events.push({ t: 'reload', id: p.id, w: w.id }); return;
     }
     // الإطلاق
-    if (!c.fire) p.fireLatch = false;
+    if (!c.fire && !c.hold) p.fireLatch = false;
     if (c.fire && p.switchT <= 0 && this.t >= p.nextFire && (wd.auto || !p.fireLatch)) {
       if (wd.cls === 'knife') { this.knife(p, wd); p.nextFire = this.t + 60 / wd.rpm; p.fireLatch = true; }
       else if (w.mag > 0) { this.fire(p, w, wd); }
@@ -168,7 +181,7 @@ export class Sim {
     for (let k = 0; k < pellets; k++) {
       const a = this.rng() * Math.PI * 2, r = Math.sqrt(this.rng()) * spread;
       const d = dirFrom(yaw + Math.cos(a) * r, pitch + Math.sin(a) * r);
-      hits.push(this.trace(p, ex, ey, ez, d, wd, w.id));
+      hits.push(this.trace(p, ex, ey, ez, d, wd, w.id, p.lag || 0));
     }
     // ارتداد الطلقة التالية
     const sh = p.shots; const patY = wd.recoil[1] * (sh < 4 ? 0.3 : Math.sin(sh * 0.55) * 1.4);
@@ -180,7 +193,7 @@ export class Sim {
     this.events.push({ t: 'shot', id: p.id, w: w.id, o: [ex, ey, ez], hits: hits.map(h => h.end), hk: hits.map(h => h.kind), n: hits.map(h => h.n), m: hits.map(h => h.mat) });
   }
   // تتبع طلقة: تخترق الأجسام الرقيقة، وتصيب صناديق إصابة اللاعبين
-  trace(p, ox, oy, oz, d, wd, wid) {
+  trace(p, ox, oy, oz, d, wd, wid, back = 0) {
     let power = wd.pen, dmgMul = 1, x = ox, y = oy, z = oz, travelled = 0, wall = false;
     const maxD = 220;
     for (let seg = 0; seg < 5; seg++) {
@@ -190,7 +203,7 @@ export class Sim {
       let best = null;
       for (const q of this.players.values()) {
         if (q === p || !q.alive) continue;
-        const h = this.hitPlayer(q, x, y, z, d, wt);
+        const h = this.hitPlayer(q, x, y, z, d, wt, back);
         if (h && (!best || h.t < best.t)) best = h, best.q = q;
       }
       if (best) {
@@ -205,13 +218,14 @@ export class Sim {
       const need = (wh.flags & F.THIN ? cost * 0.5 : cost) * Math.min(th, 2);
       if (power <= 0 || need > power || th > 1.6) return { end: [wh.x, wh.y, wh.z], kind: 'wall', n: [wh.nx, wh.ny, wh.nz], mat: wh.mat };
       power -= need; dmgMul *= 0.6; wall = true;
-      this.events.push({ t: 'impact', p: [wh.x, wh.y, wh.z], n: [wh.nx, wh.ny, wh.nz], mat: wh.mat });
+      this.events.push({ t: 'impact', id: p.id, p: [wh.x, wh.y, wh.z], n: [wh.nx, wh.ny, wh.nz], mat: wh.mat });
       travelled += wh.t + th + 0.01; x = wh.x + d[0] * (th + 0.01); y = wh.y + d[1] * (th + 0.01); z = wh.z + d[2] * (th + 0.01);
     }
     return { end: [x, y, z], kind: 'none', n: [0, 0, 0], mat: -1 };
   }
-  hitPlayer(q, ox, oy, oz, d, maxT) {
-    const eh = eyeHeight(q), px = q.pos[0], py = q.pos[1], pz = q.pos[2];
+  hitPlayer(q, ox, oy, oz, d, maxT, back = 0) {
+    const rw = back > 0 ? this.posAt(q, back) : null;
+    const eh = rw ? eyeHeight({ crouch: rw[3] }) : eyeHeight(q), px = rw ? rw[0] : q.pos[0], py = rw ? rw[1] : q.pos[1], pz = rw ? rw[2] : q.pos[2];
     // فحص سريع بكرة محيطة
     if (raySphere(ox, oy, oz, d[0], d[1], d[2], px, py + 0.95, pz, 1.25) < 0) return null;
     const fx = -Math.sin(q.yaw) * 0.04, fz = -Math.cos(q.yaw) * 0.04;
@@ -261,7 +275,7 @@ export class Sim {
     if (c.fire && !p.throwT) p.throwT = 0.0001;
     if (p.throwT) {
       p.throwT += dt;
-      if (!c.fire && p.throwT > 0.12) {
+      if (!c.fire && !c.hold && p.throwT > 0.12) {
         const [ex, ey, ez] = this.eye(p), d = dirFrom(p.yaw, p.pitch + 0.08), sp = c.walk ? 9 : 17;
         const n = { id: this.nid++, kind, owner: p.id, team: p.team, pos: [ex + d[0] * 0.4, ey + d[1] * 0.4 - 0.1, ez + d[2] * 0.4], vel: [d[0] * sp + p.vel[0] * 0.6, d[1] * sp + 2 + p.vel[1] * 0.3, d[2] * sp + p.vel[2] * 0.6], t: 0, fuse: NADES[kind].fuse, rest: 0 };
         this.nades.push(n); p.inv[4].shift(); p.throwT = 0;

@@ -162,3 +162,15 @@ output{min-width:34px;font:600 12px var(--fb);color:#bbb;direction:ltr}
 .touch #vitals{bottom:calc(var(--sab) + 8px);left:calc(var(--sal) + 160px)}
 html:not(.touch) .tb.mini{display:none}
 @media (max-width:760px){.grid2{grid-template-columns:1fr}.panel.side{width:min(420px,60vw)}.title h1{font-size:44px}}
+/* اللعب أونلاين */
+#net{position:absolute;top:calc(var(--sat) + 168px);left:calc(var(--sal) + 8px);font:700 11px Cairo,ui-monospace,monospace;color:#b6ffd9;background:rgba(0,0,0,.45);padding:2px 7px;border-radius:6px;display:none;direction:rtl}
+#net.on{display:block}#net.mid{color:#ffe08a}#net.bad{color:#ff8a8a}
+.panel.online{max-width:520px}
+.panel.online .room{display:flex;flex-direction:column;gap:6px;margin:14px 0 6px;font-weight:700;color:#e9dcc0}
+.panel.online .room input{font:800 34px/1.1 ui-monospace,Menlo,monospace;letter-spacing:.35em;text-align:center;padding:12px 8px;border-radius:14px;border:1.5px solid rgba(240,190,110,.45);background:rgba(10,12,16,.65);color:#ffe6b0;text-transform:uppercase;outline:none;user-select:text;-webkit-user-select:text;touch-action:auto;width:100%;box-sizing:border-box}
+.panel.online .room input:focus{border-color:#f0b04a;box-shadow:0 0 0 3px rgba(240,176,74,.18)}
+.status{min-height:1.4em;margin-top:10px;font-weight:700;color:#cfd8e0;text-align:center}
+.status.ok{color:#5dffb0}.status.bad{color:#ff8a7a}
+.btn:disabled{opacity:.55;pointer-events:none}
+.touch #net{top:calc(var(--sat) + 146px)}
+@media (max-height:440px){.panel.online .room{margin:8px 0 4px}.panel.online .room input{font-size:26px;padding:7px}.panel.online .note{font-size:12px;margin:2px 0}.panel.online h5{margin:6px 0 4px}.status{margin:6px 0 2px;min-height:1.2em}}
