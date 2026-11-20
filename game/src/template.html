@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#06080c">
+<title>نبض — مملكة الأجراس الصامتة</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Aref+Ruqaa:wght@400;700&family=Cairo:wght@400;600;700;800&family=Reem+Kufi:wght@500;700&display=swap" rel="stylesheet">
+<style>
+/*__CSS__*/
+</style>
+</head>
+<body>
+<!--__PROGRESS__-->
+<canvas id="cv"></canvas>
+
+<div id="perf" aria-hidden="true"><span id="pfFps">FPS --</span><i>|</i><span id="pfMs">-- ms</span><i>|</i><span id="pfRes">--</span><span id="pfExt"></span></div>
+
+<div id="hud">
+  <div id="hudR">
+    <div id="hp" aria-label="الأوتار"></div>
+    <div id="en" aria-label="النبض"><div id="enFill"></div></div>
+    <div class="hrow"><div id="rnn" aria-label="الرنين"><i>◈</i><b id="rnnV">0</b></div><div id="gadgetLbl"></div></div>
+  </div>
+  <div id="mtrack"></div>
+  <canvas id="minimap" width="150" height="100"></canvas>
+  <div id="threat"><span>توتّر الراوي</span><div><i id="thFill"></i></div></div>
+  <div id="bossBar"><b>المُراقِب</b><span id="bossPips"></span><span id="bossSh"></span></div>
+  <div id="dyn"><b>مِحنة</b><span id="dynTxt"></span><div class="bar"><i id="dynBar"></i></div></div>
+  <div id="toast"></div>
+  <div id="prompt"></div>
+  <div id="whisper" aria-live="polite"><b id="wWho"></b><span id="wTxt"></span></div>
+  <div id="areaCard" aria-hidden="true"><small id="acTop"></small><b id="acName"></b><span class="fl"></span><span id="acSub"></span></div>
+  <div id="keys">WASD/الأسهم: حركة · Shift: تسلّل · E: تفاعل (مطوّلاً: تركيز) · Space: وثبة · Q: قدرة · R: تبديل · C: صدى · H: تلميح · Esc: إيقاف</div>
+  <button id="btnPause" class="hbtn" aria-label="إيقاف مؤقت"><svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1.2" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1.2" fill="currentColor"/></svg></button>
+  <div id="touch">
+    <div id="joyZone"></div>
+    <div id="joyBase"><div id="joyKnob"></div></div>
+    <button class="tbtn big" data-a="interact" id="tbInteract"><span class="ic" data-icon="hand"></span><span>تفاعل</span></button>
+    <button class="tbtn" data-a="gadget" id="tbGadget"><span class="ic" id="tbGIcon"></span><span id="tbGName">قدرة</span><i class="cd"></i></button>
+    <button class="tbtn" data-a="dash" id="tbDash"><span class="ic" data-icon="dash"></span><span>وثبة</span><i class="cd"></i></button>
+    <button class="tbtn sm" data-a="cycle" id="tbCycle"><span class="ic" data-icon="cycle"></span></button>
+    <button class="tbtn sm gold" data-a="echo" id="tbEcho"><span class="ic" data-icon="echo"></span><span>صدى</span></button>
+    <button class="tbtn sm gold" data-a="hint" id="tbHint"><span class="ic" data-icon="hint"></span><span>تلميح</span></button>
+  </div>
+</div>
+
+<div id="screens">
+  <section id="scrTitle" class="screen">
+    <div class="titlewrap">
+      <div class="title">
+        <h1>نَبض</h1>
+        <div class="tag">في مملكة الأجراس الصامتة</div>
+        <p>أسكتت «العين» كل أجراس المملكة إلا جرساً صغيراً واحداً: أنت. تسلّل عبر أروقتها النائمة، افتح أقفالها، اجمع تمائمها، واصعد إلى العرش — ومعك صدى.</p>
+      </div>
+      <div class="menu grid">
+        <button class="btn primary wide" id="btnPlay">ابدأ</button>
+        <button class="btn" id="btnLevels">المراحل</button>
+        <button class="btn" id="btnCharms">التمائم</button>
+        <button class="btn" id="btnJournal">سجلّ الكائنات</button>
+        <button class="btn" id="btnHelp">طريقة اللعب</button>
+        <button class="btn" id="btnSettings">الإعدادات</button>
+        <button class="btn" id="btnFull">ملء الشاشة</button>
+        <div class="foot" id="saveInfo">التقدّم يُحفظ تلقائياً</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="scrLevels" class="screen">
+    <div class="card wide">
+      <div class="head"><h2>المراحل</h2><button class="x" data-close="scrLevels" aria-label="إغلاق">×</button></div>
+      <div class="levels" id="levelGrid"></div>
+      <div class="gadgetsOwned" id="gadgetsOwned"></div>
+    </div>
+  </section>
+
+  <section id="scrSettings" class="screen">
+    <div class="card wide">
+      <div class="head"><h2>الإعدادات</h2><button class="x" data-close="scrSettings" aria-label="إغلاق">×</button></div>
+      <div class="set" id="settingsBody"></div>
+    </div>
+  </section>
+
+  <section id="scrHelp" class="screen">
+    <div class="card wide">
+      <div class="head"><h2>طريقة اللعب</h2><button class="x" data-close="scrHelp" aria-label="إغلاق">×</button></div>
+      <div class="help" id="helpBody"></div>
+    </div>
+  </section>
+
+  <section id="scrBrief" class="screen">
+    <div class="card">
+      <div class="lvnum" id="brNum"></div>
+      <h2 id="brName"></h2>
+      <p class="story" id="brStory"></p>
+      <h3>المهام</h3>
+      <ul class="mlist" id="brMissions"></ul>
+      <h3>مهام إضافية (نجوم)</h3>
+      <ul class="mlist side" id="brSide"></ul>
+      <div class="brG" id="brGadgets"></div>
+      <div class="btnrow"><button class="btn primary" id="brGo">ابدأ المهمة</button><button class="btn" id="brBack">رجوع</button></div>
+    </div>
+  </section>
+
+  <section id="scrPause" class="screen">
+    <div class="card narrow">
+      <h2>إيقاف مؤقت</h2>
+      <ul class="mlist" id="psMissions"></ul>
+      <div class="menu grid">
+        <button class="btn primary wide" id="psResume">متابعة</button>
+        <button class="btn" id="psCharms">التمائم</button>
+        <button class="btn" id="psJournal">سجلّ الكائنات</button>
+        <button class="btn" id="psRestart">إعادة المرحلة</button>
+        <button class="btn" id="psSettings">الإعدادات</button>
+        <button class="btn" id="psFull">ملء الشاشة</button>
+        <button class="btn" id="psQuit">القائمة الرئيسية</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="scrDead" class="screen">
+    <div class="card narrow center">
+      <h2 class="red">سكت نبض</h2>
+      <p id="deadWhy"></p>
+      <p class="violet" id="deadShade"></p>
+      <p class="sub" id="deadTip"></p>
+      <div class="menu">
+        <button class="btn primary" id="dRespawn">النهوض من المرسى</button>
+        <button class="btn" id="dRestart">إعادة المرحلة من البداية</button>
+        <button class="btn" id="dQuit">القائمة الرئيسية</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="scrResults" class="screen">
+    <div class="card narrow center">
+      <div class="lvnum" id="rsNum"></div>
+      <h2>اكتملت المرحلة!</h2>
+      <div class="bigstars" id="rsStars"></div>
+      <ul class="mlist" id="rsList"></ul>
+      <div class="stats" id="rsStats"></div>
+      <div class="menu">
+        <button class="btn primary" id="rsNext">المرحلة التالية</button>
+        <button class="btn" id="rsRetry">إعادة للحصول على نجوم</button>
+        <button class="btn" id="rsMenu">القائمة الرئيسية</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="scrHack" class="screen">
+    <div class="card hack">
+      <div class="head"><h2>اختراق <span id="hkName"></span></h2></div>
+      <p class="sub">اضغط على القطع لتدويرها، ووصّل التيار من السهم <b class="mint">النعناعي</b> (يسار) إلى السهم <b class="gold">الذهبي</b> (يمين) قبل نفاد الوقت.</p>
+      <div class="hkTimer"><i id="hkBar"></i></div>
+      <div class="hkWrap"><div id="hkSrc" class="hkMark src"></div><div id="hkGrid"></div><div id="hkDst" class="hkMark dst"></div></div>
+      <div class="btnrow"><button class="btn" id="hkQuit">انسحاب (سيُطلق إنذار)</button></div>
+    </div>
+  </section>
+
+  <section id="scrRiddle" class="screen">
+    <div class="card riddle center">
+      <div class="who">المُراقِب يسأل</div>
+      <h2 id="rdQ"></h2>
+      <div class="opts" id="rdOpts"></div>
+      <p class="sub" id="rdMsg">إجابة خاطئة تُطلق الإنذار.</p>
+    </div>
+  </section>
+
+  <section id="scrMemory" class="screen">
+    <div class="card narrow">
+      <div class="who violet" id="memWho">لوح ذاكرة</div>
+      <h2 id="memTitle"></h2>
+      <p id="memText"></p>
+      <div class="btnrow"><button class="btn primary" id="memOk">متابعة</button></div>
+    </div>
+  </section>
+
+  <section id="scrItem" class="screen">
+    <div class="card narrow center item">
+      <div class="who gold" id="itKind"></div>
+      <div class="itic" id="itIcon"></div>
+      <h2 id="itName"></h2>
+      <p id="itDesc"></p>
+      <p class="sub" id="itCost"></p>
+      <p class="sub" id="itNote"></p>
+      <div class="btnrow"><button class="btn primary" id="itOk">حسناً</button></div>
+    </div>
+  </section>
+
+  <section id="scrCharms" class="screen">
+    <div class="card wide charms">
+      <div class="head"><h2>التمائم</h2><div class="rnnchip">◈ <b id="chRnn">0</b></div><button class="x" id="chClose" aria-label="إغلاق">×</button></div>
+      <div class="notch"><span>الخانات</span><span id="chNotch"></span><b id="chNotchTxt"></b></div>
+      <p class="sub" id="chMode"></p>
+      <div class="chwrap"><div class="chgrid" id="chGrid"></div><div class="chinfo" id="chInfo"></div></div>
+    </div>
+  </section>
+
+  <section id="scrJournal" class="screen">
+    <div class="card wide">
+      <div class="head"><h2>سجلّ الكائنات <small id="jCount"></small></h2><button class="x" id="jClose" aria-label="إغلاق">×</button></div>
+      <div class="jlist" id="jList"></div>
+    </div>
+  </section>
+
+  <section id="scrTalk" class="screen">
+    <div class="talkbox" id="tkBox">
+      <div class="tkname"><b id="tkName"></b><span id="tkEpi"></span></div>
+      <p id="tkText"></p>
+      <div class="tkmore" id="tkMore">اضغط للمتابعة ▾</div>
+      <div class="btnrow hidden" id="tkOpts"><button class="btn primary" id="tkShop">أرِني بضاعتك</button><button class="btn" id="tkBye">وداعاً</button></div>
+    </div>
+  </section>
+
+  <section id="scrShop" class="screen">
+    <div class="card wide shop">
+      <div class="head"><h2>بضاعة فانوس</h2><div class="rnnchip">◈ <b id="shRnn">0</b></div><button class="x" id="shClose" aria-label="إغلاق">×</button></div>
+      <p class="sub" id="shMsg"></p>
+      <div class="shlist" id="shList"></div>
+    </div>
+  </section>
+
+  <section id="scrEnd" class="screen">
+    <div class="card narrow center">
+      <h2>النهاية… أو البداية</h2>
+      <p id="endText"></p>
+      <div class="menu"><button class="btn primary" id="endOk">القائمة الرئيسية</button></div>
+    </div>
+  </section>
+</div>
+
+<script>
+(() => {
+'use strict';
+/*__JS__*/
+})();
+</script>
+</body>
+</html>

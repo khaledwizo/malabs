@@ -1,0 +1,20 @@
+const { chromium } = require('/opt/npm-tools/node_modules/playwright');
+const path = require('path');
+const url = 'file://' + path.join(__dirname, '..', 'dist', 'index.html');
+(async () => {
+  const browser = await chromium.launch({ executablePath: '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox'] });
+  const page = await (await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true })).newPage();
+  page.on('pageerror', e => console.log('ERR', e.message));
+  await page.goto(url); await page.waitForTimeout(1200);
+  await page.screenshot({ path: path.join(__dirname, 'shots', '60_p_title.png') });
+  await page.evaluate(async () => { const N = window.__nabd; N.Save.data.gadgets = ['scan','emp']; N.UI.openBrief(1); });
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: path.join(__dirname, 'shots', '61_p_brief.png') });
+  await page.evaluate(() => window.__nabd.UI.startPlay());
+  await page.waitForTimeout(2200);
+  await page.screenshot({ path: path.join(__dirname, 'shots', '62_p_play.png') });
+  await page.evaluate(() => { const N = window.__nabd; N.UI.buildSettings(); N.UI.open('scrSettings', null); });
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: path.join(__dirname, 'shots', '63_p_settings.png') });
+  await browser.close();
+})();
