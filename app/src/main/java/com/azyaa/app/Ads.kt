@@ -2,6 +2,7 @@ package com.azyaa.app
 
 import android.app.Activity
 import android.os.CountDownTimer
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import com.google.android.gms.ads.*
 import com.google.android.gms.ads.rewarded.RewardedAd
@@ -26,11 +27,23 @@ class Ads(private val act: Activity) {
         loadRewardedInter()
     }
 
+    /** يبين سبب فشل تحميل الإعلان (للتشخيص) */
+    private fun report(which: String, e: LoadAdError) {
+        val why = when (e.code) {
+            AdRequest.ERROR_CODE_NO_FILL -> "ماكو إعلانات متوفرة حالياً (No fill)"
+            AdRequest.ERROR_CODE_NETWORK_ERROR -> "مشكلة إنترنت"
+            AdRequest.ERROR_CODE_INVALID_REQUEST -> "رقم الوحدة أو الإعدادات غلط"
+            AdRequest.ERROR_CODE_APP_ID_MISSING -> "App ID ناقص"
+            else -> "خطأ داخلي"
+        }
+        Toast.makeText(act, "$which ما تحمّل: كود ${e.code} - $why", Toast.LENGTH_LONG).show()
+    }
+
     private fun loadRewarded() {
         RewardedAd.load(act, REWARDED_VIDEO_ID, AdRequest.Builder().build(),
             object : RewardedAdLoadCallback() {
                 override fun onAdLoaded(ad: RewardedAd) { rewarded = ad }
-                override fun onAdFailedToLoad(e: LoadAdError) { rewarded = null }
+                override fun onAdFailedToLoad(e: LoadAdError) { rewarded = null; report("فيديو التحديث", e) }
             })
     }
 
@@ -38,7 +51,7 @@ class Ads(private val act: Activity) {
         RewardedInterstitialAd.load(act, REWARDED_INTERSTITIAL_ID, AdRequest.Builder().build(),
             object : RewardedInterstitialAdLoadCallback() {
                 override fun onAdLoaded(ad: RewardedInterstitialAd) { rewardedInter = ad }
-                override fun onAdFailedToLoad(e: LoadAdError) { rewardedInter = null }
+                override fun onAdFailedToLoad(e: LoadAdError) { rewardedInter = null; report("إعلان البحث", e) }
             })
     }
 
