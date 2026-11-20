@@ -1,7 +1,11 @@
 <resources>
-    <style name="AppTheme" parent="Theme.AppCompat.DayNight.DarkActionBar">
+    <!-- ثيم ليلي بألوان التطبيق (بنفسجي + خوخي) -->
+    <style name="AppTheme" parent="Theme.AppCompat.NoActionBar">
         <item name="colorPrimary">#7B4B94</item>
-        <item name="colorPrimaryDark">#5A3470</item>
+        <item name="colorPrimaryDark">#1A1220</item>
         <item name="colorAccent">#D98E73</item>
+        <item name="colorButtonNormal">#5A3470</item>
+        <item name="android:windowBackground">@color/bg</item>
+        <item name="android:statusBarColor">#1A1220</item>
     </style>
 </resources>
