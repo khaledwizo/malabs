@@ -44,6 +44,25 @@
         </LinearLayout>
     </LinearLayout>
 
+    <!-- الصف الثالث: العمر + ترتيب الصور -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal">
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:orientation="vertical">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="العمر" android:textStyle="bold" />
+            <Spinner android:id="@+id/spAge"
+                android:layout_width="match_parent" android:layout_height="44dp" />
+        </LinearLayout>
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:orientation="vertical">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="ترتيب الصور" android:textStyle="bold" />
+            <Spinner android:id="@+id/spSort"
+                android:layout_width="match_parent" android:layout_height="44dp" />
+        </LinearLayout>
+    </LinearLayout>
+
     <!-- أزرار البحث -->
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
         android:orientation="horizontal">

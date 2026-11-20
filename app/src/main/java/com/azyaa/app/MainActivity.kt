@@ -129,9 +129,30 @@ class MainActivity : AppCompatActivity() {
     private val LANG_EN = "English"
     private val langs = listOf(LANG_AUTO, LANG_AR, LANG_EN)
 
+    // ===== العمر (بالغات فقط) =====
+    private val ages = linkedMapOf(
+        "عشرينات (18-29)" to Opt(
+            listOf("woman in her 20s wearing", "20s female model wearing", "young adult woman wearing"),
+            listOf("موديل", "شابة", "")),
+        "ثلاثينات" to Opt(
+            listOf("woman in her 30s wearing", "30s female model wearing", "stylish woman in her thirties wearing"),
+            listOf("ثلاثينية", "موديل", "")),
+        "أربعينات" to Opt(
+            listOf("woman in her 40s wearing", "stylish 40s woman wearing"),
+            listOf("أربعينية", "سيدة أنيقة", ""))
+    )
+    private fun ageExclude(age: String) = when {
+        age.startsWith("عشرينات") -> " -elderly -senior -grandma -granny -mature -over 40"
+        age.startsWith("ثلاثينات") -> " -elderly -senior -grandma -granny"
+        else -> " -elderly -grandma -granny"
+    }
+
+    // ===== ترتيب الصور =====
+    private val SORT_BEST = "✨ الأجمل أولاً"
+    private val SORT_RANDOM = "🎲 عشوائي"
+    private val sorts = listOf(SORT_BEST, SORT_RANDOM)
+
     // قطع إضافية للتنويع
-    private val wearerEn = listOf("woman in her 20s wearing", "20s female model wearing", "young adult woman wearing")
-    private val wearerAr = listOf("موديل", "شابة", "")
     private val fullBodyEn = listOf("full body", "full length photo", "head to toe")
     private val fullBodyAr = listOf("اطلالة كاملة", "")
     private val adjEn = listOf("elegant", "casual", "chic", "trendy", "classy", "minimal", "2026")
@@ -145,13 +166,15 @@ class MainActivity : AppCompatActivity() {
     // استبعاد: الأطفال والمراهقات، الرجال، الكبيرات بالعمر، وصور المنتجات بدون لابسة
     private val excludeEn =
         "-kids -kid -child -children -baby -toddler -teen -teens -girl -girls -boy -boys -men -man " +
-        "-elderly -senior -grandma -granny -mature -mannequin -flatlay -hanger -product -shampoo"
+        "-mannequin -flatlay -hanger -product -shampoo"
     private val excludeAr = "-أطفال -طفلة -بناتي -ولادي -رجالي -عجوز"
 
     private lateinit var spStyle: Spinner
     private lateinit var spMode: Spinner
     private lateinit var spPose: Spinner
     private lateinit var spLang: Spinner
+    private lateinit var spAge: Spinner
+    private lateinit var spSort: Spinner
     private lateinit var web: WebView        // يعرض صورة وحدة
     private lateinit var searchWeb: WebView  // مخفي خلف العرض: يفتح صور جوجل ويستخرج الروابط
     private lateinit var progress: ProgressBar
@@ -188,6 +211,12 @@ class MainActivity : AppCompatActivity() {
 
     // «الذكاء البسيط»: نقاط لكل كلمة بحث حسب النتائج
     private val scores = HashMap<String, Int>()
+    // نقاط المواقع: المواقع اللي تحفظ منها صور تطلع صورها أول، واللي صورها خربانة تنزل
+    private val hostScores = HashMap<String, Int>()
+    // أبعاد صور الدفعة الحالية (طول، عرض) لترتيب الأجمل
+    private val dims = HashMap<String, Pair<Int, Int>>()
+    // الكلمات اللي انبنى عليها البحث الحالي (حتى نكافئها إذا حفظت صورة)
+    private var currentParts: List<String> = emptyList()
 
     private val prefs by lazy { getSharedPreferences("azyaa", Context.MODE_PRIVATE) }
 
@@ -200,6 +229,8 @@ class MainActivity : AppCompatActivity() {
         spMode = findViewById(R.id.spMode)
         spPose = findViewById(R.id.spPose)
         spLang = findViewById(R.id.spLang)
+        spAge = findViewById(R.id.spAge)
+        spSort = findViewById(R.id.spSort)
         web = findViewById(R.id.web)
         searchWeb = findViewById(R.id.searchWeb)
         progress = findViewById(R.id.progress)
@@ -215,13 +246,12 @@ class MainActivity : AppCompatActivity() {
         spMode.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, modes.keys.toList())
         spPose.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, poses.keys.toList())
         spLang.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, langs)
-        spLang.setSelection(prefs.getInt("lang", 0).coerceIn(0, langs.size - 1))
-        spLang.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(p: AdapterView<*>?, v: View?, pos: Int, id: Long) {
-                prefs.edit().putInt("lang", pos).apply()
-            }
-            override fun onNothingSelected(p: AdapterView<*>?) {}
-        }
+        spAge.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, ages.keys.toList())
+        spSort.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, sorts)
+        // يحفظ اختيارات اللغة والعمر والترتيب
+        remember(spLang, "lang", langs.size)
+        remember(spAge, "age", ages.size)
+        remember(spSort, "sort", sorts.size)
         updateFavsButton()
 
         val bridge = Bridge()
@@ -279,6 +309,16 @@ class MainActivity : AppCompatActivity() {
         btnFavs.setOnClickListener { openFavs() }
     }
 
+    private fun remember(sp: Spinner, key: String, size: Int) {
+        sp.setSelection(prefs.getInt(key, 0).coerceIn(0, size - 1))
+        sp.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(p: AdapterView<*>?, v: View?, pos: Int, id: Long) {
+                prefs.edit().putInt(key, pos).apply()
+            }
+            override fun onNothingSelected(p: AdapterView<*>?) {}
+        }
+    }
+
     // ================= محرك البحث الذكي =================
 
     private fun langMode(): String = spLang.selectedItem as String
@@ -302,6 +342,7 @@ class MainActivity : AppCompatActivity() {
         val st = styles[spStyle.selectedItem as String] ?: styles.values.first()
         val md = modes[spMode.selectedItem as String] ?: modes.values.first()
         val ps = poses[spPose.selectedItem as String] ?: poses.values.first()
+        val ag = ages[spAge.selectedItem as String] ?: ages.values.first()
         var q = ""
         for (attempt in 0 until 15) {
             val parts = mutableListOf<String>()
@@ -309,28 +350,29 @@ class MainActivity : AppCompatActivity() {
                 // العربي: مختصر وشامل
                 currentItem = if (lvl >= 3) st.keyAr else pickWeighted(st.ar)
                 parts.add(currentItem)
-                if (lvl <= 1) parts.add(ps.ar.random())
+                if (lvl <= 1) parts.add(pickWeighted(ps.ar))
                 if (lvl == 0) {
-                    if (Random.nextInt(100) < 50) parts.add(wearerAr.random())
+                    if (Random.nextInt(100) < 60) parts.add(pickWeighted(ag.ar))
                     if (Random.nextInt(100) < 35) parts.add(fullBodyAr.random())
-                    if (Random.nextInt(100) < 25) parts.add(md.ar.random())
+                    if (Random.nextInt(100) < 25) parts.add(pickWeighted(md.ar))
                     if (Random.nextInt(100) < 20) parts.add((if (Random.nextBoolean()) colorsAr else adjAr).random())
                 }
             } else {
                 currentItem = if (lvl >= 3) st.keyEn else pickWeighted(st.en)
                 when (lvl) {
                     0 -> {
-                        parts.add(wearerEn.random()); parts.add(currentItem)
-                        parts.add(fullBodyEn.random()); parts.add(ps.en.random()); parts.add(md.en.random())
+                        parts.add(pickWeighted(ag.en)); parts.add(currentItem)
+                        parts.add(fullBodyEn.random()); parts.add(pickWeighted(ps.en)); parts.add(pickWeighted(md.en))
                         if (Random.nextInt(100) < 25) parts.add(colorsEn.random())
                         if (Random.nextInt(100) < 20) parts.add(adjEn.random())
                     }
-                    1 -> { parts.add("woman wearing"); parts.add(currentItem); parts.add(ps.en.random()) }
+                    1 -> { parts.add("woman wearing"); parts.add(currentItem); parts.add(pickWeighted(ps.en)) }
                     2 -> { parts.add(currentItem.replace("\"", "")); parts.add("model") }
                     else -> parts.add(currentItem)
                 }
             }
-            q = parts.filter { it.isNotBlank() }.joinToString(" ")
+            currentParts = parts.filter { it.isNotBlank() }
+            q = currentParts.joinToString(" ")
             if (q !in recentQueries) break
         }
         recentQueries.addLast(q)
@@ -355,7 +397,8 @@ class MainActivity : AppCompatActivity() {
     private fun newSearch() {
         viewingFavs = false
         val arabic = searchArabic
-        val q = "${buildQuery(arabic, level)} ${if (arabic) excludeAr else excludeEn}".trim()
+        val q = ("${buildQuery(arabic, level)} " +
+                (if (arabic) excludeAr else excludeEn + ageExclude(spAge.selectedItem as String))).trim()
             .replace(Regex("\\s+"), " ")
         // صفحات أولى فقط حتى تبقى النتائج دقيقة
         val start = if (retryRounds == 0 || level > 0) 0 else listOf(0, 20, 40).random()
@@ -421,11 +464,32 @@ class MainActivity : AppCompatActivity() {
 
         learn(currentItem, if (fresh.size >= 20) 2 else 1)
         loadedToken = token
-        images = (if (fresh.isNotEmpty()) fresh else list).shuffled()
+        images = rank(if (fresh.isNotEmpty()) fresh else list)
         index = 0
         progress.visibility = View.GONE
         saveState()
         showCurrent()
+    }
+
+    private fun hostOf(u: String): String = try { Uri.parse(u).host?.removePrefix("www.") ?: "" } catch (_: Exception) { "" }
+
+    /**
+     * «الأجمل أولاً»: نقاط لكل صورة حسب الدقة (كبر الصورة)، الصورة الطولية (إطلالة كاملة)،
+     * والمواقع اللي حفظت منها صور قبل. وشوية عشوائية حتى ما تصير مملة.
+     */
+    private fun rank(list: List<String>): List<String> {
+        if (spSort.selectedItem as String == SORT_RANDOM) return list.shuffled()
+        return list.map { u ->
+            val (h, w) = dims[u] ?: (0 to 0)
+            var score = Random.nextDouble() * 1.5
+            if (h > 0 && w > 0) {
+                score += Math.log10((h.toDouble() * w).coerceAtLeast(1.0)) - 5.0   // 1MP ≈ +1
+                if (h >= w * 1.2) score += 1.2                                      // طولية
+                if (h < 500) score -= 1.0                                           // صغيرة
+            }
+            score += (hostScores[hostOf(u)] ?: 0) * 0.4
+            u to score
+        }.sortedByDescending { it.second }.map { it.first }
     }
 
     // ================= العرض =================
@@ -472,10 +536,18 @@ class MainActivity : AppCompatActivity() {
         val u = images.getOrNull(index) ?: return
         if (u in favs) {
             favs.remove(u)
+            saveState()
             Toast.makeText(this, "انشالت من المفضلة", Toast.LENGTH_SHORT).show()
         } else {
             favs.add(u)
-            Toast.makeText(this, "انحفظت بالمفضلة ⭐", Toast.LENGTH_SHORT).show()
+            // نتعلم من ذوقك: الكلمات والموقع اللي جابوا هاي الصورة ياخذون أولوية
+            if (!viewingFavs) {
+                learn(currentItem, 3)
+                currentParts.forEach { learn(it, 1) }
+            }
+            val h = hostOf(u)
+            if (h.isNotEmpty()) hostScores[h] = ((hostScores[h] ?: 0) + 2).coerceIn(-5, 10)
+            Toast.makeText(this, "انحفظت بالمفضلة ⭐ (راح أجيبلك صور تشبهها أكثر)", Toast.LENGTH_SHORT).show()
         }
         saveFavs()
         updateFavsButton()
@@ -514,12 +586,17 @@ class MainActivity : AppCompatActivity() {
             val i = line.lastIndexOf('\t')
             if (i > 0) line.substring(i + 1).toIntOrNull()?.let { scores[line.substring(0, i)] = it }
         }
+        prefs.getString("hosts", "")?.takeIf { it.isNotEmpty() }?.split("\n")?.forEach { line ->
+            val i = line.lastIndexOf('\t')
+            if (i > 0) line.substring(i + 1).toIntOrNull()?.let { hostScores[line.substring(0, i)] = it }
+        }
     }
 
     private fun saveState() {
         prefs.edit()
             .putString("seen", seen.joinToString("\n"))
             .putString("scores", scores.entries.joinToString("\n") { "${it.key}\t${it.value}" })
+            .putString("hosts", hostScores.entries.joinToString("\n") { "${it.key}\t${it.value}" })
             .apply()
     }
 
@@ -535,11 +612,20 @@ class MainActivity : AppCompatActivity() {
     inner class Bridge {
         @JavascriptInterface
         fun onImages(token: Int, json: String) {
-            val list = try {
+            val parsed = try {
                 val arr = JSONArray(json)
-                (0 until arr.length()).map { arr.getString(it) }
+                (0 until arr.length()).map {
+                    val e = arr.getJSONArray(it)
+                    Triple(e.getString(0), e.optInt(1, 0), e.optInt(2, 0))
+                }
             } catch (e: Exception) { emptyList() }
-            runOnUiThread { onImagesFound(token, list) }
+            runOnUiThread {
+                if (token == searchToken) {
+                    dims.clear()
+                    parsed.forEach { (u, h, w) -> dims[u] = h to w }
+                }
+                onImagesFound(token, parsed.map { it.first })
+            }
         }
 
         @JavascriptInterface
@@ -547,6 +633,8 @@ class MainActivity : AppCompatActivity() {
             // الصورة ما انفتحت (محمية أو محذوفة): نعبر للي بعدها بدون إعلان
             runOnUiThread {
                 if (i != index || images.isEmpty()) return@runOnUiThread
+                val h = hostOf(images[index])
+                if (h.isNotEmpty()) hostScores[h] = ((hostScores[h] ?: 0) - 1).coerceIn(-5, 10)
                 if (viewingFavs && images.size == 1) return@runOnUiThread
                 showNext()
             }
@@ -556,11 +644,11 @@ class MainActivity : AppCompatActivity() {
     /** سكربت يستخرج روابط الصور الأصلية من صفحة صور جوجل، ويقدّم الصور الطولية (إطلالة كاملة) */
     private fun extractJs(token: Int) = """
 (function(){
-  var out=[], tall=[], seen={};
-  function add(u){
+  var out=[], tall=[], seen={}, dim={};
+  function add(u,h,w){
     if(!u||seen[u])return;
     if(u.indexOf('https://')!==0 && u.indexOf('data:image')!==0)return;
-    seen[u]=1; out.push(u);
+    seen[u]=1; out.push(u); dim[u]=[h||0,w||0];
   }
   var html=document.documentElement.innerHTML, m;
   var re=/\["(https:\/\/[^"]+?)",(\d+),(\d+)\]/g;
@@ -570,17 +658,17 @@ class MainActivity : AppCompatActivity() {
     if(/gstatic\.com|google\.|googleusercontent/.test(u))continue;
     var h=parseInt(m[2]), w=parseInt(m[3]);
     if(h<250||w<200)continue;
-    add(u);
+    add(u,h,w);
     if(h>=w*1.2) tall.push(u);
   }
   var re2=/imgurl=([^&"]+)/g;
   while((m=re2.exec(html))!==null){ try{ add(decodeURIComponent(m[1])); }catch(e){} }
   if(out.length<3){
     var imgs=document.images;
-    for(var i=0;i<imgs.length;i++){ if(imgs[i].naturalWidth>=100) add(imgs[i].src); }
+    for(var i=0;i<imgs.length;i++){ if(imgs[i].naturalWidth>=100) add(imgs[i].src,imgs[i].naturalHeight,imgs[i].naturalWidth); }
   }
   var res = tall.length>=10 ? tall : tall.concat(out.filter(function(x){return tall.indexOf(x)<0;}));
-  Android.onImages(__T__, JSON.stringify(res.slice(0,100)));
+  Android.onImages(__T__, JSON.stringify(res.slice(0,100).map(function(x){return [x,dim[x][0],dim[x][1]];})));
 })();
 """.replace("__T__", token.toString())
 
