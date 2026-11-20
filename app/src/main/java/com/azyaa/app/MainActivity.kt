@@ -81,8 +81,13 @@ class MainActivity : AppCompatActivity() {
         "الكل" to listOf(""),
         "ستوديو" to listOf("studio photo", "lookbook photoshoot", "editorial photoshoot"),
         "شارع" to listOf("street style", "city street outfit", "outdoor photo"),
-        "إطلالة كاملة" to listOf("full body", "head to toe look", "full length outfit"),
-        "تفاصيل" to listOf("details close up", "fabric detail", "outfit accessories")
+        "إطلالة كاملة" to listOf("")
+    )
+
+    // كل بحث يميل للإطلالة الكاملة للمودل (من الراس للقدم)
+    private val fullBody = listOf(
+        "full body model", "full length outfit model", "head to toe look model",
+        "full body shot", "standing full body pose", "full length fashion photo"
     )
 
     private val colors = listOf(
@@ -192,6 +197,7 @@ class MainActivity : AppCompatActivity() {
             parts.add(base)
             val m = modePool.random()
             if (m.isNotEmpty()) parts.add(m)
+            parts.add(fullBody.random())
             val extra = mutableListOf<String>()
             if (Random.nextInt(100) < 55) extra.add(colors.random())
             if (Random.nextInt(100) < 45) extra.add(variations.random())
@@ -321,7 +327,7 @@ class MainActivity : AppCompatActivity() {
     /** سكربت يستخرج روابط الصور الأصلية من صفحة صور جوجل */
     private fun extractJs(token: Int) = """
 (function(){
-  var out=[], seen={};
+  var out=[], tall=[], seen={};
   function add(u){
     if(!u||seen[u])return;
     if(u.indexOf('https://')!==0 && u.indexOf('data:image')!==0)return;
@@ -333,8 +339,10 @@ class MainActivity : AppCompatActivity() {
     var u=m[1];
     try{ u=JSON.parse('"'+u+'"'); }catch(e){}
     if(/gstatic\.com|google\.|googleusercontent/.test(u))continue;
-    if(parseInt(m[2])<250||parseInt(m[3])<200)continue;
+    var h=parseInt(m[2]), w=parseInt(m[3]);
+    if(h<250||w<200)continue;
     add(u);
+    if(h>=w*1.2) tall.push(u);   // صور طولية = إطلالة كاملة غالباً
   }
   var re2=/imgurl=([^&"]+)/g;
   while((m=re2.exec(html))!==null){ try{ add(decodeURIComponent(m[1])); }catch(e){} }
@@ -342,7 +350,9 @@ class MainActivity : AppCompatActivity() {
     var imgs=document.images;
     for(var i=0;i<imgs.length;i++){ if(imgs[i].naturalWidth>=100) add(imgs[i].src); }
   }
-  Android.onImages(__T__, JSON.stringify(out.slice(0,100)));
+  // إذا عدنا صور طولية كافية نعرضها هي، وإلا نقدمها أول القائمة
+  var res = tall.length>=15 ? tall : tall.concat(out.filter(function(x){return tall.indexOf(x)<0;}));
+  Android.onImages(__T__, JSON.stringify(res.slice(0,100)));
 })();
 """.replace("__T__", token.toString())
 

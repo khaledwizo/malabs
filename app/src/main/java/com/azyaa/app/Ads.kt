@@ -2,7 +2,7 @@ package com.azyaa.app
 
 import android.app.Activity
 import android.os.CountDownTimer
-import android.widget.Toast
+import android.util.Log
 import androidx.appcompat.app.AlertDialog
 import com.google.android.gms.ads.*
 import com.google.android.gms.ads.rewarded.RewardedAd
@@ -27,7 +27,7 @@ class Ads(private val act: Activity) {
         loadRewardedInter()
     }
 
-    /** يبين سبب فشل تحميل الإعلان (للتشخيص) */
+    /** يسجل سبب فشل تحميل الإعلان (للتشخيص فقط، بدون رسالة على الشاشة) */
     private fun report(which: String, e: LoadAdError) {
         val why = when (e.code) {
             AdRequest.ERROR_CODE_NO_FILL -> "ماكو إعلانات متوفرة حالياً (No fill)"
@@ -36,7 +36,8 @@ class Ads(private val act: Activity) {
             AdRequest.ERROR_CODE_APP_ID_MISSING -> "App ID ناقص"
             else -> "خطأ داخلي"
         }
-        Toast.makeText(act, "$which ما تحمّل: كود ${e.code} - $why", Toast.LENGTH_LONG).show()
+        // بدون رسائل مزعجة للمستخدم: السبب يُسجَّل فقط بالـ Logcat للتشخيص
+        Log.w("AzyaaAds", "$which ما تحمّل: كود ${e.code} - $why")
     }
 
     private fun loadRewarded() {
