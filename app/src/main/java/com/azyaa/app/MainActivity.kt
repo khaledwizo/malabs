@@ -20,95 +20,124 @@ import kotlin.random.Random
 /**
  * أزياء البنات: يبحث بصور جوجل (البحث الآمن مقفول دائماً) داخل نافذة مخفية،
  * يستخرج روابط الصور، ويعرض صورة وحدة فقط. كل «تحديث» = الصورة اللي بعدها.
+ *
+ * محرك البحث الذكي:
+ *  - يركّب نص البحث من قطع (لابسة + نوع اللبس + وضعية + نمط + لون...) بشكل عشوائي.
+ *  - يتعلم: الكلمات اللي تجيب نتائج جديدة يزيد احتمالها، واللي ما تجيب شي يقل.
+ *  - إذا ما طلعت نتائج يبسّط النص خطوة خطوة، وبالوضع التلقائي يبدّل اللغة.
  */
 class MainActivity : AppCompatActivity() {
 
-    // كل خانة إلها كلمات بحث إنكليزية وعربية منفصلة.
-    // الكلمة المهمة بين علامات تنصيص "" حتى جوجل يلتزم بنوع اللبس وما تختلط الأقسام.
-    private class Cat(val en: List<String>, val ar: List<String>)
+    /** كلمات بحث إنكليزية وعربية لكل خيار. key = كلمة عامة للبحث الاحتياطي */
+    private class Opt(val en: List<String>, val ar: List<String>, val keyEn: String = "", val keyAr: String = "")
 
+    // ===== الستايل: نوع الملابس =====
+    // الإنكليزي: الكلمة المهمة بين "" حتى ما تختلط الأقسام
+    // العربي: نص مختصر وشامل لأن نتائج العربي أقل
     private val styles = linkedMapOf(
-        "محتشم" to Cat(
+        "محتشم" to Opt(
             listOf("\"modest\" outfit", "\"modest\" maxi skirt outfit", "\"modest\" wide leg pants outfit",
                 "\"modest\" fashion look", "\"modest\" long cardigan outfit"),
-            listOf("ملابس \"محتشمة\"", "اطلالة \"محتشمة\"", "تنورة طويلة \"محتشمة\"",
-                "تنسيق ملابس \"محتشمة\"", "لبس \"محتشم\" كاجوال")
+            listOf("ملابس محتشمة", "لبس محتشم", "اطلالات محتشمة", "تنسيقات محتشمة"),
+            "modest outfit", "ملابس محتشمة"
         ),
-        "محجبات" to Cat(
+        "محجبات" to Opt(
             listOf("\"hijab\" outfit", "\"hijab\" outfit with jeans", "\"hijab\" blazer outfit",
                 "\"hijab\" maxi skirt outfit", "turkish \"hijab\" outfit", "\"hijab\" casual outfit"),
-            listOf("اطلالات \"محجبات\"", "ملابس \"محجبات\" كاجوال", "ستايلات \"محجبات\"",
-                "تنسيق ملابس \"محجبات\"", "لبس \"محجبات\" تركي", "\"محجبات\" بالجينز")
+            listOf("لبس محجبات", "اطلالات محجبات", "ستايل محجبات", "محجبات كاجوال"),
+            "hijab outfit", "محجبات"
         ),
-        "عباية" to Cat(
+        "عباية" to Opt(
             listOf("\"abaya\" outfit", "modern \"abaya\"", "open \"abaya\" outfit",
                 "black \"abaya\" elegant", "embroidered \"abaya\""),
-            listOf("\"عباية\" مودرن", "\"عبايات\" خليجية", "\"عباية\" مفتوحة",
-                "\"عباية\" سوداء راقية", "\"عبايات\" ملونة")
+            listOf("عبايات", "عباية مودرن", "عبايات خليجية", "عباية سوداء"),
+            "abaya", "عبايات"
         ),
-        "فساتين طويلة محتشمة" to Cat(
+        "فساتين طويلة محتشمة" to Opt(
             listOf("modest \"maxi dress\"", "long sleeve \"maxi dress\"",
                 "floral \"maxi dress\" modest", "satin \"maxi dress\" modest"),
-            listOf("\"فستان طويل\" محتشم", "\"فساتين طويلة\" بأكمام",
-                "\"فستان طويل\" ورد", "\"فستان طويل\" ستان")
+            listOf("فساتين طويلة", "فستان طويل محتشم", "فساتين سهرة طويلة"),
+            "maxi dress", "فساتين طويلة"
         ),
-        "رسمي / عمل" to Cat(
+        "رسمي / عمل" to Opt(
             listOf("\"office outfit\"", "\"business attire\"", "\"pant suit\" outfit",
                 "\"blazer\" office outfit", "\"workwear\" outfit"),
-            listOf("\"ملابس عمل\" نسائية رسمية", "\"بدلة\" نسائية رسمية",
-                "\"ملابس رسمية\" نسائية", "\"بليزر\" نسائي رسمي")
+            listOf("ملابس رسمية نسائية", "لبس دوام نسائي", "بدلة نسائية", "بليزر نسائي"),
+            "women office outfit", "ملابس رسمية نسائية"
         ),
-        "شتوي" to Cat(
+        "شتوي" to Opt(
             listOf("\"winter outfit\"", "\"wool coat\" outfit", "\"puffer jacket\" outfit",
                 "\"knit sweater\" outfit", "\"trench coat\" outfit"),
-            listOf("\"ملابس شتوية\" نسائية", "\"معطف\" نسائي شتوي", "\"جاكيت\" شتوي نسائي",
-                "\"بلوفر\" نسائي شتوي", "اطلالة \"شتوية\" نسائية")
+            listOf("ملابس شتوية نسائية", "معطف نسائي", "جاكيت شتوي نسائي", "اطلالات شتوية"),
+            "women winter outfit", "ملابس شتوية نسائية"
         ),
-        "شورت جينز" to Cat(
+        "شورت جينز" to Opt(
             listOf("\"denim shorts\" outfit", "\"jean shorts\" outfit",
                 "high waisted \"denim shorts\" outfit", "\"denim shorts\" street style"),
-            listOf("\"شورت جينز\" نسائي", "اطلالة \"شورت جينز\"",
-                "تنسيق \"شورت جينز\"", "\"شورت جينز\" صيفي")
+            listOf("شورت جينز نسائي", "شورت جينز", "تنسيق شورت جينز"),
+            "denim shorts outfit", "شورت جينز نسائي"
         ),
-        "شورت بوكسر نسائي" to Cat(
+        "شورت بوكسر نسائي" to Opt(
             listOf("\"boxer shorts\" outfit", "\"lounge shorts\" set",
                 "\"pajama shorts\" set", "\"loungewear\" shorts set"),
-            listOf("\"شورت بوكسر\" نسائي", "\"بيجامة شورت\" نسائية",
-                "\"ملابس بيت\" شورت نسائي", "\"طقم بيت\" شورت نسائي")
+            listOf("شورت بوكسر نسائي", "بيجامة شورت نسائية", "ملابس بيت نسائية"),
+            "women lounge shorts", "بيجامة شورت نسائية"
         ),
-        "رياضة ويوغا" to Cat(
+        "رياضة ويوغا" to Opt(
             listOf("\"yoga\" outfit", "\"yoga\" leggings set", "\"gym\" outfit",
                 "\"pilates\" outfit", "\"activewear\" set", "\"running\" outfit"),
-            listOf("ملابس \"يوغا\" نسائية", "ملابس \"رياضية\" نسائية", "طقم \"رياضي\" نسائي",
-                "ملابس \"جيم\" نسائية", "ليقنز \"رياضي\" نسائي")
+            listOf("ملابس رياضية نسائية", "ملابس يوغا", "لبس جيم نسائي", "طقم رياضي نسائي"),
+            "women activewear", "ملابس رياضية نسائية"
         ),
-        "بوركيني" to Cat(
+        "بوركيني" to Opt(
             listOf("\"burkini\"", "\"burkini\" swimwear", "\"modest swimsuit\"", "\"burkini\" beach"),
-            listOf("\"بوركيني\"", "\"مايوه شرعي\"", "\"بوركيني\" بحر", "\"مايوه محجبات\"")
+            listOf("بوركيني", "مايوه شرعي", "مايوه محجبات"),
+            "burkini", "بوركيني"
         ),
-        "ملابس سباحة / بيكيني" to Cat(
+        "ملابس سباحة / بيكيني" to Opt(
             listOf("\"bikini\" swimwear fashion", "\"one piece swimsuit\" fashion", "\"swimwear\" collection"),
-            listOf("\"ملابس سباحة\" نسائية", "\"مايوه\" نسائي", "\"بكيني\" نسائي")
+            listOf("ملابس سباحة نسائية", "مايوه نسائي"),
+            "swimwear fashion", "ملابس سباحة نسائية"
         )
     )
 
+    // ===== النمط: طريقة التصوير =====
     private val modes = linkedMapOf(
-        "الكل" to Cat(listOf(""), listOf("")),
-        "ستوديو" to Cat(listOf("studio photoshoot", "lookbook photoshoot"), listOf("جلسة تصوير ستوديو", "لوك بوك")),
-        "شارع" to Cat(listOf("street style", "outdoor photo"), listOf("ستريت ستايل", "تصوير خارجي")),
-        "إطلالة كاملة" to Cat(listOf(""), listOf(""))
+        "الكل" to Opt(listOf(""), listOf("")),
+        "ستوديو" to Opt(listOf("studio photoshoot", "lookbook photoshoot"), listOf("ستوديو", "لوك بوك")),
+        "شارع" to Opt(listOf("street style", "outdoor photo"), listOf("ستريت ستايل", "تصوير خارجي")),
+        "إطلالة كاملة" to Opt(listOf("full body"), listOf("اطلالة كاملة"))
     )
 
-    // امرأة لابسة الملابس (مو صورة منتج)، بعمر العشرينات
-    private val wearerEn = listOf("woman in her 20s wearing", "20s female model wearing", "young adult woman in her twenties wearing")
-    private val wearerAr = listOf("موديل شابة عشرينية ترتدي", "امرأة شابة عشرينية لابسة", "عارضة أزياء شابة ترتدي")
+    // ===== الوضعية / المكان =====
+    private val poses = linkedMapOf(
+        "الكل" to Opt(listOf(""), listOf("")),
+        "واقفة" to Opt(listOf("standing pose", "standing"), listOf("واقفة", "وقفة")),
+        "تمشي" to Opt(listOf("walking pose", "walking in street"), listOf("تمشي", "مشية")),
+        "جالسة (كنبة / كرسي)" to Opt(listOf("sitting on sofa", "sitting on chair", "sitting pose"),
+            listOf("جالسة على كنبة", "جالسة على كرسي", "جلسة")),
+        "جانبية" to Opt(listOf("side profile pose", "side view outfit"), listOf("وقفة جانبية", "صورة جانبية")),
+        "سيلفي مراية" to Opt(listOf("mirror selfie outfit", "mirror selfie"), listOf("سيلفي مراية", "سيلفي بالمراية")),
+        "كافيه" to Opt(listOf("cafe photoshoot", "coffee shop outfit"), listOf("كافيه", "بالكافيه")),
+        "بالطبيعة" to Opt(listOf("garden photoshoot", "nature photoshoot"), listOf("بالطبيعة", "حديقة")),
+        "بالمدينة ليلاً" to Opt(listOf("city night photoshoot", "night street style"), listOf("تصوير ليلي", "بالليل"))
+    )
 
-    // إطلالة كاملة للمودل (من الراس للقدم)
+    // ===== لغة البحث =====
+    private val LANG_AUTO = "تلقائي (عربي + English)"
+    private val LANG_AR = "عربي"
+    private val LANG_EN = "English"
+    private val langs = listOf(LANG_AUTO, LANG_AR, LANG_EN)
+
+    // قطع إضافية للتنويع
+    private val wearerEn = listOf("woman in her 20s wearing", "20s female model wearing", "young adult woman wearing")
+    private val wearerAr = listOf("موديل", "شابة", "")
     private val fullBodyEn = listOf("full body", "full length photo", "head to toe")
-    private val fullBodyAr = listOf("اطلالة كاملة", "صورة كاملة", "من الراس للقدم")
-
+    private val fullBodyAr = listOf("اطلالة كاملة", "")
+    private val adjEn = listOf("elegant", "casual", "chic", "trendy", "classy", "minimal", "2026")
+    private val adjAr = listOf("كاجوال", "راقي", "ترند", "ناعم")
     private val colorsEn = listOf("black", "white", "beige", "pink", "blue", "green", "red", "brown", "navy", "olive", "grey", "burgundy")
-    private val colorsAr = listOf("أسود", "أبيض", "بيج", "وردي", "أزرق", "أخضر", "أحمر", "بني", "كحلي", "زيتي", "رمادي", "عنابي")
+    private val colorsAr = listOf("أسود", "أبيض", "بيج", "وردي", "أزرق", "أخضر", "أحمر", "بني", "كحلي")
 
     // فلاتر جوجل العشوائية (صور كبيرة، صور فوتوغرافية، آخر سنة...)
     private val tbsOptions = listOf("", "", "isz:l", "itp:photo", "qdr:y")
@@ -117,34 +146,50 @@ class MainActivity : AppCompatActivity() {
     private val excludeEn =
         "-kids -kid -child -children -baby -toddler -teen -teens -girl -girls -boy -boys -men -man " +
         "-elderly -senior -grandma -granny -mature -mannequin -flatlay -hanger -product -shampoo"
-    private val excludeAr =
-        "-أطفال -طفلة -بناتي -ولادي -رجالي -عجوز -مسنة -مانيكان -شامبو"
-
-    // البحث يتناوب: مرة عربي ومرة إنكليزي
-    private var searchArabic = Random.nextBoolean()
+    private val excludeAr = "-أطفال -طفلة -بناتي -ولادي -رجالي -عجوز"
 
     private lateinit var spStyle: Spinner
     private lateinit var spMode: Spinner
+    private lateinit var spPose: Spinner
+    private lateinit var spLang: Spinner
     private lateinit var web: WebView        // يعرض صورة وحدة
     private lateinit var searchWeb: WebView  // مخفي خلف العرض: يفتح صور جوجل ويستخرج الروابط
     private lateinit var progress: ProgressBar
     private lateinit var txtCredit: TextView
     private lateinit var btnOpen: Button
+    private lateinit var btnFav: Button
+    private lateinit var btnFavs: Button
+    private lateinit var btnShare: Button
     private lateinit var ads: Ads
 
     private val handler = Handler(Looper.getMainLooper())
     private var images: List<String> = emptyList()
     private var index = 0
-    private var currentVariation = ""
     private var searchToken = 0
     private var loadedToken = -1
     private var extractTries = 0
-    private var retryRounds = 0
+
+    // حالة البحث الحالي
+    private var searchArabic = Random.nextBoolean()
+    private var level = 0          // 0 = نص كامل، 1 = أبسط، 2 = أبسط، 3 = كلمة عامة
+    private var retryRounds = 0    // كم مرة أعاد البحث بهاي الدفعة
+    private var langSwitched = false
+    private var currentItem = ""   // الكلمة الأساسية المستخدمة (للتعلم)
+    private var currentLabel = ""
     private val recentQueries = ArrayDeque<String>()
 
     // الصور اللي ظهرت سابقاً (تنحفظ حتى بعد سد التطبيق) حتى ما تتكرر
     private val seen = LinkedHashSet<String>()
     private val maxSeen = 5000
+
+    // المفضلة
+    private val favs = mutableListOf<String>()
+    private var viewingFavs = false
+
+    // «الذكاء البسيط»: نقاط لكل كلمة بحث حسب النتائج
+    private val scores = HashMap<String, Int>()
+
+    private val prefs by lazy { getSharedPreferences("azyaa", Context.MODE_PRIVATE) }
 
     @SuppressLint("SetJavaScriptEnabled", "AddJavascriptInterface")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -153,16 +198,31 @@ class MainActivity : AppCompatActivity() {
 
         spStyle = findViewById(R.id.spStyle)
         spMode = findViewById(R.id.spMode)
+        spPose = findViewById(R.id.spPose)
+        spLang = findViewById(R.id.spLang)
         web = findViewById(R.id.web)
         searchWeb = findViewById(R.id.searchWeb)
         progress = findViewById(R.id.progress)
         txtCredit = findViewById(R.id.txtCredit)
         btnOpen = findViewById(R.id.btnOpen)
+        btnFav = findViewById(R.id.btnFav)
+        btnFavs = findViewById(R.id.btnFavs)
+        btnShare = findViewById(R.id.btnShare)
 
-        loadSeen()
+        loadState()
 
         spStyle.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, styles.keys.toList())
         spMode.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, modes.keys.toList())
+        spPose.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, poses.keys.toList())
+        spLang.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, langs)
+        spLang.setSelection(prefs.getInt("lang", 0).coerceIn(0, langs.size - 1))
+        spLang.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(p: AdapterView<*>?, v: View?, pos: Int, id: Long) {
+                prefs.edit().putInt("lang", pos).apply()
+            }
+            override fun onNothingSelected(p: AdapterView<*>?) {}
+        }
+        updateFavsButton()
 
         val bridge = Bridge()
 
@@ -185,10 +245,17 @@ class MainActivity : AppCompatActivity() {
         ads = Ads(this).also { it.init() }
 
         findViewById<Button>(R.id.btnSearch).setOnClickListener {
-            ads.showRewardedInterstitial { retryRounds = 0; newSearch() }
+            ads.showRewardedInterstitial { startNewBatch() }
+        }
+        findViewById<Button>(R.id.btnSurprise).setOnClickListener {
+            // اختيار عشوائي للستايل والوضعية والنمط
+            spStyle.setSelection(Random.nextInt(styles.size))
+            spPose.setSelection(Random.nextInt(poses.size))
+            spMode.setSelection(Random.nextInt(modes.size))
+            ads.showRewardedInterstitial { startNewBatch() }
         }
         findViewById<Button>(R.id.btnRefresh).setOnClickListener {
-            if (images.isEmpty()) { retryRounds = 0; newSearch(); return@setOnClickListener }
+            if (images.isEmpty()) { startNewBatch(); return@setOnClickListener }
             ads.showRewardedVideo(
                 onReward = { showNext() },
                 onNotWatched = { Toast.makeText(this, "شاهد الإعلان كاملاً حتى تتبدل الصورة", Toast.LENGTH_SHORT).show() }
@@ -197,43 +264,102 @@ class MainActivity : AppCompatActivity() {
         btnOpen.setOnClickListener {
             val u = images.getOrNull(index)
             val target = if (u != null && u.startsWith("https://")) u else searchWeb.url
-            target?.let { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(it))) }
+            target?.let { try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(it))) } catch (_: Exception) {} }
         }
+        btnShare.setOnClickListener {
+            val u = images.getOrNull(index) ?: return@setOnClickListener
+            if (!u.startsWith("https://")) return@setOnClickListener
+            val send = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_TEXT, u)
+            }
+            startActivity(Intent.createChooser(send, "مشاركة الصورة"))
+        }
+        btnFav.setOnClickListener { toggleFav() }
+        btnFavs.setOnClickListener { openFavs() }
     }
 
-    /** يبني نص بحث للخانة المختارة فقط، بالعربي أو الإنكليزي، وما يعيد آخر 40 نص */
-    private fun buildQuery(arabic: Boolean): String {
-        val cat = styles[spStyle.selectedItem as String] ?: styles.values.first()
-        val mode = modes[spMode.selectedItem as String] ?: modes.values.first()
-        val items = if (arabic) cat.ar else cat.en
-        val modePool = if (arabic) mode.ar else mode.en
+    // ================= محرك البحث الذكي =================
+
+    private fun langMode(): String = spLang.selectedItem as String
+
+    /** يختار كلمة من القائمة؛ الكلمات اللي جابت نتائج جيدة إلها فرصة أكبر */
+    private fun pickWeighted(items: List<String>): String {
+        if (items.size <= 1) return items.firstOrNull() ?: ""
+        val w = items.map { (1.0 + (scores[it] ?: 0) * 0.35).coerceIn(0.15, 4.0) }
+        var r = Random.nextDouble() * w.sum()
+        for (i in items.indices) { r -= w[i]; if (r <= 0) return items[i] }
+        return items.last()
+    }
+
+    private fun learn(item: String, delta: Int) {
+        if (item.isEmpty()) return
+        scores[item] = ((scores[item] ?: 0) + delta).coerceIn(-5, 8)
+    }
+
+    /** يبني نص البحث حسب اللغة ومستوى التبسيط */
+    private fun buildQuery(arabic: Boolean, lvl: Int): String {
+        val st = styles[spStyle.selectedItem as String] ?: styles.values.first()
+        val md = modes[spMode.selectedItem as String] ?: modes.values.first()
+        val ps = poses[spPose.selectedItem as String] ?: poses.values.first()
         var q = ""
         for (attempt in 0 until 15) {
-            val parts = mutableListOf(
-                (if (arabic) wearerAr else wearerEn).random(),
-                items.random(),
-                (if (arabic) fullBodyAr else fullBodyEn).random()
-            )
-            val m = modePool.random()
-            if (m.isNotEmpty()) parts.add(m)
-            if (Random.nextInt(100) < 25) parts.add((if (arabic) colorsAr else colorsEn).random())
-            q = parts.joinToString(" ")
+            val parts = mutableListOf<String>()
+            if (arabic) {
+                // العربي: مختصر وشامل
+                currentItem = if (lvl >= 3) st.keyAr else pickWeighted(st.ar)
+                parts.add(currentItem)
+                if (lvl <= 1) parts.add(ps.ar.random())
+                if (lvl == 0) {
+                    if (Random.nextInt(100) < 50) parts.add(wearerAr.random())
+                    if (Random.nextInt(100) < 35) parts.add(fullBodyAr.random())
+                    if (Random.nextInt(100) < 25) parts.add(md.ar.random())
+                    if (Random.nextInt(100) < 20) parts.add((if (Random.nextBoolean()) colorsAr else adjAr).random())
+                }
+            } else {
+                currentItem = if (lvl >= 3) st.keyEn else pickWeighted(st.en)
+                when (lvl) {
+                    0 -> {
+                        parts.add(wearerEn.random()); parts.add(currentItem)
+                        parts.add(fullBodyEn.random()); parts.add(ps.en.random()); parts.add(md.en.random())
+                        if (Random.nextInt(100) < 25) parts.add(colorsEn.random())
+                        if (Random.nextInt(100) < 20) parts.add(adjEn.random())
+                    }
+                    1 -> { parts.add("woman wearing"); parts.add(currentItem); parts.add(ps.en.random()) }
+                    2 -> { parts.add(currentItem.replace("\"", "")); parts.add("model") }
+                    else -> parts.add(currentItem)
+                }
+            }
+            q = parts.filter { it.isNotBlank() }.joinToString(" ")
             if (q !in recentQueries) break
         }
         recentQueries.addLast(q)
-        while (recentQueries.size > 40) recentQueries.removeFirst()
-        currentVariation = if (arabic) "بحث عربي" else "English"
+        while (recentQueries.size > 60) recentQueries.removeFirst()
         return q
     }
 
-    /** بحث جديد بجوجل (بالنافذة المخفية) — كل دفعة جديدة تبدّل اللغة */
+    /** دفعة جديدة (من زر بحث أو لما تخلص الصور) */
+    private fun startNewBatch() {
+        level = 0
+        retryRounds = 0
+        langSwitched = false
+        searchArabic = when (langMode()) {
+            LANG_AR -> true
+            LANG_EN -> false
+            else -> !searchArabic   // تلقائي: مرة عربي ومرة إنكليزي
+        }
+        newSearch()
+    }
+
+    /** يبحث بجوجل بالنافذة المخفية حسب الحالة الحالية */
     private fun newSearch() {
-        if (retryRounds == 0) searchArabic = !searchArabic
+        viewingFavs = false
         val arabic = searchArabic
-        val q = "${buildQuery(arabic)} ${if (arabic) excludeAr else excludeEn}".trim().replace(Regex("\\s+"), " ")
-        // صفحات أولى فقط حتى تبقى النتائج دقيقة ومطابقة للخانة
-        val start = if (retryRounds == 0) listOf(0, 0, 20).random() else listOf(20, 40).random()
-        val tbs = tbsOptions.random()
+        val q = "${buildQuery(arabic, level)} ${if (arabic) excludeAr else excludeEn}".trim()
+            .replace(Regex("\\s+"), " ")
+        // صفحات أولى فقط حتى تبقى النتائج دقيقة
+        val start = if (retryRounds == 0 || level > 0) 0 else listOf(0, 20, 40).random()
+        val tbs = if (level == 0) tbsOptions.random() else ""
         // safe=active: البحث الآمن مقفول دائماً، tbm=isch: صور جوجل
         val url = "https://www.google.com/search?tbm=isch&safe=active&hl=" + (if (arabic) "ar" else "en") +
                 "&q=" + URLEncoder.encode(q, "UTF-8") + "&start=$start" +
@@ -242,8 +368,32 @@ class MainActivity : AppCompatActivity() {
         images = emptyList()
         index = 0
         progress.visibility = View.VISIBLE
-        txtCredit.text = if (arabic) "جاري البحث بالعربي..." else "جاري البحث بالإنكليزي..."
+        btnFav.isEnabled = false; btnShare.isEnabled = false
+        currentLabel = if (arabic) "بحث عربي" else "English"
+        txtCredit.text = when {
+            retryRounds == 0 -> if (arabic) "جاري البحث بالعربي..." else "Searching in English..."
+            else -> "أجرب نص بحث ثاني... ($retryRounds)"
+        }
         searchWeb.loadUrl(url)
+    }
+
+    /** ما طلعت نتائج كافية: نغيّر النص بذكاء ونعيد */
+    private fun retry(emptyResult: Boolean): Boolean {
+        if (retryRounds >= 6) return false
+        retryRounds++
+        if (emptyResult) {
+            learn(currentItem, -2)
+            if (level < 3) level++
+            else if (langMode() == LANG_AUTO && !langSwitched) {
+                // جربنا كل المستويات: نبدل اللغة ونرجع للنص الكامل
+                langSwitched = true; searchArabic = !searchArabic; level = 0
+            } else return false
+        } else {
+            // النتائج موجودة بس أغلبها شفناها: نفس المستوى بنص وصفحة مختلفة
+            learn(currentItem, -1)
+        }
+        newSearch()
+        return true
     }
 
     private fun extract(token: Int) {
@@ -257,31 +407,33 @@ class MainActivity : AppCompatActivity() {
             if (extractTries < 3) {
                 extractTries++
                 handler.postDelayed({ extract(token) }, 1200)
-            } else {
+                return
+            }
+            if (!retry(emptyResult = true)) {
                 progress.visibility = View.GONE
-                txtCredit.text = "ما لگيت صور، اضغط تحديث أو افتح بالمتصفح"
+                txtCredit.text = "ما لگيت صور، غيّر الاختيارات أو اضغط بحث مرة ثانية"
             }
             return
         }
-        // نشيل الصور اللي ظهرت قبل؛ إذا أغلبها مكررة نبحث بنص وصفحة ثانية تلقائياً
+        // نشيل الصور اللي ظهرت قبل؛ إذا أغلبها مكررة نعيد البحث بنص مغاير
         val fresh = list.filter { it !in seen }
-        if (fresh.size < 12 && retryRounds < 3) {
-            retryRounds++
-            newSearch()
-            return
-        }
-        retryRounds = 0
+        if (fresh.size < 12 && retry(emptyResult = fresh.isEmpty() && list.size < 5)) return
+
+        learn(currentItem, if (fresh.size >= 20) 2 else 1)
         loadedToken = token
         images = (if (fresh.isNotEmpty()) fresh else list).shuffled()
         index = 0
         progress.visibility = View.GONE
+        saveState()
         showCurrent()
     }
+
+    // ================= العرض =================
 
     /** يعرض صورة وحدة فقط */
     private fun showCurrent() {
         val u = images.getOrNull(index) ?: return
-        markSeen(u)
+        if (!viewingFavs) markSeen(u)
         val src = u.replace("&", "&amp;").replace("\"", "&quot;").replace("<", "&lt;")
         val html = "<html><head><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">" +
                 "<style>html,body{margin:0;height:100%;background:#111;display:flex;" +
@@ -290,17 +442,64 @@ class MainActivity : AppCompatActivity() {
                 "<img referrerpolicy=\"no-referrer\" src=\"$src\" onerror=\"Android.broken($index)\">" +
                 "</body></html>"
         web.loadDataWithBaseURL("https://www.google.com/", html, "text/html", "UTF-8", null)
-        txtCredit.text = "${spStyle.selectedItem} • ${spMode.selectedItem}" +
-                (if (currentVariation.isNotEmpty()) " • $currentVariation" else "") +
-                " • ${index + 1}/${images.size}"
+        txtCredit.text = if (viewingFavs) "⭐ المفضلة • ${index + 1}/${images.size}"
+        else "${spStyle.selectedItem} • ${spPose.selectedItem} • $currentLabel • ${index + 1}/${images.size}"
+        val https = u.startsWith("https://")
         btnOpen.isEnabled = true
+        btnShare.isEnabled = https
+        btnFav.isEnabled = https
+        btnFav.text = if (u in favs) "❤️ محفوظة" else "🤍 حفظ"
     }
 
-    /** الصورة اللي بعدها، وإذا خلصت القائمة يسوي بحث جديد بكلمة عشوائية */
+    /** الصورة اللي بعدها، وإذا خلصت القائمة يسوي دفعة جديدة بنص جديد */
     private fun showNext() {
         index++
-        if (index >= images.size) { saveSeen(); retryRounds = 0; newSearch() } else showCurrent()
+        if (index >= images.size) {
+            if (viewingFavs) {
+                index = 0
+                Toast.makeText(this, "رجعنا لأول صورة بالمفضلة", Toast.LENGTH_SHORT).show()
+                showCurrent()
+            } else {
+                saveState()
+                startNewBatch()
+            }
+        } else showCurrent()
     }
+
+    // ================= المفضلة =================
+
+    private fun toggleFav() {
+        val u = images.getOrNull(index) ?: return
+        if (u in favs) {
+            favs.remove(u)
+            Toast.makeText(this, "انشالت من المفضلة", Toast.LENGTH_SHORT).show()
+        } else {
+            favs.add(u)
+            Toast.makeText(this, "انحفظت بالمفضلة ⭐", Toast.LENGTH_SHORT).show()
+        }
+        saveFavs()
+        updateFavsButton()
+        btnFav.text = if (u in favs) "❤️ محفوظة" else "🤍 حفظ"
+    }
+
+    private fun openFavs() {
+        if (favs.isEmpty()) {
+            Toast.makeText(this, "ما عندك صور محفوظة بعد. اضغط 🤍 حفظ على أي صورة تعجبك", Toast.LENGTH_LONG).show()
+            return
+        }
+        searchToken++            // نلغي أي بحث شغال
+        progress.visibility = View.GONE
+        viewingFavs = true
+        images = favs.reversed() // الأحدث أول
+        index = 0
+        showCurrent()
+    }
+
+    private fun updateFavsButton() {
+        btnFavs.text = if (favs.isEmpty()) "⭐ المفضلة" else "⭐ المفضلة (${favs.size})"
+    }
+
+    // ================= الحفظ =================
 
     private fun markSeen(url: String) {
         seen.remove(url)
@@ -308,19 +507,29 @@ class MainActivity : AppCompatActivity() {
         while (seen.size > maxSeen) seen.remove(seen.first())
     }
 
-    private fun loadSeen() {
-        val s = getSharedPreferences("azyaa", Context.MODE_PRIVATE).getString("seen", "") ?: ""
-        if (s.isNotEmpty()) seen.addAll(s.split("\n"))
+    private fun loadState() {
+        prefs.getString("seen", "")?.takeIf { it.isNotEmpty() }?.let { seen.addAll(it.split("\n")) }
+        prefs.getString("favs", "")?.takeIf { it.isNotEmpty() }?.let { favs.addAll(it.split("\n")) }
+        prefs.getString("scores", "")?.takeIf { it.isNotEmpty() }?.split("\n")?.forEach { line ->
+            val i = line.lastIndexOf('\t')
+            if (i > 0) line.substring(i + 1).toIntOrNull()?.let { scores[line.substring(0, i)] = it }
+        }
     }
 
-    private fun saveSeen() {
-        getSharedPreferences("azyaa", Context.MODE_PRIVATE).edit()
-            .putString("seen", seen.joinToString("\n")).apply()
+    private fun saveState() {
+        prefs.edit()
+            .putString("seen", seen.joinToString("\n"))
+            .putString("scores", scores.entries.joinToString("\n") { "${it.key}\t${it.value}" })
+            .apply()
+    }
+
+    private fun saveFavs() {
+        prefs.edit().putString("favs", favs.joinToString("\n")).apply()
     }
 
     override fun onPause() {
         super.onPause()
-        saveSeen()
+        saveState()
     }
 
     inner class Bridge {
@@ -336,11 +545,15 @@ class MainActivity : AppCompatActivity() {
         @JavascriptInterface
         fun broken(i: Int) {
             // الصورة ما انفتحت (محمية أو محذوفة): نعبر للي بعدها بدون إعلان
-            runOnUiThread { if (i == index && images.isNotEmpty()) showNext() }
+            runOnUiThread {
+                if (i != index || images.isEmpty()) return@runOnUiThread
+                if (viewingFavs && images.size == 1) return@runOnUiThread
+                showNext()
+            }
         }
     }
 
-    /** سكربت يستخرج روابط الصور الأصلية من صفحة صور جوجل */
+    /** سكربت يستخرج روابط الصور الأصلية من صفحة صور جوجل، ويقدّم الصور الطولية (إطلالة كاملة) */
     private fun extractJs(token: Int) = """
 (function(){
   var out=[], tall=[], seen={};
@@ -358,7 +571,7 @@ class MainActivity : AppCompatActivity() {
     var h=parseInt(m[2]), w=parseInt(m[3]);
     if(h<250||w<200)continue;
     add(u);
-    if(h>=w*1.2) tall.push(u);   // صور طولية = إطلالة كاملة غالباً
+    if(h>=w*1.2) tall.push(u);
   }
   var re2=/imgurl=([^&"]+)/g;
   while((m=re2.exec(html))!==null){ try{ add(decodeURIComponent(m[1])); }catch(e){} }
@@ -366,7 +579,6 @@ class MainActivity : AppCompatActivity() {
     var imgs=document.images;
     for(var i=0;i<imgs.length;i++){ if(imgs[i].naturalWidth>=100) add(imgs[i].src); }
   }
-  // إذا عدنا صور طولية كافية نعرضها هي، وإلا نقدمها أول القائمة
   var res = tall.length>=10 ? tall : tall.concat(out.filter(function(x){return tall.indexOf(x)<0;}));
   Android.onImages(__T__, JSON.stringify(res.slice(0,100)));
 })();

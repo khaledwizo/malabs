@@ -4,26 +4,58 @@
     android:layout_height="match_parent"
     android:layoutDirection="rtl"
     android:orientation="vertical"
-    android:padding="12dp">
+    android:padding="10dp">
 
-    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-        android:text="الستايل" android:textStyle="bold" />
-    <Spinner android:id="@+id/spStyle"
-        android:layout_width="match_parent" android:layout_height="48dp" />
+    <!-- الصف الأول: الستايل + النمط -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal">
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:orientation="vertical">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="الستايل" android:textStyle="bold" />
+            <Spinner android:id="@+id/spStyle"
+                android:layout_width="match_parent" android:layout_height="44dp" />
+        </LinearLayout>
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:orientation="vertical">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="النمط" android:textStyle="bold" />
+            <Spinner android:id="@+id/spMode"
+                android:layout_width="match_parent" android:layout_height="44dp" />
+        </LinearLayout>
+    </LinearLayout>
 
-    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-        android:text="النمط" android:textStyle="bold" />
-    <Spinner android:id="@+id/spMode"
-        android:layout_width="match_parent" android:layout_height="48dp" />
+    <!-- الصف الثاني: الوضعية + لغة البحث -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal">
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:orientation="vertical">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="الوضعية / المكان" android:textStyle="bold" />
+            <Spinner android:id="@+id/spPose"
+                android:layout_width="match_parent" android:layout_height="44dp" />
+        </LinearLayout>
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:orientation="vertical">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="لغة البحث" android:textStyle="bold" />
+            <Spinner android:id="@+id/spLang"
+                android:layout_width="match_parent" android:layout_height="44dp" />
+        </LinearLayout>
+    </LinearLayout>
 
+    <!-- أزرار البحث -->
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
         android:orientation="horizontal">
         <Button android:id="@+id/btnSearch" android:layout_width="0dp"
             android:layout_height="wrap_content" android:layout_weight="1"
-            android:text="بحث" />
+            android:text="بحث 🔍" />
         <Button android:id="@+id/btnRefresh" android:layout_width="0dp"
             android:layout_height="wrap_content" android:layout_weight="1"
             android:text="تحديث 🔄" />
+        <Button android:id="@+id/btnSurprise" android:layout_width="0dp"
+            android:layout_height="wrap_content" android:layout_weight="1"
+            android:text="فاجئني 🎲" />
     </LinearLayout>
 
     <FrameLayout android:layout_width="match_parent" android:layout_height="0dp"
@@ -42,7 +74,21 @@
     <TextView android:id="@+id/txtCredit" android:layout_width="match_parent"
         android:layout_height="wrap_content" android:gravity="center"
         android:paddingTop="6dp" android:text="اختر الإطلالة واضغط بحث" />
-    <Button android:id="@+id/btnOpen" android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="فتح الصورة بالمتصفح" android:enabled="false" />
+
+    <!-- أدوات الصورة -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal">
+        <Button android:id="@+id/btnFav" android:layout_width="0dp"
+            android:layout_height="wrap_content" android:layout_weight="1"
+            android:textSize="12sp" android:text="🤍 حفظ" android:enabled="false" />
+        <Button android:id="@+id/btnFavs" android:layout_width="0dp"
+            android:layout_height="wrap_content" android:layout_weight="1"
+            android:textSize="12sp" android:text="⭐ المفضلة" />
+        <Button android:id="@+id/btnShare" android:layout_width="0dp"
+            android:layout_height="wrap_content" android:layout_weight="1"
+            android:textSize="12sp" android:text="مشاركة" android:enabled="false" />
+        <Button android:id="@+id/btnOpen" android:layout_width="0dp"
+            android:layout_height="wrap_content" android:layout_weight="1"
+            android:textSize="12sp" android:text="المتصفح" android:enabled="false" />
+    </LinearLayout>
 </LinearLayout>
