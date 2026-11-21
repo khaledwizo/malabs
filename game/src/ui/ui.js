@@ -1,14 +1,115 @@
-// الواجهة: القوائم، اختيار الشخصية والعتاد، الإعدادات، وواجهة اللعب (HUD)
-import { Settings, setSetting, RES_OPTIONS, FPS_OPTIONS, QUALITY } from '../core/settings.js';
-import { WEAPONS, SCOPES, NADES, MODES, SECONDARIES, validLoadout } from '../sim/weapons.js';
+// الواجهة: الشاشة الرئيسية المبنية على أوضاع اللعب، الأصدقاء والفريق، الشخصيات، العتاد، الإعدادات، الإيقاف، النتائج، الخريطة
+import { Settings, setSetting, RES_OPTIONS, FPS_OPTIONS, QUALITY, WEATHER_OPTIONS } from '../core/settings.js';
+import { WEAPONS, SCOPES, NADES, MODES, MODE_ORDER, SECONDARIES, ATTACH, CLASS_NAME, validLoadout, withAtt } from '../sim/weapons.js';
 import { CHARS, CHAR_ORDER } from '../game/chardefs.js';
 import { TEAMS } from '../sim/sim.js';
 import { Audio } from '../core/audio.js';
+import { Input } from '../core/input.js';
+import { HUD, HUD_HTML } from './hud.js';
+import { Social, fmtId, validId } from '../net/social.js';
 
 const $ = s => document.querySelector(s);
-const h = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html !== undefined) e.innerHTML = html; return e; };
-const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const LKEY = 'rafidain.loadout.v1';
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const LKEY = 'rafidain.loadout.v2';
+const ICON = {
+  tdm: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"><path d="M12 12l28 28M40 40l-5 8 13-13-8 5M52 12L24 40M24 40l5 8-13-13 8 5"/><path d="M8 8l6 2-4 4zM56 8l-6 2 4 4z" fill="currentColor"/></svg>',
+  rounds: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.2"><path d="M32 6l20 7v15c0 13-9 24-20 29C21 52 12 41 12 28V13z"/><path d="M24 31l6 6 11-13" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  sniper: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3"><circle cx="32" cy="32" r="20"/><circle cx="32" cy="32" r="3" fill="currentColor"/><path d="M32 4v14M32 46v14M4 32h14M46 32h14"/></svg>',
+  pistol: '<svg viewBox="0 0 64 64" fill="currentColor"><path d="M8 20h40l4-4h4v10h-6l-2 4H30l-3 3h-6l-3 13H8l5-17H8z"/><path d="M27 33h6l-2 6h-6z" opacity=".6"/></svg>',
+  friends: '<svg viewBox="0 0 48 48" fill="currentColor"><circle cx="17" cy="16" r="7"/><path d="M4 38c1-8 6-12 13-12s12 4 13 12z"/><circle cx="34" cy="18" r="5.5" opacity=".75"/><path d="M30 27c6-1 13 2 14 10H33c-.5-4-1.6-7-3-10z" opacity=".75"/></svg>',
+  char: '<svg viewBox="0 0 48 48" fill="currentColor"><path d="M24 4c-7 0-12 5-12 12v4c0 7 5 13 12 13s12-6 12-13v-4c0-7-5-12-12-12zm-7 16c3-1 5-4 7-7 2 3 4 6 7 7v1c0 5-3 9-7 9s-7-4-7-9z"/><path d="M8 46c1-7 7-11 16-11s15 4 16 11z"/></svg>',
+  gun: '<svg viewBox="0 0 48 48" fill="currentColor"><path d="M4 18h30l3-3h3v3h4v6h-6l-2 3H22l-2 3h-5l-2 9H6l3-12H4z"/></svg>',
+  gear: '<svg viewBox="0 0 48 48" fill="currentColor"><path d="M20 4h8l1 6 4 2 5-4 6 6-4 5 2 4 6 1v8l-6 1-2 4 4 5-6 6-5-4-4 2-1 6h-8l-1-6-4-2-5 4-6-6 4-5-2-4-6-1v-8l6-1 2-4-4-5 6-6 5 4 4-2zm4 13a7 7 0 1 0 0 14 7 7 0 0 0 0-14z"/></svg>',
+  copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg>',
+  plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+};
+
+const TEMPLATE = HUD_HTML + `
+<section class="scr" id="s-home">
+  <div class="home">
+    <div class="hleft">
+      <div class="logo"><h1>جبهة الرافدين</h1><small>معركة سوق المجاهدين</small></div>
+      <div class="pcard">
+        <div class="av" id="pcAv"></div>
+        <div class="pinfo"><input id="nameIn" maxlength="16" spellcheck="false" autocomplete="off"><div class="pid" id="pcId"></div></div>
+      </div>
+      <nav class="hnav">
+        <button data-go="friends">${ICON.friends}<span>الأصدقاء</span><i class="badge" id="frBadge"></i></button>
+        <button data-go="chars">${ICON.char}<span>الشخصية</span></button>
+        <button data-go="loadout">${ICON.gun}<span>العتاد</span></button>
+        <button data-go="settings">${ICON.gear}<span>الإعدادات</span></button>
+      </nav>
+    </div>
+    <div class="hright">
+      <div class="modes" id="modes"></div>
+      <div class="mdesc" id="mdesc"></div>
+      <div class="mopts" id="mopts"></div>
+      <div class="hbot"><div class="party" id="party"></div><button class="btn primary big" id="btnStart">ابدأ المعركة</button></div>
+    </div>
+  </div>
+</section>
+
+<section class="scr" id="s-friends">
+  <div class="panel wide"><div class="head"><h2>الأصدقاء</h2><button class="x" data-back>✕</button></div>
+    <div class="myid"><div><small>معرّفك — أعطه لأصدقائك</small><b id="frMyId"></b></div><button class="btn sm" id="frCopy">${ICON.copy} نسخ</button><button class="btn sm" id="frShare">مشاركة</button></div>
+    <div class="addf"><input id="frIn" inputmode="numeric" maxlength="14" placeholder="اكتب معرّف صديقك (10 أرقام)" dir="ltr" autocomplete="off"><button class="btn primary" id="frAdd">${ICON.plus} إرسال طلب صداقة</button></div>
+    <div id="frMsg" class="status"></div>
+    <div class="tabs" id="frTabs"><button data-t="list" class="on">أصدقائي</button><button data-t="req">الطلبات <i class="badge" id="frReqN"></i></button></div>
+    <div id="frBody" class="flist"></div>
+    <p class="note" id="frNet"></p>
+    <details class="srvjoin"><summary>سيرفر خاص (تطبيق «سيرفر الرافدين» على هاتف آخر)</summary><div class="addf"><input id="srvCode" maxlength="8" placeholder="رمز الغرفة" dir="ltr" autocomplete="off" style="text-transform:uppercase"><button class="btn" id="srvGo">دخول</button></div></details>
+  </div>
+</section>
+
+<section class="scr" id="s-chars">
+  <div class="panel side"><div class="head"><h2>اختر شخصيتك</h2><button class="x" data-back>✕</button></div>
+    <div class="charList" id="charList"></div><div id="charInfo" class="charInfo"></div></div>
+</section>
+
+<section class="scr" id="s-loadout">
+  <div class="panel side lo"><div class="head"><h2>العتاد</h2><span class="mtag" id="loMode"></span><button class="x" data-back>✕</button></div>
+    <div class="lobody">
+      <div class="locol">
+        <h5>السلاح الرئيسي</h5><div class="wgrid" id="loPrim"></div>
+        <h5>المسدس</h5><div class="wgrid sm" id="loSec"></div>
+      </div>
+      <div class="locol">
+        <div id="loStats"></div>
+        <h5>المنظار</h5><div class="chips" id="loScope"></div>
+        <div id="loAtt"></div>
+        <h5>القنابل (اثنتان)</h5><div class="chips" id="loNade0"></div><div class="chips" id="loNade1"></div>
+      </div>
+    </div></div>
+</section>
+
+<section class="scr" id="s-settings">
+  <div class="panel wide"><div class="head"><h2>الإعدادات</h2><button class="x" data-back>✕</button></div>
+    <div class="tabs" id="setTabs"><button data-t="aim" class="on">التحكم والتصويب</button><button data-t="gfx">الرسوم والأداء</button><button data-t="snd">الصوت</button></div>
+    <div id="setBody" class="setbody"></div></div>
+</section>
+
+<section class="scr" id="s-pause">
+  <div class="panel narrow"><div class="head"><h2>استراحة</h2></div>
+    <div class="menu col">
+      <button class="btn primary" id="pResume">متابعة القتال</button>
+      <button class="btn" id="pLoadout">تغيير العتاد</button>
+      <button class="btn" id="pSettings">الإعدادات</button>
+      <button class="btn danger" id="pQuit">مغادرة المعركة</button>
+    </div></div>
+</section>
+
+<section class="scr" id="s-end">
+  <div class="panel wide end"><div class="endhead" id="endHead"></div><div id="endBody"></div>
+    <div class="menu row"><button class="btn primary" id="eAgain">معركة جديدة</button><button class="btn" id="eMenu">الشاشة الرئيسية</button></div></div>
+</section>
+
+<section class="scr" id="s-map">
+  <div class="mapwrap"><canvas id="bigmap"></canvas><button class="x big" id="mapClose">✕</button><button class="x big zoom" id="mapZoom">＋</button><div class="maplegend"><i class="me"></i>أنت <i class="mate"></i>فريقك <i class="foe"></i>عدو مكشوف</div></div>
+</section>
+
+<div id="invite"></div>
+<div id="toast2"></div>
+`;
 
 export const UI = {
   game: null, screen: null, stack: [],
@@ -17,290 +118,279 @@ export const UI = {
     this.game = game;
     const ui = $('#ui');
     ui.innerHTML = TEMPLATE;
+    HUD.init(game, this);
     ui.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => { Audio.init(); Audio.play('ui'); this.open(b.dataset.go); }));
     ui.querySelectorAll('[data-back]').forEach(b => b.addEventListener('click', () => { Audio.play('uiBack'); this.back(); }));
-    $('#btnPlay').addEventListener('click', () => { Audio.init(); Audio.play('ui'); this.open('setup'); });
-    $('#btnStart').addEventListener('click', () => { Audio.init(); this.startMatch(); });
+    $('#btnStart').addEventListener('click', () => { Audio.init(); Audio.play('ui'); this.start(); });
     $('#pResume').addEventListener('click', () => this.game.resume());
     $('#pLoadout').addEventListener('click', () => this.open('loadout'));
     $('#pSettings').addEventListener('click', () => this.open('settings'));
     $('#pQuit').addEventListener('click', () => { this.game.quit(); this.showMenu(); });
-    $('#eAgain').addEventListener('click', () => { if (this.game.sim && this.game.sim.online) { this.closeScreens(); this.hud(true); this.toast('المباراة التالية تبدأ بعد لحظات'); return; } this.startMatch(); });
-    $('#btnJoin').addEventListener('click', () => { Audio.init(); this.joinOnline(); });
-    $('#roomIn').value = (() => { try { return localStorage.getItem('rafidain.room') || ''; } catch (e) { return ''; } })();
-    $('#roomIn').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5); });
-    $('#roomIn').addEventListener('keydown', e => { if (e.key === 'Enter') this.joinOnline(); });
+    $('#eAgain').addEventListener('click', () => { Audio.play('ui'); if (this.game.sim && this.game.sim.online) { this.closeScreens(); this.hud(true); this.toast('المعركة التالية تبدأ بعد لحظات'); return; } this.start(); });
     $('#eMenu').addEventListener('click', () => { this.game.quit(); this.showMenu(); });
-    $('#buyOpen').addEventListener('click', () => { if (this.game.sim) this.open('loadout'); });
-    $('#nameIn').value = Settings.name; $('#nameIn').addEventListener('change', e => setSetting('name', e.target.value.trim().slice(0, 16) || 'لاعب'));
-    $('#tbPause').addEventListener('click', () => this.game.pause());
-    $('#tbScore').addEventListener('touchstart', e => { e.preventDefault(); this.showScore(true); }, { passive: false });
-    $('#tbScore').addEventListener('touchend', () => this.showScore(false));
-    document.getElementById('weapBar').addEventListener('click', e => { const b = e.target.closest('[data-slot]'); if (b) this.game.queueSlot(+b.dataset.slot); });
-    this.buildSetup(); this.buildChars(); this.buildSettings(); this.buildOnline();
-    this.applyTouch();
-    window.addEventListener('resize', () => this.applyTouch());
+    $('#mapClose').addEventListener('click', () => this.closeMap());
+    $('#mapZoom').addEventListener('click', () => { const mv = this.game.mapView; mv.zoom = (mv.zoom || 1) > 1 ? 1 : 2.4; $('#mapZoom').textContent = mv.zoom > 1 ? '－' : '＋'; });
+    $('#nameIn').value = Settings.name;
+    $('#nameIn').addEventListener('change', e => { setSetting('name', e.target.value.trim().slice(0, 16) || 'لاعب'); e.target.value = Settings.name; Social.emit && Social.emit('profile'); });
+    // الأصدقاء
+    $('#frAdd').addEventListener('click', () => this.addFriend());
+    $('#frIn').addEventListener('keydown', e => { if (e.key === 'Enter') this.addFriend(); });
+    $('#frIn').addEventListener('input', e => { const d = e.target.value.replace(/\D/g, '').slice(0, 10); e.target.value = d.replace(/(\d{4})(\d{0,4})(\d{0,2})/, (m, a, b, c) => [a, b, c].filter(Boolean).join(' ')); });
+    $('#frCopy').addEventListener('click', () => this.copy(Social.id));
+    $('#srvGo').addEventListener('click', async () => {
+      const code = $('#srvCode').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, ''); if (code.length < 4) { this.frMsg('اكتب رمز الغرفة كما يظهر في تطبيق السيرفر', 'bad'); return; }
+      this.frMsg('جارٍ الاتصال بالسيرفر…');
+      try { const ns = await this.game.joinOnline({ room: code, name: Settings.name, char: Settings.char, loadout: this.getLoadout(Settings.mode), team: Settings.team || 0, onStatus: t => this.frMsg(t) }); this.closeScreens(); this.hud(true); this.game.startOnline(ns); }
+      catch (e) { this.frMsg(e.message || 'تعذّر الاتصال', 'bad'); }
+    });
+    $('#frShare').addEventListener('click', () => this.shareId());
+    $('#frTabs').addEventListener('click', e => { const b = e.target.closest('[data-t]'); if (!b) return; this.frTab = b.dataset.t; this.buildFriends(); });
+    $('#setTabs').addEventListener('click', e => { const b = e.target.closest('[data-t]'); if (!b) return; this.setTab = b.dataset.t; this.buildSettings(); });
+    Social.on((ev, d) => this.onSocial(ev, d));
+    this.buildHome(); this.buildChars();
     this.showMenu();
   },
-  applyTouch() {
-    const touch = matchMedia('(pointer:coarse)').matches || 'ontouchstart' in window;
-    document.documentElement.classList.toggle('touch', touch);
-    document.documentElement.style.setProperty('--ts', Settings.touchSize);
-  },
-  // ---------- التنقل بين الشاشات ----------
+  // ---------- التنقل ----------
   hideAll() { document.querySelectorAll('.scr').forEach(s => s.classList.remove('on')); },
   open(id) {
     if (this.screen && this.screen !== id) this.stack.push(this.screen);
     this.hideAll(); const el = $('#s-' + id); if (el) el.classList.add('on'); this.screen = id;
+    if (this.game.sim) Input.reset();
     if (id === 'loadout') this.buildLoadout();
-    if (id === 'chars') this.game.menuView('chars', Settings.char);
-    if (id === 'menu') this.game.menuView('menu');
-    if (id === 'setup') this.game.menuView('menu');
+    if (id === 'chars') { this.game.menuView('chars', Settings.char); this.buildChars(); }
+    if (id === 'home') { this.game.menuView('menu'); this.buildHome(); }
     if (id === 'settings') this.buildSettings();
+    if (id === 'friends') this.buildFriends();
+    if (id !== 'loadout') this.game.menuWeaponId = null;
   },
   back() {
     const prev = this.stack.pop();
+    if (this.screen === 'map') { this.closeMap(); return; }
     if (this.game.sim && !this.game.sim.matchOver && (!prev || prev === 'pause')) { this.hideAll(); this.screen = null; if (this.game.paused) this.open('pause'); else this.game.resume(); return; }
-    if (prev) { this.hideAll(); $('#s-' + prev).classList.add('on'); this.screen = prev; if (prev === 'menu' || prev === 'setup') this.game.menuView('menu'); if (prev === 'chars') this.game.menuView('chars', Settings.char); }
+    if (prev) { this.hideAll(); $('#s-' + prev).classList.add('on'); this.screen = prev; if (prev === 'home') { this.game.menuView('menu'); this.buildHome(); } if (prev === 'chars') this.game.menuView('chars', Settings.char); this.game.menuWeaponId = null; }
     else this.showMenu();
   },
-  showMenu() { this.stack = []; this.hideAll(); $('#s-menu').classList.add('on'); this.screen = 'menu'; this.hud(false); this.game.menuView('menu'); },
-  closeScreens() { this.hideAll(); this.screen = null; this.stack = []; },
-  hud(on) { $('#hud').classList.toggle('on', on); },
-  // ---------- إعداد المباراة ----------
-  setup: { mode: Settings.mode || 'epic', rounds: Settings.rounds || 5, diff: Settings.difficulty || 'normal', size: 2, team: Settings.team || 0 },
-  buildSetup() {
-    const S = this.setup;
-    const seg = (id, items, key) => { const el = $(id); el.innerHTML = items.map(([v, l, sub]) => `<button class="opt ${S[key] == v ? 'sel' : ''}" data-v="${v}"><b>${l}</b>${sub ? `<small>${sub}</small>` : ''}</button>`).join(''); el.querySelectorAll('.opt').forEach(b => b.addEventListener('click', () => { Audio.play('ui'); S[key] = isNaN(+b.dataset.v) ? b.dataset.v : +b.dataset.v; this.buildSetup(); })); };
-    seg('#setMode', Object.entries(MODES).map(([k, m]) => [k, m.name, m.desc]), 'mode');
-    seg('#setRounds', [[3, 'قصيرة', 'أول من يفوز بـ 3'], [5, 'عادية', 'أول من يفوز بـ 5'], [7, 'طويلة', 'أول من يفوز بـ 7']], 'rounds');
-    seg('#setSize', [[1, '1 ضد 1'], [2, '2 ضد 2'], [3, '3 ضد 3'], [5, '5 ضد 5']], 'size');
-    seg('#setDiff', [['easy', 'سهل'], ['normal', 'عادي'], ['hard', 'صعب']], 'diff');
-    seg('#setTeam', [[0, TEAMS[0].name, 'من الشريعة'], [1, TEAMS[1].name, 'من صحن الجامع']], 'team');
+  showMenu() { this.stack = []; this.hideAll(); $('#s-home').classList.add('on'); this.screen = 'home'; this.hud(false); this.game.menuView('menu'); this.buildHome(); },
+  closeScreens() { this.hideAll(); this.screen = null; this.stack = []; this.game.menuWeaponId = null; },
+  hud(on) { HUD.show(on); },
+  openMap() { if (!this.game.sim) return; this.mapOpen = true; this.hideAll(); $('#s-map').classList.add('on'); this.screen = 'map'; Input.reset(); },
+  closeMap() { this.mapOpen = false; $('#s-map').classList.remove('on'); this.screen = null; this.stack = []; },
+  // ---------- الرئيسية: أوضاع اللعب ----------
+  buildHome() {
+    const S = Settings;
+    $('#pcId').innerHTML = `المعرّف: <b dir="ltr">${fmtId(Social.id)}</b>`;
+    $('#pcAv').textContent = (CHARS[S.char] || CHARS.khaled).name[0];
+    $('#pcAv').className = 'av c-' + S.char;
+    $('#modes').innerHTML = MODE_ORDER.map(k => { const m = MODES[k]; return `<button class="mode m-${k} ${S.mode === k ? 'sel' : ''}" data-m="${k}"><i>${ICON[m.icon]}</i><b>${m.name}</b><small>${m.sub}</small></button>`; }).join('');
+    $('#modes').querySelectorAll('.mode').forEach(b => b.addEventListener('click', () => { Audio.play('ui'); setSetting('mode', b.dataset.m); this.buildHome(); }));
+    const M = MODES[S.mode] || MODES.tdm;
+    $('#mdesc').textContent = M.desc;
+    // خيارات مضغوطة: كل خيار بسهمين للتبديل
+    const opts = [['teamSize', 'الفريق', [[1, '1 ضد 1'], [2, '2 ضد 2'], [3, '3 ضد 3'], [4, '4 ضد 4'], [5, '5 ضد 5']]]];
+    if (M.rules === 'tdm') opts.push(['tdmTime', 'المدة', [[300, '5 دقائق'], [600, '10 دقائق'], [900, '15 دقيقة']]]);
+    else opts.push(['rounds', 'الفوز بـ', [[3, '3 جولات'], [5, '5 جولات'], [7, '7 جولات']]]);
+    opts.push(['difficulty', 'البوتات', [['easy', 'سهلة'], ['normal', 'عادية'], ['hard', 'شرسة']]]);
+    opts.push(['weather', 'الطقس', WEATHER_OPTIONS.map(o => [o.id, o.label])]);
+    $('#mopts').innerHTML = opts.map(([k, l, items]) => { const i = Math.max(0, items.findIndex(x => String(x[0]) === String(S[k]))); return `<div class="stp" data-k="${k}"><label>${l}</label><div><button data-d="1">‹</button><b>${items[i][1]}</b><button data-d="-1">›</button></div></div>`; }).join('');
+    $('#mopts').querySelectorAll('.stp').forEach(el => el.addEventListener('click', e => {
+      const b = e.target.closest('button'); const k = el.dataset.k, items = opts.find(o => o[0] === k)[2];
+      const i = Math.max(0, items.findIndex(x => String(x[0]) === String(S[k]))), d = b ? +b.dataset.d : 1;
+      Audio.play('ui'); setSetting(k, items[(i + d + items.length) % items.length][0]); this.buildHome();
+    }));
+    this.buildParty();
+    this.updateBadges();
   },
-  startMatch() {
-    const S = this.setup; setSetting('mode', S.mode); setSetting('rounds', S.rounds); setSetting('difficulty', S.diff); setSetting('team', S.team);
+  buildParty() {
+    const P = Social.party, el = $('#party');
+    const me = { id: Social.id, name: Settings.name, char: Settings.char };
+    const mem = P ? P.members : [me];
+    let h = mem.map(m => `<div class="pm ${m.id === Social.id ? 'me' : ''}"><i class="av c-${esc(m.char)}">${esc((CHARS[m.char] || CHARS.khaled).name[0])}</i><span>${esc(m.name)}</span>${P && m.id === P.host ? '<em>المضيف</em>' : ''}</div>`).join('');
+    if (!P || P.host === Social.id) h += `<button class="pm add" id="pInvite">${ICON.plus}<span>ادعُ صديقاً</span></button>`;
+    if (P && P.members.length > 1) h += `<button class="pm vs" id="pVs" ${P.host === Social.id ? '' : 'disabled'}>${P.vs ? '⚔' : '🤝'}<span>${P.vs ? 'ضد بعض' : 'معاً ضد البوتات'}</span></button>`;
+    if (P) h += `<button class="pm leave" id="pLeave">✕<span>${P.host === Social.id ? 'حلّ الفرقة' : 'مغادرة'}</span></button>`;
+    el.innerHTML = h;
+    const inv = $('#pInvite'); if (inv) inv.addEventListener('click', () => { Audio.play('ui'); this.frTab = 'list'; this.open('friends'); });
+    const lv = $('#pLeave'); if (lv) lv.addEventListener('click', () => { Social.leaveParty && Social.leaveParty(); this.buildHome(); });
+    const vs = $('#pVs'); if (vs) vs.addEventListener('click', () => { Audio.play('ui'); Social.setPartyVs(!Social.party.vs); this.buildParty(); });
+    const btn = $('#btnStart');
+    const guest = P && P.host !== Social.id;
+    btn.disabled = !!guest; btn.textContent = guest ? 'بانتظار المضيف…' : P && P.members.length > 1 ? 'ابدأ مع الفريق' : 'ابدأ المعركة';
+  },
+  updateBadges() {
+    const n = Social.requests.length, el = $('#frBadge'); if (el) { el.textContent = n || ''; el.classList.toggle('on', n > 0); }
+    const r = $('#frReqN'); if (r) { r.textContent = n || ''; r.classList.toggle('on', n > 0); }
+  },
+  matchOpts() { const S = Settings, mode = S.mode; return { mode, roundsToWin: S.rounds, timeLimit: S.tdmTime, difficulty: S.difficulty, size: S.teamSize, team: S.team || 0, char: S.char, name: S.name, loadout: this.getLoadout(mode), weather: S.weather }; },
+  async start() {
+    if (Social.party && Social.party.members.length > 1) {
+      if (Social.party.host !== Social.id) return;
+      const b = $('#btnStart'); b.disabled = true; b.textContent = 'تجهيز السيرفر على هاتفك…';
+      try { await this.game.hostParty(this.matchOpts()); this.closeScreens(); this.hud(true); }
+      catch (e) { this.toast2('تعذّر بدء المعركة: ' + (e.message || e)); }
+      finally { b.disabled = false; this.buildParty(); }
+      return;
+    }
     this.closeScreens(); this.hud(true);
-    this.game.startMatch({ mode: S.mode, roundsToWin: S.rounds, difficulty: S.diff, size: S.size, team: S.team, char: Settings.char, name: Settings.name, loadout: this.getLoadout(S.mode) });
+    this.game.startMatch(this.matchOpts());
+  },
+  // عضو في الفرقة: المضيف بدأ — ندخل معركته مباشرة
+  async joinParty(d) {
+    if (this.game.sim) return;
+    this.toast2('المضيف بدأ المعركة — جارٍ الدخول…');
+    try {
+      const ns = await this.game.joinOnline({ room: d.room, name: Settings.name, char: Settings.char, loadout: this.getLoadout(d.mode || Settings.mode), team: d.team || 0 });
+      this.closeScreens(); this.hud(true); this.game.startOnline(ns, d.weather);
+    } catch (e) { this.toast2('تعذّر الدخول: ' + (e.message || e)); }
   },
   getLoadout(mode) { return validLoadout(this.loadout[mode] || {}, mode); },
-  // ---------- اللعب أونلاين ----------
-  onTeam: -1,
-  buildOnline() {
-    const el = $('#onTeam');
-    el.innerHTML = [[-1, 'تلقائي', 'يوزّعنا السيرفر بالتساوي'], [0, TEAMS[0].name, 'من الشريعة'], [1, TEAMS[1].name, 'من صحن الجامع']].map(([v, l, sub]) => `<button class="opt ${this.onTeam === v ? 'sel' : ''}" data-v="${v}"><b>${l}</b><small>${sub}</small></button>`).join('');
-    el.querySelectorAll('.opt').forEach(b => b.addEventListener('click', () => { Audio.play('ui'); this.onTeam = +b.dataset.v; this.buildOnline(); }));
+  // ---------- الأصدقاء ----------
+  frTab: 'list',
+  buildFriends() {
+    $('#frMyId').textContent = fmtId(Social.id);
+    $('#frTabs').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.t === this.frTab));
+    const st = f => f.status === 'game' ? '<i class="st game"></i>في معركة' : f.status === 'on' ? '<i class="st on"></i>متصل' : '<i class="st"></i>غير متصل';
+    let h = '';
+    if (this.frTab === 'list') {
+      const sent = Social.sent.filter(id => !Social.friend(id));
+      h = Social.friends.length ? Social.friends.slice().sort((a, b) => (b.status === 'on') - (a.status === 'on')).map(f => `<div class="fr"><i class="av c-${esc(f.char)}">${esc(((CHARS[f.char] || CHARS.khaled).name || '?')[0])}</i><div class="fi"><b>${esc(f.name || 'صديق')}</b><small>${st(f)} · <span dir="ltr">${fmtId(f.id)}</span></small></div><button class="btn sm primary" data-inv="${f.id}" ${f.status === 'on' ? '' : 'disabled'}>دعوة للعب</button><button class="btn sm ghost" data-rm="${f.id}">✕</button></div>`).join('') : '<div class="empty">لا أصدقاء بعد. أرسل معرّفك لصديقك أو اكتب معرّفه في الأعلى.</div>';
+      if (sent.length) h += `<div class="sec">طلبات أرسلتها</div>` + sent.map(id => `<div class="fr dim"><div class="fi"><b dir="ltr">${fmtId(id)}</b><small>بانتظار القبول</small></div><button class="btn sm ghost" data-cancel="${id}">إلغاء</button></div>`).join('');
+    } else {
+      h = Social.requests.length ? Social.requests.map(r => `<div class="fr"><i class="av c-${esc(r.char)}">${esc(((CHARS[r.char] || CHARS.khaled).name)[0])}</i><div class="fi"><b>${esc(r.name)}</b><small dir="ltr">${fmtId(r.id)}</small></div><button class="btn sm primary" data-acc="${r.id}">قبول</button><button class="btn sm ghost" data-dec="${r.id}">رفض</button></div>`).join('') : '<div class="empty">لا طلبات جديدة.</div>';
+    }
+    const body = $('#frBody'); body.innerHTML = h;
+    body.querySelectorAll('[data-inv]').forEach(b => b.addEventListener('click', () => { Audio.play('ui'); Social.invite && Social.invite(b.dataset.inv); this.frMsg('أُرسلت الدعوة ✓', 'ok'); }));
+    body.querySelectorAll('[data-rm]').forEach(b => b.addEventListener('click', () => { if (b.dataset.arm) { Social.removeFriend && Social.removeFriend(b.dataset.rm); this.buildFriends(); } else { b.dataset.arm = 1; b.textContent = 'تأكيد الحذف'; } }));
+    body.querySelectorAll('[data-cancel]').forEach(b => b.addEventListener('click', () => { Social.cancelRequest && Social.cancelRequest(b.dataset.cancel); this.buildFriends(); }));
+    body.querySelectorAll('[data-acc]').forEach(b => b.addEventListener('click', () => { Audio.play('ui'); Social.accept && Social.accept(b.dataset.acc); this.buildFriends(); }));
+    body.querySelectorAll('[data-dec]').forEach(b => b.addEventListener('click', () => { Social.decline && Social.decline(b.dataset.dec); this.buildFriends(); }));
+    $('#frNet').textContent = Social.online ? 'متصل بشبكة الأصدقاء ✓' : 'جارٍ الاتصال بشبكة الأصدقاء…';
+    this.updateBadges();
   },
-  onlineStatus(t, cls = '') { const e = $('#onStatus'); e.textContent = t; e.className = 'status ' + cls; },
-  async joinOnline() {
-    if (this.joining) return;
-    const room = $('#roomIn').value.trim().toUpperCase();
-    if (room.length < 4) { this.onlineStatus('اكتب رمز الغرفة الظاهر في تطبيق السيرفر', 'bad'); return; }
-    try { localStorage.setItem('rafidain.room', room); } catch (e) { }
-    this.joining = true; $('#btnJoin').disabled = true;
-    this.onlineStatus('جارٍ الاتصال…');
-    try {
-      const ns = await this.game.joinOnline({ room, name: Settings.name, char: Settings.char, team: this.onTeam, loadout: this.getLoadout(Settings.mode || 'epic'), onStatus: s => this.onlineStatus(s) });
-      ns.setLoadout(ns.me, this.getLoadout(ns.mode));
-      ns.onlost = why => {
-        this.banner('انقطع الاتصال', why, 'lose', 3);
-        setTimeout(() => { if (this.game.sim === ns) { this.game.quit(); this.showMenu(); this.open('online'); this.onlineStatus(why, 'bad'); } }, 2500);
-      };
-      this.onlineStatus('تم الاتصال ✓', 'ok');
-      this.closeScreens(); this.hud(true);
-      this.game.startOnline(ns);
-    } catch (e) { this.onlineStatus(e.message || 'تعذّر الاتصال', 'bad'); }
-    this.joining = false; $('#btnJoin').disabled = false;
+  frMsg(t, cls = '') { const e = $('#frMsg'); e.textContent = t; e.className = 'status ' + cls; clearTimeout(this.frT); this.frT = setTimeout(() => { e.textContent = ''; }, 3500); },
+  addFriend() {
+    const id = validId($('#frIn').value);
+    if (!id) { this.frMsg('المعرّف غير صحيح — 10 أرقام كما يظهر عند صديقك', 'bad'); return; }
+    if (id === Social.id) { this.frMsg('هذا معرّفك أنت 🙂', 'bad'); return; }
+    if (Social.friend(id)) { this.frMsg('هو في قائمة أصدقائك بالفعل', 'ok'); return; }
+    Social.request && Social.request(id); $('#frIn').value = '';
+    this.frMsg('أُرسل طلب الصداقة ✓ سيظهر عنده فوراً', 'ok'); this.buildFriends();
   },
+  copy(text) { try { if (window.RafidainAndroid && window.RafidainAndroid.copy) window.RafidainAndroid.copy(text); else navigator.clipboard.writeText(text); this.frMsg('نُسخ ✓', 'ok'); } catch (e) { } },
+  shareId() {
+    const t = `أضفني في «جبهة الرافدين» 🎯\nمعرّفي: ${fmtId(Social.id)}`;
+    try { if (window.RafidainAndroid && window.RafidainAndroid.share) window.RafidainAndroid.share(t); else if (navigator.share) navigator.share({ text: t }); else this.copy(t); } catch (e) { }
+  },
+  onSocial(ev, d) {
+    if (ev === 'request') { this.toast2(`${d.name} يريد إضافتك صديقاً`, () => { this.frTab = 'req'; this.open('friends'); }); Audio.play('ui'); }
+    if (ev === 'accepted') this.toast2(`${d.name} قبل طلب صداقتك ✓`);
+    if (ev === 'invite') this.showInvite(d);
+    if (ev === 'party') { if (this.screen === 'home') this.buildParty(); }
+    if (ev === 'start') { this.joinParty(d); return; }
+    if (ev === 'note') this.toast2(d.text);
+    if (this.screen === 'friends') this.buildFriends();
+    this.updateBadges();
+  },
+  showInvite(inv) {
+    const el = $('#invite');
+    el.innerHTML = `<div class="inv"><i class="av c-${esc(inv.char)}">${esc(((CHARS[inv.char] || CHARS.khaled).name)[0])}</i><div><b>${esc(inv.name)}</b><small>يدعوك للعب معه — ${esc((MODES[inv.mode] || MODES.tdm).name)}</small></div><button class="btn primary sm" id="invAcc">قبول</button><button class="btn sm ghost" id="invDec">رفض</button></div>`;
+    el.classList.add('on'); Audio.play('invite');
+    const close = () => { el.classList.remove('on'); clearTimeout(this.invT); };
+    $('#invAcc').onclick = () => { close(); Social.acceptInvite && Social.acceptInvite(inv); };
+    $('#invDec').onclick = () => { close(); Social.declineInvite && Social.declineInvite(inv); };
+    clearTimeout(this.invT); this.invT = setTimeout(close, 30000);
+  },
+  toast2(t, onClick) { const e = $('#toast2'); e.textContent = t; e.classList.add('on'); e.onclick = onClick ? () => { e.classList.remove('on'); onClick(); } : null; clearTimeout(this.t2); this.t2 = setTimeout(() => e.classList.remove('on'), 4500); },
   // ---------- الشخصيات ----------
   buildChars() {
     const el = $('#charList');
-    el.innerHTML = CHAR_ORDER.map(id => { const c = CHARS[id]; return `<button class="char ${Settings.char === id ? 'sel' : ''}" data-id="${id}"><b>${esc(c.full)}</b><small>${esc(c.tag)}</small></button>`; }).join('');
-    const info = () => { const c = CHARS[Settings.char]; $('#charInfo').innerHTML = `<h3>${esc(c.full)}</h3><div class="tagline">${esc(c.tag)}</div><p>${esc(c.desc)}</p>`; };
-    el.querySelectorAll('.char').forEach(b => b.addEventListener('click', () => { Audio.play('ui'); setSetting('char', b.dataset.id); this.buildChars(); this.game.menuView('chars', b.dataset.id); if (this.game.sim) this.game.setMyChar(b.dataset.id); }));
-    info();
+    el.innerHTML = CHAR_ORDER.map(id => { const c = CHARS[id]; return `<button class="char ${Settings.char === id ? 'sel' : ''}" data-id="${id}"><i class="av c-${id}">${esc(c.name[0])}</i><span><b>${esc(c.full)}</b><small>${esc(c.tag)}</small></span></button>`; }).join('');
+    const c = CHARS[Settings.char] || CHARS.khaled; $('#charInfo').innerHTML = `<h3>${esc(c.full)}</h3><div class="tagline">${esc(c.tag)}</div><p>${esc(c.desc)}</p>`;
+    el.querySelectorAll('.char').forEach(b => b.addEventListener('click', () => { Audio.play('ui'); setSetting('char', b.dataset.id); this.buildChars(); this.game.menuView('chars', b.dataset.id); if (this.game.sim) this.game.setMyChar(b.dataset.id); Social.emit && Social.emit('profile'); }));
   },
   // ---------- العتاد ----------
   buildLoadout() {
-    const mode = this.game.sim ? this.game.sim.mode : this.setup.mode, L = this.getLoadout(mode);
+    const mode = this.game.sim ? this.game.sim.mode : Settings.mode, L = this.getLoadout(mode);
     const save = () => { this.loadout[mode] = L; try { localStorage.setItem(LKEY, JSON.stringify(this.loadout)); } catch (e) { } this.game.setMyLoadout(L); this.buildLoadout(); };
-    $('#loMode').textContent = 'وضع: ' + MODES[mode].name;
-    const stat = (w) => { const d = WEAPONS[w]; const dps = d.dmg * (d.pellets || 1) * d.rpm / 60; return [['الضرر', Math.min(1, d.dmg * (d.pellets || 1) / 120)], ['سرعة الإطلاق', Math.min(1, d.rpm / 900)], ['الدقة', Math.max(0.05, 1 - (d.spread + d.moveSpread * 0.3) * 18)], ['الحركة', (d.speed - 0.7) / 0.35], ['القتل/ث', Math.min(1, dps / 400)]]; };
-    const card = (w, sel, kind) => { const d = WEAPONS[w]; return `<button class="wpn ${sel ? 'sel' : ''}" data-w="${w}" data-k="${kind}"><b>${esc(d.name)}</b><small>${clsName(d.cls)} · ${d.mag || '∞'} طلقة</small></button>`; };
+    $('#loMode').textContent = MODES[mode].name + (this.game.sim && this.game.sim.tdm ? ' · يُطبّق عند عودتك للحياة' : '');
     const P = MODES[mode].primaries;
-    $('#loPrim').innerHTML = P.length ? P.map(w => card(w, L.primary === w, 'p')).join('') : '<div class="note">هذا الوضع بلا أسلحة رئيسية</div>';
+    const card = (w, sel, kind) => { const d = WEAPONS[w]; return `<button class="wpn ${sel ? 'sel' : ''}" data-w="${w}" data-k="${kind}"><b>${esc(d.name)}</b><small>${CLASS_NAME[d.cls]}</small></button>`; };
+    $('#loPrim').innerHTML = P.length ? P.map(w => card(w, L.primary === w, 'p')).join('') : '<div class="note">هذا الوضع بلا أسلحة رئيسية — مسدس وخنجر فقط</div>';
     $('#loSec').innerHTML = SECONDARIES.map(w => card(w, L.secondary === w, 's')).join('');
-    const sc = L.primary ? WEAPONS[L.primary].scopes : [];
-    $('#loScope').innerHTML = sc.map(s => `<button class="opt ${L.scope === s ? 'sel' : ''}" data-s="${s}"><b>${SCOPES[s].name}</b><small>تكبير ×${SCOPES[s].zoom}</small></button>`).join('') || '<div class="note">—</div>';
-    for (let i = 0; i < 2; i++) $('#loNade' + i).innerHTML = Object.entries(NADES).map(([k, n]) => `<button class="opt ${L.nades[i] === k ? 'sel' : ''}" data-n="${k}" data-i="${i}"><b>${n.name}</b><small>${n.desc}</small></button>`).join('') + `<button class="opt ${!L.nades[i] ? 'sel' : ''}" data-n="" data-i="${i}"><b>لا شيء</b></button>`;
-    const show = w => { if (!w) { $('#loStats').innerHTML = ''; return; } const d = WEAPONS[w]; $('#loStats').innerHTML = `<h3>${esc(d.name)}</h3><p>${esc(d.desc || '')}</p>` + stat(w).map(([l, v]) => `<div class="bar"><span>${l}</span><i style="--v:${Math.max(0.04, Math.min(1, v))}"></i></div>`).join(''); this.game.menuWeapon(w, w === L.primary ? L.scope : null); };
-    show(L.primary || L.secondary);
-    document.querySelectorAll('#s-loadout .wpn').forEach(b => b.addEventListener('click', () => { Audio.play('ui'); if (b.dataset.k === 'p') { L.primary = b.dataset.w; L.scope = WEAPONS[L.primary].scopes[0]; } else L.secondary = b.dataset.w; save(); show(b.dataset.w); }));
-    document.querySelectorAll('#loScope .opt').forEach(b => b.addEventListener('click', () => { Audio.play('ui'); L.scope = b.dataset.s; save(); }));
-    document.querySelectorAll('#s-loadout [data-n]').forEach(b => b.addEventListener('click', () => { Audio.play('ui'); const i = +b.dataset.i; const arr = [L.nades[0], L.nades[1]]; arr[i] = b.dataset.n || undefined; L.nades = arr.filter(Boolean); save(); }));
+    const focus = this.loFocus && (this.loFocus === L.primary || this.loFocus === L.secondary) ? this.loFocus : (L.primary || L.secondary);
+    const isPrim = focus === L.primary;
+    const wd = withAtt(focus, isPrim ? L.att : null), base = WEAPONS[focus];
+    const bars = [['الضرر', Math.min(1, wd.dmg * (wd.pellets || 1) / 160)], ['سرعة الإطلاق', Math.min(1, wd.rpm / 1000)], ['الدقة', Math.max(0.05, 1 - (wd.spread * 90 + wd.moveSpread * 4))], ['الثبات', Math.max(0.05, 1 - wd.recoil[0] * 22 - wd.recoil[1] * 30)], ['المدى', Math.max(0.05, (wd.range - 0.6) / 0.4)], ['الحركة', (wd.speed - 0.78) / 0.32]];
+    $('#loStats').innerHTML = `<div class="wtitle"><h3>${esc(base.name)}</h3><span>${CLASS_NAME[base.cls]} · ${wd.mag || '∞'} طلقة</span></div><p>${esc(base.desc || '')}</p>` + bars.map(([l, v]) => `<div class="bar"><span>${l}</span><i style="--v:${Math.max(0.04, Math.min(1, v)).toFixed(3)}"></i></div>`).join('');
+    const sc = isPrim ? base.scopes : [];
+    $('#loScope').innerHTML = isPrim && sc.length ? sc.map(s => `<button class="chip ${L.scope === s ? 'sel' : ''}" data-s="${s}">${SCOPES[s].short}</button>`).join('') : '<div class="note">—</div>';
+    const ATTN = { muzzle: 'الفوهة', grip: 'المقبض', mag: 'المخزن' };
+    $('#loAtt').innerHTML = isPrim ? base.att.map(k => `<h5>${ATTN[k]}</h5><div class="chips">${Object.entries(ATTACH[k]).map(([v, a]) => `<button class="chip ${L.att[k] === v ? 'sel' : ''}" data-a="${k}" data-v="${v}" title="${esc(a.desc || '')}">${a.name}</button>`).join('')}</div>`).join('') : '';
+    for (let i = 0; i < 2; i++) $('#loNade' + i).innerHTML = Object.entries(NADES).map(([k, n]) => `<button class="chip ${L.nades[i] === k ? 'sel' : ''}" data-n="${k}" data-i="${i}">${n.name}</button>`).join('') + `<button class="chip ${!L.nades[i] ? 'sel' : ''}" data-n="" data-i="${i}">لا شيء</button>`;
+    this.game.menuWeapon(focus, isPrim ? L.scope : null, isPrim ? L.att : null);
+    const root = $('#s-loadout');
+    root.querySelectorAll('.wpn').forEach(b => b.onclick = () => { Audio.play('ui'); if (b.dataset.k === 'p') { if (L.primary !== b.dataset.w) { L.primary = b.dataset.w; L.scope = null; L.att = {}; } } else L.secondary = b.dataset.w; this.loFocus = b.dataset.w; const v = validLoadout(L, mode); Object.assign(L, v); save(); });
+    root.querySelectorAll('[data-s]').forEach(b => b.onclick = () => { Audio.play('ui'); L.scope = b.dataset.s; save(); });
+    root.querySelectorAll('[data-a]').forEach(b => b.onclick = () => { Audio.play('ui'); L.att = { ...L.att, [b.dataset.a]: b.dataset.v }; save(); });
+    root.querySelectorAll('[data-n]').forEach(b => b.onclick = () => { Audio.play('ui'); const i = +b.dataset.i; const arr = [L.nades[0], L.nades[1]]; arr[i] = b.dataset.n || undefined; L.nades = arr.filter(Boolean); save(); });
   },
   // ---------- الإعدادات ----------
+  setTab: 'aim',
   buildSettings() {
     const el = $('#setBody'); if (!el) return;
+    $('#setTabs').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.t === this.setTab));
     const row = (label, ctrl, sub) => `<div class="row"><div><label>${label}</label>${sub ? `<small>${sub}</small>` : ''}</div><div class="ctl">${ctrl}</div></div>`;
+    const chips = (k, opts) => `<div class="chips" data-k="${k}">${opts.map(o => `<button class="chip ${String(Settings[k]) === String(o.id) ? 'sel' : ''}" data-v="${o.id}">${o.label}</button>`).join('')}</div>`;
     const sel = (k, opts) => `<select data-k="${k}">${opts.map(o => `<option value="${o.id}" ${String(Settings[k]) === String(o.id) ? 'selected' : ''}>${o.label}</option>`).join('')}</select>`;
     const tog = k => `<button class="tog ${Settings[k] ? 'on' : ''}" data-t="${k}"></button>`;
-    const rng = (k, a, b, s) => `<input type="range" data-k="${k}" min="${a}" max="${b}" step="${s}" value="${Settings[k]}"><output>${Settings[k]}</output>`;
-    el.innerHTML =
-      '<div class="sec">الشاشة والأداء</div>' +
-      row('الدقة', sel('res', RES_OPTIONS), 'نسبة من دقة الجهاز أو دقة ثابتة. الأعلى أجمل والأقل أسرع.') +
-      row('حدّ الفريمات', sel('fps', FPS_OPTIONS), '«غير محدود» يستغل كل قدرة الجهاز.') +
+    const rng = (k, a, b, s, pct) => `<input type="range" data-k="${k}" min="${a}" max="${b}" step="${s}" value="${Settings[k]}" ${pct ? 'data-pct="1"' : ''}><output>${pct ? Math.round(Settings[k] * 100) + '%' : Settings[k]}</output>`;
+    let h = '';
+    if (this.setTab === 'aim') h =
+      row('حساسية الكاميرا', rng('sens', 0.3, 3, 0.05, 1), 'سرعة الالتفات بالسحب على الشاشة') +
+      row('حساسية التصويب القريب', rng('adsSens', 0.3, 2.5, 0.05, 1), 'النقطة الحمراء والهولو و×2') +
+      row('حساسية المناظير', rng('scopeSens', 0.3, 2.5, 0.05, 1), '×3 وما فوق — تُقسَّم تلقائياً على قوة التكبير') +
+      row('زر التصويب', chips('adsMode', [{ id: 'mixed', label: 'مختلط' }, { id: 'tap', label: 'نقرة' }, { id: 'hold', label: 'ضغط مستمر' }]), 'المختلط: نقرة تثبّت، وضغطة طويلة تصوّب ما دام إصبعك موضوعاً') +
+      row('مساعدة التصويب', tog('aimAssist'), 'إبطاء خفيف عند مرور المؤشر على العدو (للمس فقط)') +
+      row('زر إطلاق يساري', tog('leftFire')) +
+      row('الجيروسكوب', chips('gyro', [{ id: 'off', label: 'مغلق' }, { id: 'scope', label: 'عند التصويب' }, { id: 'always', label: 'دائماً' }])) +
+      row('حساسية الجيروسكوب', rng('gyroSens', 0.3, 3, 0.05, 1)) +
+      row('عكس المحور العمودي', tog('invertY')) +
+      row('حجم أزرار اللمس', rng('touchSize', 0.8, 1.35, 0.05, 1)) + row('شفافية الواجهة', rng('hudAlpha', 0.4, 1, 0.05, 1)) +
+      row('لون مؤشر التصويب', chips('crossColor', [{ id: '#5dffb0', label: 'نعناعي' }, { id: '#ffffff', label: 'أبيض' }, { id: '#ffe14a', label: 'أصفر' }, { id: '#ff4a6a', label: 'أحمر' }, { id: '#4ad8ff', label: 'سماوي' }])) +
+      row('الاهتزاز', tog('haptics'));
+    else if (this.setTab === 'gfx') h =
+      row('الجودة', chips('quality', [{ id: 'auto', label: 'تلقائية' }].concat(Object.entries(QUALITY).map(([k, q]) => ({ id: k, label: q.label })))), 'الظلال والتوهج والمطر والانعكاسات. تُطبّق بعد إعادة التشغيل.') +
+      row('الدقة', sel('res', RES_OPTIONS), 'الأعلى أجمل والأقل أسرع') +
+      row('حدّ الفريمات', chips('fps', FPS_OPTIONS)) +
       row('عرض الفريمات أعلى اليسار', tog('showFps')) +
-      row('الجودة', sel('quality', [{ id: 'auto', label: 'تلقائية' }].concat(Object.entries(QUALITY).map(([k, q]) => ({ id: k, label: q.label })))), 'الظلال والقوام والجسيمات. تُطبّق بعد إعادة التشغيل.') +
-      row('مجال الرؤية', rng('fov', 70, 120, 1)) +
-      '<div class="sec">التحكم</div>' +
-      row('الحساسية', rng('sens', 0.2, 3, 0.05)) + row('حساسية التصويب', rng('adsSens', 0.2, 1.5, 0.05)) + row('عكس المحور العمودي', tog('invertY')) +
-      row('حجم أزرار اللمس', rng('touchSize', 0.75, 1.4, 0.05)) + row('لون مؤشر التصويب', sel('crossColor', [{ id: '#5dffb0', label: 'نعناعي' }, { id: '#ffffff', label: 'أبيض' }, { id: '#ffe14a', label: 'أصفر' }, { id: '#ff4a6a', label: 'أحمر' }, { id: '#4ad8ff', label: 'سماوي' }])) +
-      row('الاهتزاز', tog('haptics')) +
-      '<div class="sec">الصوت</div>' + row('الصوت العام', rng('volume', 0, 1, 0.05)) + row('الأجواء', rng('music', 0, 1, 0.05));
+      row('مجال الرؤية', rng('fov', 70, 110, 1)) +
+      row('الطقس الافتراضي', chips('weather', WEATHER_OPTIONS.map(o => ({ id: o.id, label: o.label }))));
+    else h = row('الصوت العام', rng('volume', 0, 1, 0.05, 1)) + row('الأجواء والطقس', rng('music', 0, 1, 0.05, 1));
+    el.innerHTML = h;
+    el.querySelectorAll('.chips').forEach(c => c.addEventListener('click', e => { const b = e.target.closest('.chip'); if (!b) return; const v = b.dataset.v; setSetting(c.dataset.k, isNaN(+v) || v === '' ? v : +v); this.buildSettings(); HUD.layout(); }));
     el.querySelectorAll('select').forEach(s => s.addEventListener('change', () => { const v = s.value; setSetting(s.dataset.k, isNaN(+v) ? v : +v); }));
-    el.querySelectorAll('.tog').forEach(b => b.addEventListener('click', () => { setSetting(b.dataset.t, !Settings[b.dataset.t]); b.classList.toggle('on', Settings[b.dataset.t]); }));
-    el.querySelectorAll('input[type=range]').forEach(r => r.addEventListener('input', () => { setSetting(r.dataset.k, +r.value); r.nextElementSibling.textContent = r.value; if (r.dataset.k === 'volume') Audio.setVolume(+r.value); if (r.dataset.k === 'touchSize') this.applyTouch(); }));
+    el.querySelectorAll('.tog').forEach(b => b.addEventListener('click', () => { setSetting(b.dataset.t, !Settings[b.dataset.t]); b.classList.toggle('on', Settings[b.dataset.t]); HUD.layout(); }));
+    el.querySelectorAll('input[type=range]').forEach(r => r.addEventListener('input', () => { setSetting(r.dataset.k, +r.value); r.nextElementSibling.textContent = r.dataset.pct ? Math.round(+r.value * 100) + '%' : r.value; if (r.dataset.k === 'volume') Audio.setVolume(+r.value); HUD.layout(); }));
   },
-  // ---------- واجهة اللعب ----------
-  fps(text) { const e = $('#fps'); e.style.display = Settings.showFps ? '' : 'none'; e.textContent = text; },
-  showScore(on) { $('#score').classList.toggle('on', on); if (on) this.renderScore(); },
-  renderScore() {
-    const sim = this.game.sim; if (!sim) return;
-    const rows = t => [...sim.players.values()].filter(p => p.team === t).sort((a, b) => b.kills - a.kills).map(p => `<tr class="${p.alive ? '' : 'dead'} ${p.id === this.game.me ? 'me' : ''}"><td>${esc(p.name)}${p.bot ? ' <i>بوت</i>' : ''}${sim.online && !p.bot && sim.roster.get(p.id) && sim.roster.get(p.id).rtt ? ` <i>${sim.roster.get(p.id).rtt}ms</i>` : ''}</td><td>${CHARS[p.char].name}</td><td>${p.kills}</td><td>${p.assists}</td><td>${p.deaths}</td><td>${Math.round(p.dmgDone)}</td></tr>`).join('');
-    $('#scoreBody').innerHTML = [0, 1].map(t => `<div class="team t${t}"><h4>${TEAMS[t].name} <b>${sim.score[t]}</b></h4><table><tr><th>اللاعب</th><th>الشخصية</th><th>ق</th><th>م</th><th>س</th><th>الضرر</th></tr>${rows(t)}</table></div>`).join('');
-  },
-  feed(k, v, w, hs, wall, mine) {
-    const f = $('#feed'), e = h('div', 'kf' + (mine ? ' mine' : ''));
-    const wn = WEAPONS[w] ? WEAPONS[w].name : NADES[w] ? NADES[w].name : w === 'fall' ? 'سقوط' : w;
-    e.innerHTML = (k ? `<b class="t${k.team}">${esc(k.name)}</b>` : '') + `<span class="w">${esc(wn)}${hs ? ' <i class="hs">◎</i>' : ''}${wall ? ' <i>⟂</i>' : ''}</span><b class="t${v.team}">${esc(v.name)}</b>`;
-    f.prepend(e); while (f.children.length > 5) f.lastChild.remove();
-    setTimeout(() => e.classList.add('fade'), 5000); setTimeout(() => e.remove(), 5800);
-  },
-  banner(big, small, cls = '', dur = 2.6) {
-    const b = $('#banner'); b.className = 'on ' + cls; $('#bBig').textContent = big; $('#bSmall').textContent = small || '';
-    clearTimeout(this._bt); this._bt = setTimeout(() => b.classList.remove('on'), dur * 1000);
-  },
-  toast(t) { const e = $('#toast'); e.textContent = t; e.classList.add('on'); clearTimeout(this._tt); this._tt = setTimeout(() => e.classList.remove('on'), 2200); },
-  hitMarker(hs, kill) { const e = $('#hitm'); e.className = 'on' + (hs ? ' hs' : '') + (kill ? ' kill' : ''); clearTimeout(this._ht); this._ht = setTimeout(() => e.className = '', kill ? 380 : 160); },
-  damageDir(angle) {
-    const el = h('div', 'dd'); el.style.transform = `translate(-50%,-50%) rotate(${angle}rad)`; $('#dmgdir').appendChild(el);
-    setTimeout(() => el.remove(), 1200);
+  // ---------- اللوحة والنهاية ----------
+  renderScore(el, sim, me) {
+    const rows = t => [...sim.players.values()].filter(p => p.team === t).sort((a, b) => b.kills - a.kills || a.deaths - b.deaths).map(p => {
+      const ping = sim.online && !p.bot && sim.roster && sim.roster.get(p.id) && sim.roster.get(p.id).rtt ? `<i>${sim.roster.get(p.id).rtt}ms</i>` : '';
+      return `<tr class="${p.alive ? '' : 'dead'} ${me && p.id === me.id ? 'me' : ''}"><td><b>${esc(p.name)}</b>${p.bot ? ' <i>بوت</i>' : ''} ${ping}</td><td>${p.kills}</td><td>${p.assists}</td><td>${p.deaths}</td><td>${Math.round(p.dmgDone)}</td></tr>`;
+    }).join('');
+    const tdm = sim.rules ? sim.rules === 'tdm' : sim.tdm;
+    el.innerHTML = `<div class="bh">${tdm ? 'النقاط = عدد سقوط الخصم · الأقل موتاً يفوز' : 'الجولات'}</div>` + [0, 1].map(t => `<div class="team t${t}"><h4>${TEAMS[t].name} <b>${sim.score[t]}</b></h4><table><tr><th>اللاعب</th><th>إسقاط</th><th>مساعدة</th><th>سقوط</th><th>ضرر</th></tr>${rows(t)}</table></div>`).join('');
   },
   endScreen(sim, me) {
-    const won = sim.score[me.team] > sim.score[1 - me.team];
-    $('#eTitle').textContent = won ? 'انتصار!' : 'هزيمة';
-    $('#eTitle').className = won ? 'win' : 'lose';
-    $('#eScore').textContent = `${TEAMS[me.team].name} ${sim.score[me.team]} — ${sim.score[1 - me.team]} ${TEAMS[1 - me.team].name}`;
-    const best = [...sim.players.values()].sort((a, b) => b.kills * 100 + b.dmgDone / 10 - (a.kills * 100 + a.dmgDone / 10))[0];
-    $('#eStats').innerHTML = `<div><b>${me.kills}</b><small>قتل</small></div><div><b>${me.deaths}</b><small>سقوط</small></div><div><b>${me.assists}</b><small>مساعدة</small></div><div><b>${me.hs}</b><small>طلقات رأس</small></div><div><b>${Math.round(me.dmgDone)}</b><small>الضرر</small></div>` + `<p class="mvp">نجم المباراة: <b>${esc(best.name)}</b> (${CHARS[best.char].full})</p>`;
-    this.hideAll(); $('#s-end').classList.add('on'); this.screen = 'end'; this.hud(false);
+    this.hud(false); Input.reset();
+    const w = sim.winner ?? (sim.score[0] === sim.score[1] ? -1 : sim.score[0] > sim.score[1] ? 0 : 1);
+    const win = me && w === me.team, draw = w < 0;
+    const all = [...sim.players.values()]; const mvp = all.slice().sort((a, b) => (b.kills * 2 + b.assists - b.deaths * 0.5 + b.dmgDone / 100) - (a.kills * 2 + a.assists - a.deaths * 0.5 + a.dmgDone / 100))[0];
+    $('#endHead').innerHTML = `<h1 class="${draw ? 'draw' : win ? 'win' : 'lose'}">${draw ? 'تعادل' : win ? 'النصر لنا' : 'هُزمنا هذه المرة'}</h1><div class="escore"><span class="t0">${TEAMS[0].name} <b>${sim.score[0]}</b></span><span class="t1"><b>${sim.score[1]}</b> ${TEAMS[1].name}</span></div>` + (mvp ? `<div class="mvp">نجم المعركة: <b>${esc(mvp.name)}</b> · ${mvp.kills} إسقاط · ${Math.round(mvp.dmgDone)} ضرر</div>` : '');
+    const tmp = document.createElement('div'); this.renderScore(tmp, sim, me); $('#endBody').innerHTML = tmp.innerHTML;
+    $('#eAgain').textContent = sim.online ? 'متابعة' : 'معركة جديدة';
+    this.open('end'); Audio.play(draw ? 'roundLose' : win ? 'roundWin' : 'roundLose');
   },
+  // ---------- اختصارات واجهة اللعب ----------
+  banner(...a) { HUD.banner(...a); }, toast(...a) { HUD.toast(...a); }, feed(...a) { HUD.feed(...a); },
+  hitMarker(...a) { HUD.hitMarker(...a); }, damageDir(a) { HUD.damageDir(a); }, fps(s) { HUD.fps(s); },
 };
-function clsName(c) { return { rifle: 'بندقية', smg: 'رشاش خفيف', shotgun: 'مضخية', lmg: 'رشاش ثقيل', sniper: 'قنّاصة', pistol: 'مسدس', knife: 'سلاح أبيض' }[c] || c; }
-
-const TEMPLATE = `
-<div id="hud">
-  <div id="fps"></div>
-  <div id="net"></div>
-  <canvas id="radar" width="160" height="160"></canvas>
-  <div id="topbar"><div class="sc t0"><b id="sc0">0</b><span id="al0"></span></div><div id="timer">1:55</div><div class="sc t1"><span id="al1"></span><b id="sc1">0</b></div></div>
-  <div id="phase"></div>
-  <div id="feed"></div>
-  <div id="cross"><i class="l"></i><i class="r"></i><i class="u"></i><i class="d"></i><b></b></div>
-  <div id="hitm"><i></i><i></i><i></i><i></i></div>
-  <div id="dmgdir"></div>
-  <div id="vitals"><div class="hp"><span>✚</span><b id="hpV">100</b><i id="hpBar"></i></div><div class="ar"><span>⛨</span><b id="arV">100</b></div></div>
-  <div id="ammo"><div id="wName"></div><div class="mag"><b id="magV">30</b><span>/</span><small id="resV">90</small></div><div id="weapBar"></div></div>
-  <div id="buy"><b>وقت التجهيز</b><span id="buyT">9</span><button id="buyOpen" class="btn sm">تغيير العتاد (B)</button></div>
-  <div id="spec"></div>
-  <div id="banner"><b id="bBig"></b><small id="bSmall"></small></div>
-  <div id="toast"></div>
-  <div id="scopeov"><div class="lens"></div><i class="h"></i><i class="v"></i><b></b></div>
-  <div id="flashov"></div>
-  <div id="hurtov"></div>
-  <div id="score"><div id="scoreBody"></div></div>
-  <div id="touch">
-    <div id="stick"><div id="knob"></div></div>
-    <button class="tb big" data-a="fire" id="tbFire">✹<small>إطلاق</small></button>
-    <button class="tb" data-a="fire2" id="tbFire2">✹</button>
-    <button class="tb" data-a="ads" id="tbAds">◎<small>تصويب</small></button>
-    <button class="tb" data-a="jump" id="tbJump">⤒<small>قفز</small></button>
-    <button class="tb" data-a="crouch" id="tbCrouch">⤓<small>انحناء</small></button>
-    <button class="tb" data-a="reload" id="tbReload">↻<small>تلقيم</small></button>
-    <button class="tb" data-a="grenade" id="tbNade">●<small>قنبلة</small></button>
-    <button class="tb" data-a="swap" id="tbSwap">⇄<small>تبديل</small></button>
-  </div>
-  <button id="tbPause" class="tb mini">❚❚</button>
-  <button id="tbScore" class="tb mini">☰</button>
-</div>
-
-<section class="scr" id="s-menu">
-  <div class="title"><h1>جبهة الرافدين</h1><div class="sub">معارك تكتيكية في أزقّة بغداد القديمة</div></div>
-  <div class="menu">
-    <button class="btn primary" id="btnPlay">ابدأ القتال</button>
-    <button class="btn" data-go="online">اللعب أونلاين <small>2 ضد 2</small></button>
-    <button class="btn" data-go="chars">الشخصيات</button>
-    <button class="btn" data-go="loadout">العتاد والأسلحة</button>
-    <button class="btn" data-go="settings">الإعدادات</button>
-    <label class="name">اسمك <input id="nameIn" maxlength="16"></label>
-  </div>
-</section>
-
-<section class="scr" id="s-setup">
-  <div class="panel wide">
-    <div class="head"><h2>إعداد المعركة</h2><button class="x" data-back>✕</button></div>
-    <div class="grid2">
-      <div><h5>النمط</h5><div class="opts" id="setMode"></div></div>
-      <div><h5>طول المباراة</h5><div class="opts" id="setRounds"></div></div>
-      <div><h5>حجم الفريقين</h5><div class="opts" id="setSize"></div><small class="note">البوتات تكمل الأماكن الفارغة</small></div>
-      <div><h5>مستوى البوتات</h5><div class="opts" id="setDiff"></div></div>
-      <div><h5>فريقك</h5><div class="opts" id="setTeam"></div></div>
-      <div class="go"><button class="btn sm" data-go="chars">الشخصية</button><button class="btn sm" data-go="loadout">العتاد</button><button class="btn primary" id="btnStart">انطلق ⟵</button></div>
-    </div>
-  </div>
-</section>
-
-<section class="scr" id="s-chars">
-  <div class="panel side">
-    <div class="head"><h2>اختر شخصيتك</h2><button class="x" data-back>✕</button></div>
-    <div id="charList"></div>
-    <div id="charInfo"></div>
-  </div>
-</section>
-
-<section class="scr" id="s-loadout">
-  <div class="panel side lo">
-    <div class="head"><h2>العتاد <small id="loMode"></small></h2><button class="x" data-back>✕</button></div>
-    <h5>السلاح الرئيسي</h5><div class="wlist" id="loPrim"></div>
-    <h5>المنظار</h5><div class="opts small" id="loScope"></div>
-    <h5>المسدس</h5><div class="wlist" id="loSec"></div>
-    <h5>القنبلة الأولى</h5><div class="opts small" id="loNade0"></div>
-    <h5>القنبلة الثانية</h5><div class="opts small" id="loNade1"></div>
-  </div>
-  <div id="loStats" class="panel stats"></div>
-</section>
-
-<section class="scr" id="s-settings">
-  <div class="panel wide"><div class="head"><h2>الإعدادات</h2><button class="x" data-back>✕</button></div><div id="setBody"></div></div>
-</section>
-
-<section class="scr" id="s-online">
-  <div class="panel online"><div class="head"><h2>اللعب أونلاين</h2><button class="x" data-back>✕</button></div>
-  <p class="note">شغّل تطبيق «سيرفر الرافدين» على الهاتف الوسيط واتركه يعمل، ثم اكتب رمز الغرفة الظاهر فيه. كل اللاعبين يكتبون الرمز نفسه.</p>
-  <label class="room">رمز الغرفة<input id="roomIn" maxlength="5" dir="ltr" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="•••••"></label>
-  <h5>الفريق المفضّل</h5><div class="opts" id="onTeam"></div>
-  <div id="onStatus" class="status"></div>
-  <div class="menu row"><button class="btn sm" data-go="chars">الشخصية</button><button class="btn sm" data-go="loadout">العتاد</button><button class="btn primary" id="btnJoin">اتصال ⟵</button></div></div>
-</section>
-
-<section class="scr" id="s-pause">
-  <div class="panel"><div class="head"><h2>استراحة</h2></div>
-  <div class="menu"><button class="btn primary" id="pResume">متابعة</button><button class="btn" id="pLoadout">العتاد</button><button class="btn" data-go="chars">الشخصية</button><button class="btn" id="pSettings">الإعدادات</button><button class="btn" id="pQuit">مغادرة المباراة</button></div></div>
-</section>
-
-<section class="scr" id="s-end">
-  <div class="panel center"><h2 id="eTitle"></h2><div id="eScore"></div><div id="eStats"></div>
-  <div class="menu row"><button class="btn primary" id="eAgain">مباراة جديدة</button><button class="btn" id="eMenu">القائمة</button></div></div>
-</section>
-`;

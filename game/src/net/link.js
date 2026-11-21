@@ -2,7 +2,7 @@
 import { connectAny, brokerList, Mqtt, utf8 } from './mqtt.js';
 
 const ICE = [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }, { urls: 'stun:stun.cloudflare.com:3478' }];
-const NS = 'rafidain/v1/';
+const NS = 'rafidain/v2/';
 const NO_RTC = (() => { try { return /[?&]nortc/.test(location.search); } catch (e) { return false; } })();
 export const newId = () => Math.random().toString(36).slice(2, 10);
 export function roomCode() { const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s = ''; for (let i = 0; i < 5; i++) s += A[Math.floor(Math.random() * A.length)]; return s; }
@@ -33,6 +33,8 @@ export class HostLink {
   }
   async retry(url) { if (this.closed) return; try { await this.connectOne(url); this.report(); } catch (e) { setTimeout(() => this.retry(url), 5000); } }
   report() { const n = this.mqs.length; this.onstatus(n ? `متصل بالإنترنت عبر ${n} ${n > 1 ? 'وسطاء' : 'وسيط'} · بانتظار اللاعبين` : 'انقطع الإنترنت — إعادة المحاولة…'); }
+  // لاعب على نفس الهاتف (المضيف): الرسائل تمرّ مباشرة بلا إنترنت
+  addLocal(cid, fn) { this.peers.set(cid, { local: fn, via: 'local' }); }
   handle(from, m, via, mq) {
     const p = this.peers.get(from) || { dc: null, via: 'relay', mq: null }; this.peers.set(from, p);
     if (mq) p.mq = mq;
@@ -53,6 +55,7 @@ export class HostLink {
   mqFor(p) { return p && p.mq && this.mqs.includes(p.mq) ? [p.mq] : this.mqs; }
   sendTo(cid, m, forceRelay) {
     const p = this.peers.get(cid), s = JSON.stringify(m);
+    if (p && p.local) { queueMicrotask(() => p.local(JSON.parse(s))); return; }
     if (!forceRelay && p && p.dc && p.dc.readyState === 'open') { try { p.dc.send(s); return; } catch (e) { } }
     for (const q of this.mqFor(p)) q.publish(NS + this.room + '/to/' + cid, s);
   }
@@ -60,6 +63,7 @@ export class HostLink {
   broadcast(m) {
     const s = JSON.stringify(m), via = new Set();
     for (const p of this.peers.values()) {
+      if (p.local) { queueMicrotask(() => p.local(JSON.parse(s))); continue; }
       if (p.dc && p.dc.readyState === 'open') { try { p.dc.send(s); continue; } catch (e) { } }
       for (const q of this.mqFor(p)) via.add(q);
     }
@@ -67,6 +71,7 @@ export class HostLink {
   }
   drop(cid) { const p = this.peers.get(cid); if (p && p.pc) p.pc.close(); this.peers.delete(cid); }
   via(cid) { const p = this.peers.get(cid); return p ? p.via : 'relay'; }
+  get remotes() { let n = 0; for (const p of this.peers.values()) if (!p.local) n++; return n; }
   close() { this.closed = true; for (const p of this.peers.values()) if (p.pc) p.pc.close(); this.peers.clear(); for (const q of this.mqs) { q.onclose = null; q.close(); } this.mqs = []; }
 }
 
@@ -114,4 +119,13 @@ export class ClientLink {
     this.mq && this.mq.publish(NS + this.room + '/up', s);
   }
   close() { if (this.closed) return; try { this.send({ k: 'bye' }, true); } catch (e) { } this.closed = true; if (this.pc) this.pc.close(); if (this.mq) { this.mq.onclose = null; setTimeout(() => this.mq.close(), 150); } }
+}
+
+// ---------- لاعب محلي على هاتف المضيف (بلا شبكة) ----------
+export class LocalLink {
+  constructor(server, opt = {}) { this.srv = server; this.cid = opt.cid || newId(); this.onmsg = null; this.onstatus = opt.onStatus || (() => { }); this.via = 'local'; this.closed = false; this.url = 'local'; }
+  async open() { this.srv.link.addLocal(this.cid, m => { if (!this.closed && this.onmsg) this.onmsg(m); }); return this; }
+  tryRtc() { }
+  send(m) { if (this.closed) return; m.from = this.cid; const s = JSON.stringify(m); queueMicrotask(() => { try { this.srv.link.handle(this.cid, JSON.parse(s), 'local'); } catch (e) { } }); }
+  close() { if (this.closed) return; this.send({ k: 'bye' }); this.closed = true; }
 }

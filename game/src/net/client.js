@@ -1,9 +1,10 @@
 // اللاعب المتصل: نسخة «ظلّ» من المحاكاة تتصرف كأنها Sim أمام اللعبة
 // - حركتي وسلاحي يُتنبّأ بهما فوراً محلياً ثم تُصحَّح بلطف عند وصول حالة السيرفر
 // - بقية اللاعبين يُعرضون بالاستيفاء بين لقطتين (قبل 120ms) لحركة ناعمة
-import { Sim } from '../sim/sim.js';
+import { Sim, LEAN } from '../sim/sim.js';
+import { MODES } from '../sim/weapons.js';
 import { eyeHeight } from '../sim/move.js';
-import { ClientLink, newId } from './link.js';
+import { ClientLink, LocalLink, newId } from './link.js';
 import { brokerList } from './mqtt.js';
 import { PROTO, encCmd, decPlayer } from './proto.js';
 
@@ -15,18 +16,31 @@ export class NetSim {
   constructor(world, opt) {
     this.online = true; this.w = world; this.room = opt.room; this.opt = opt;
     this.players = new Map(); this.nades = []; this.smokes = []; this.fires = []; this.events = [];
-    this.t = 0; this.phase = 'wait'; this.phaseT = 0; this.round = 0; this.score = [0, 0]; this.mode = opt.mode || 'epic'; this.roundsToWin = 5; this.matchOver = false;
+    this.t = 0; this.phase = 'wait'; this.phaseT = 0; this.round = 0; this.score = [0, 0]; this.mode = opt.mode || 'tdm'; this.roundsToWin = 5; this.matchOver = false; this.timeLimit = 600; this.respawnDelay = 4;
     this.me = -1; this.state = 'idle'; this.status = ''; this.ping = 0; this.lastSnap = 0; this.lastSnapT = -1;
     this.snaps = []; this.seen = new Map(); this.maxEid = 0; this.roster = new Map(); this.offset = null;
     this.mini = null; this.pp = null; this.seq = 0; this.hist = []; this.recent = []; this.cmd = null; this.corr = [0, 0, 0]; this.sendN = 0;
     this.onlost = null; this.onjoin = null; this.stat = { n: 0, sum: 0, max: 0, big: 0 };
   }
   get via() { return this.link ? this.link.via : 'relay'; }
+  get rules() { return (MODES[this.mode] || MODES.tdm).rules; }
+  get tdm() { return this.rules === 'tdm'; }
   // ---------- الاتصال ----------
   // نجرّب الوسطاء بالترتيب حتى يردّ السيرفر (السيرفر يستمع على كل الوسطاء معاً)
   async connect() {
     const list = this.opt.brokers || brokerList(), cid = newId();
     const say = s => { this.status = s; this.opt.onStatus && this.opt.onStatus(s); };
+    // المضيف نفسه: يتصل بالسيرفر الذي يعمل على هاتفه مباشرة
+    if (this.opt.local) {
+      const L = this.link = new LocalLink(this.opt.local, { cid, onStatus: say });
+      L.onmsg = m => { try { this.onMsg(m); } catch (e) { console.warn(e); } };
+      await L.open(); this.state = 'joining';
+      const ok = await new Promise(res => { this._join = res; this.sayHi(); setTimeout(() => res(false), 5000); });
+      this._join = null;
+      if (ok !== true) { this.state = 'closed'; throw new Error('تعذّر تشغيل السيرفر على هذا الهاتف'); }
+      this.pingIv = setInterval(() => { if (this.link) this.link.send({ k: 'pi', c: now(), r: 0 }); }, 1000);
+      return this;
+    }
     let err = 'تعذّر الوصول إلى الإنترنت';
     for (const url of list) {
       if (this.state === 'closed') break;
@@ -77,9 +91,9 @@ export class NetSim {
   welcome(m) {
     clearTimeout(this.hiT);
     const fresh = m.pid !== this.me || !this.mini;
-    this.me = m.pid; this.mode = m.mo; this.roundsToWin = m.rw;
+    this.me = m.pid; this.mode = m.mo; this.roundsToWin = m.rw; if (m.tl) this.timeLimit = m.tl;
     if (fresh) {
-      const mini = this.mini = new Sim(this.w, { mode: m.mo });
+      const mini = this.mini = new Sim(this.w, { mode: m.mo, timeLimit: m.tl });
       mini.damage = () => { }; // الضرر يقرّره السيرفر وحده
       this.pp = mini.addPlayer({ id: m.pid, name: this.opt.name, team: m.tm, char: this.opt.char, loadout: this.opt.loadout });
       this.hist.length = 0; this.recent.length = 0; this.seq = 0; this.snaps.length = 0; this.offset = null; this.lastSnapT = -1;
@@ -154,7 +168,7 @@ export class NetSim {
   setChar(id, c) { if (this.pp) this.pp.char = c; this.opt.char = c; this.link && this.link.send({ k: 'ch', c }, true); }
   curW(p) { return p.slot <= 3 ? p.inv[p.slot] : null; }
   curId(p) { return p.slot === 4 ? (p.inv[4][0] || 'frag') : (p.inv[p.slot] ? p.inv[p.slot].id : 'khanjar'); }
-  eye(p) { return [p.pos[0], p.pos[1] + eyeHeight(p), p.pos[2]]; }
+  eye(p) { const L = (p.lean || 0) * LEAN; return [p.pos[0] + Math.cos(p.yaw) * L, p.pos[1] + eyeHeight(p) - Math.abs(p.lean || 0) * 0.06, p.pos[2] - Math.sin(p.yaw) * L]; }
   step(dt) {
     const tl = now();
     if (this.offset !== null) this.t = tl + this.offset - INTERP;

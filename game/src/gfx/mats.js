@@ -62,6 +62,26 @@ export function makeMaterials(Q) {
   mk('spice1', null, 1, { color: 0xc4561e, rough: 1 }); mk('spice2', null, 1, { color: 0xd8a72c, rough: 1 }); mk('spice3', null, 1, { color: 0x6d7a2a, rough: 1 });
   mk('dates', null, 1, { color: 0x5a2a14, rough: 0.6 });
   mk('fruit', null, 1, { color: 0xe08a2c, rough: 0.6 });
+  // سوق السلاح والمشتل والرعب
+  mk('olive', TX.fabric(half, { base: [74, 84, 54] }), 1.2, { rough: 0.85 });
+  mk('tan', null, 1, { color: 0xa58c64, rough: 0.75 });
+  mk('gunmetal', null, 1, { color: 0x2b2d31, rough: 0.38, metal: 0.8 });
+  mk('ammo', TX.wood(half, { base: [62, 76, 44], seed: 33, planks: 2 }), 1, { rough: 0.8 });
+  mk('leafGreen', null, 1, { color: 0x3e8a3a, rough: 0.8 }); mk('leafDark', null, 1, { color: 0x24582c, rough: 0.85 });
+  mk('flowerRed', null, 1, { color: 0xd8283a, rough: 0.6 }); mk('flowerYellow', null, 1, { color: 0xf2c230, rough: 0.6 }); mk('flowerPink', null, 1, { color: 0xf07aa8, rough: 0.6 }); mk('flowerWhite', null, 1, { color: 0xf4f1e8, rough: 0.6 });
+  mk('clay', TX.plaster(half, { base: [170, 96, 60], seed: 44, cracks: 1 }), 1, { rough: 0.9 });
+  mk('charred', TX.wood(half, { base: [32, 26, 22], seed: 51, planks: 4 }), 1.6, { rough: 0.95 });
+  mk('bone', null, 1, { color: 0xd9d2bd, rough: 0.7 });
+  mk('rust', TX.metal(half, { base: [118, 62, 36], seed: 61 }), 1.5, { rough: 0.85, metal: 0.4 });
+  mk('deadwood', TX.wood(half, { base: [58, 50, 44], seed: 71, planks: 0 }), 1.5, { rough: 0.95 });
+  mk('tomb', TX.stoneFloor(half, { base: [146, 140, 128], tiles: 1, seed: 81 }), 1.2, { rough: 0.9 });
+  mk('brickBurnt', TX.brick(S, { base: [92, 72, 60], seed: 91 }), 1.25, { rough: 0.95 });
+  mk('plasterBurnt', TX.plaster(S, { base: [118, 104, 92], seed: 93, cracks: 9 }), 2.6, { rough: 0.97 });
+  mk('graveDirt', TX.sand(half, { base: [104, 90, 74], seed: 23 }), 4, { rough: 1 });
+  mk('grass', TX.sand(half, { base: [78, 108, 56], seed: 12 }), 3, { rough: 1 });
+  mk('tileGreen', TX.tile(half, { bg: '#1d6a3c', acc: '#d8b44a', line: '#f2e6b4', white: '#e6efe0', n: 2 }), 0.9, { rough: 0.35 });
+  mk('paintRed', null, 1, { color: 0xa3221e, rough: 0.5, metal: 0.35 });
+  mk('paintOrange', null, 1, { color: 0xe0802a, rough: 0.45, metal: 0.3 });
   return M;
 }
 
@@ -69,7 +89,10 @@ export function makeMaterials(Q) {
 const signCache = new Map();
 export function signMat(text, opt = {}) {
   const k = text + JSON.stringify(opt); if (signCache.has(k)) return signCache.get(k);
-  const t = TX.sign(text, opt);
+  const t = opt.clock ? TX.clockFace(opt.S || 256) : opt.graffiti ? TX.graffiti(text, opt) : TX.sign(text, opt);
   const m = new THREE.MeshStandardMaterial({ map: t.map, roughness: 0.8 });
+  if (opt.clock) m.alphaTest = 0.5;
+  if (opt.graffiti) { m.transparent = true; m.depthWrite = false; m.polygonOffset = true; m.polygonOffsetFactor = -2; m.polygonOffsetUnits = -2; }
+  if (opt.glow) { m.emissive = new THREE.Color(0xffffff); m.emissiveMap = t.map; m.emissiveIntensity = opt.glow; }
   signCache.set(k, m); return m;
 }

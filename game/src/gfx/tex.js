@@ -302,6 +302,34 @@ export function sign(text, opt = {}) {
   const t = toTex(c, true, false); return { map: t };
 }
 
+// كتابة جدارية حمراء بقطرات سائلة وآثار أكفّ (لأجواء الرعب)
+export function graffiti(text, opt = {}) {
+  const w = opt.w || 512, h = opt.h || 192, c = document.createElement('canvas'); c.width = w; c.height = h;
+  const x = c.getContext('2d'); x.clearRect(0, 0, w, h);
+  const col = opt.fg || 'rgba(120,8,10,0.92)';
+  x.fillStyle = col; x.textAlign = 'center'; x.textBaseline = 'middle'; x.direction = 'rtl';
+  x.font = `700 ${h * 0.42}px "Aref Ruqaa","Reem Kufi",serif`;
+  x.save(); x.translate(w / 2, h * 0.42); x.rotate(-0.04); x.fillText(text, 0, 0); x.restore();
+  // قطرات
+  for (let i = 0; i < 22; i++) { const px = w * 0.12 + Math.random() * w * 0.76, py = h * 0.45 + Math.random() * h * 0.1, L = 10 + Math.random() * h * 0.4; x.fillRect(px, py, 2 + Math.random() * 3, L); x.beginPath(); x.arc(px + 2, py + L, 3, 0, 7); x.fill(); }
+  // آثار أكفّ
+  if (opt.hands !== false) for (let k = 0; k < 2; k++) { const hx = k ? w * 0.08 : w * 0.9, hy = h * (0.25 + Math.random() * 0.4); x.save(); x.translate(hx, hy); x.rotate((Math.random() - 0.5) * 0.6); x.beginPath(); x.ellipse(0, 0, 14, 17, 0, 0, 7); x.fill(); for (let f = 0; f < 4; f++) { x.beginPath(); x.ellipse(-10 + f * 7, -24 - (f === 1 || f === 2 ? 4 : 0), 3.2, 9, 0, 0, 7); x.fill(); } x.beginPath(); x.ellipse(16, -4, 3.2, 8, -0.8, 0, 7); x.fill(); x.restore(); }
+  return { map: toTex(c, true, false) };
+}
+// وجه ساعة البرج
+export function clockFace(S = 256) {
+  const c = document.createElement('canvas'); c.width = c.height = S; const x = c.getContext('2d'), r = S / 2;
+  x.fillStyle = '#f3ead2'; x.beginPath(); x.arc(r, r, r * 0.96, 0, 7); x.fill();
+  x.lineWidth = S * 0.04; x.strokeStyle = '#1f3d5a'; x.stroke();
+  x.fillStyle = '#1f2a33'; x.font = `700 ${S * 0.1}px "Reem Kufi",serif`; x.textAlign = 'center'; x.textBaseline = 'middle';
+  const AR = ['١٢', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩', '١٠', '١١'];
+  for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2 - Math.PI / 2; x.fillText(AR[i], r + Math.cos(a) * r * 0.74, r + Math.sin(a) * r * 0.74); }
+  x.strokeStyle = '#1f2a33'; x.lineCap = 'round';
+  x.lineWidth = S * 0.035; x.beginPath(); x.moveTo(r, r); x.lineTo(r + Math.cos(-2.1) * r * 0.45, r + Math.sin(-2.1) * r * 0.45); x.stroke();
+  x.lineWidth = S * 0.022; x.beginPath(); x.moveTo(r, r); x.lineTo(r + Math.cos(-0.5) * r * 0.65, r + Math.sin(-0.5) * r * 0.65); x.stroke();
+  x.fillStyle = '#b8892c'; x.beginPath(); x.arc(r, r, S * 0.03, 0, 7); x.fill();
+  return { map: toTex(c, true, false) };
+}
 // سعف النخيل: ورقة بخلفية شفافة
 export function palmLeaf(S) {
   const c = document.createElement('canvas'); c.width = S; c.height = S / 2; const x = c.getContext('2d');

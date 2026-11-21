@@ -12,6 +12,13 @@ const holeTex = () => canvasTex(64, (x, s) => {
   x.fillStyle = g; x.fillRect(0, 0, s, s);
   x.strokeStyle = 'rgba(25,20,15,0.6)'; x.lineWidth = 1.2; for (let k = 0; k < 6; k++) { const a = Math.random() * Math.PI * 2; x.beginPath(); x.moveTo(s / 2, s / 2); x.lineTo(s / 2 + Math.cos(a) * s * 0.35, s / 2 + Math.sin(a) * s * 0.35); x.stroke(); }
 });
+const bloodTex = () => canvasTex(128, (x, s) => {
+  x.clearRect(0, 0, s, s);
+  const blob = (px, py, r, a) => { const g = x.createRadialGradient(px, py, 0, px, py, r); g.addColorStop(0, `rgba(92,4,6,${a})`); g.addColorStop(0.7, `rgba(110,8,8,${a * 0.85})`); g.addColorStop(1, 'rgba(110,8,8,0)'); x.fillStyle = g; x.beginPath(); x.arc(px, py, r, 0, 7); x.fill(); };
+  blob(s / 2, s / 2, s * 0.26, 0.95);
+  for (let i = 0; i < 26; i++) { const a = Math.random() * 7, d = s * (0.12 + Math.random() * 0.34), r = s * (0.015 + Math.random() * 0.05); blob(s / 2 + Math.cos(a) * d, s / 2 + Math.sin(a) * d, r, 0.9); }
+  for (let i = 0; i < 6; i++) { const a = Math.random() * 7; x.strokeStyle = 'rgba(100,6,6,0.8)'; x.lineWidth = 2 + Math.random() * 3; x.beginPath(); x.moveTo(s / 2, s / 2); x.lineTo(s / 2 + Math.cos(a) * s * 0.45, s / 2 + Math.sin(a) * s * 0.45); x.stroke(); }
+});
 const flashTex = () => canvasTex(128, (x, s) => {
   x.translate(s / 2, s / 2);
   for (let k = 0; k < 7; k++) { x.rotate(Math.PI * 2 / 7 + Math.random() * 0.3); const g = x.createLinearGradient(0, 0, s * 0.48, 0); g.addColorStop(0, 'rgba(255,240,200,1)'); g.addColorStop(1, 'rgba(255,150,40,0)'); x.fillStyle = g; x.beginPath(); x.moveTo(0, -s * 0.05); x.lineTo(s * 0.48, 0); x.lineTo(0, s * 0.05); x.fill(); }
@@ -91,6 +98,11 @@ export class FX {
     const dc = Q.decals;
     this.dMesh = new THREE.InstancedMesh(new THREE.PlaneGeometry(0.11, 0.11), new THREE.MeshBasicMaterial({ map: holeTex(), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }), dc);
     this.dMesh.count = 0; this.dCap = dc; this.dIdx = 0; this.dMesh.frustumCulled = false; scene.add(this.dMesh);
+    // بقع الدم على الجدران والأرض
+    const bc = Math.max(40, Math.round(Q.decals * 0.8));
+    this.bMesh = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshStandardMaterial({ map: bloodTex(), transparent: true, depthWrite: false, roughness: 0.25, metalness: 0, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }), bc);
+    this.bMesh.count = 0; this.bCap = bc; this.bIdx = 0; this.bMesh.frustumCulled = false; scene.add(this.bMesh);
+    this.pools = [];
     // ومضة الانفجار
     this.flashTex = flashTex();
     this.flashes = [];
@@ -115,9 +127,31 @@ export class FX {
     if (mat === 2) for (let i = 0; i < 4 * k; i++) A.add(p[0], p[1], p[2], n[0] * 3 + (Math.random() - 0.5) * 3, Math.random() * 3, n[2] * 3 + (Math.random() - 0.5) * 3, 0.6, 0.03, 0.03, 0.35, 0.22, 0.12, 1, 12, 1);
     this.decal(p, n);
   }
-  blood(p, dir) {
-    for (let i = 0; i < 7 * this.k; i++) this.alpha.add(p[0], p[1], p[2], dir[0] * 2 + (Math.random() - 0.5) * 1.5, (Math.random()) * 1.2, dir[2] * 2 + (Math.random() - 0.5) * 1.5, 0.35 + Math.random() * 0.3, 0.05, 0.22, 0.45, 0.04, 0.03, 0.75, 5, 4);
+  // دم: رذاذ باتجاه الطلقة، قطرات تسقط، وبقع على أقرب جدار وعلى الأرض
+  blood(p, dir, dmg = 30, head = false, world = null) {
+    const L = Math.hypot(dir[0], dir[1], dir[2]) || 1, d = [dir[0] / L, dir[1] / L, dir[2] / L], k = this.k;
+    const n = Math.round((10 + Math.min(40, dmg) * 0.6) * k * (head ? 1.6 : 1));
+    for (let i = 0; i < n; i++) { const sp = 1.5 + Math.random() * 4; this.alpha.add(p[0], p[1], p[2], d[0] * sp + (Math.random() - 0.5) * 1.6, d[1] * sp + Math.random() * 1.6, d[2] * sp + (Math.random() - 0.5) * 1.6, 0.35 + Math.random() * 0.4, 0.03, 0.1, 0.42, 0.02, 0.02, 0.95, 9, 1.5); }
+    for (let i = 0; i < 6 * k; i++) this.alpha.add(p[0], p[1], p[2], d[0] * 0.8 + (Math.random() - 0.5) * 0.6, Math.random() * 0.6, d[2] * 0.8 + (Math.random() - 0.5) * 0.6, 0.5 + Math.random() * 0.3, 0.12, 0.45, 0.38, 0.03, 0.03, 0.55, 0.5, 3);
+    if (!world) return;
+    const h = world.ray(p[0], p[1], p[2], d[0], d[1] * 0.6 - 0.15, d[2], 2.8, 2, {});
+    if (h) this.splat([h.x, h.y, h.z], [h.nx, h.ny, h.nz], 0.35 + Math.random() * 0.4 + (head ? 0.25 : 0));
+    if (Math.random() < 0.7) { const g = world.ray(p[0] + d[0] * 0.6, p[1], p[2] + d[2] * 0.6, 0, -1, 0, 3, 2, {}); if (g) this.splat([g.x, g.y, g.z], [g.nx, g.ny, g.nz], 0.2 + Math.random() * 0.3); }
   }
+  splat(p, n, size) {
+    const i = this.bIdx++ % this.bCap; if (this.bMesh.count < this.bCap) this.bMesh.count++;
+    const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), new THREE.Vector3(n[0], n[1], n[2]));
+    q.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), Math.random() * 6.28));
+    this._m.compose(new THREE.Vector3(p[0] + n[0] * 0.012, p[1] + n[1] * 0.012, p[2] + n[2] * 0.012), q, new THREE.Vector3(size, size, size));
+    this.bMesh.setMatrixAt(i, this._m); this.bMesh.instanceMatrix.needsUpdate = true;
+    return i;
+  }
+  // بركة دم تتسع ببطء تحت الجثة
+  bloodPool(pos, world) {
+    const g = world.ray(pos[0], pos[1] + 0.5, pos[2], 0, -1, 0, 2, 2, {}); if (!g) return;
+    this.pools.push({ p: [g.x + (Math.random() - 0.5) * 0.3, g.y, g.z + (Math.random() - 0.5) * 0.3], n: [g.nx, g.ny, g.nz], t: 0, i: this.splat([g.x, g.y, g.z], [g.nx, g.ny, g.nz], 0.2), max: 1.1 + Math.random() * 0.7 });
+  }
+  clear() { this.bMesh.count = 0; this.bIdx = 0; this.dMesh.count = 0; this.dIdx = 0; this.pools.length = 0; this.tracers.length = 0; }
   tracer(a, b, speed = 400) {
     const L = Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]); if (L < 2) return;
     this.tracers.push({ a, b, L, t: 0, speed, len: Math.min(6, L * 0.4) });
@@ -178,6 +212,12 @@ export class FX {
       if (n >= this.tCap) break;
     }
     this.tMesh.geometry.setDrawRange(0, n * 6); this.tMesh.geometry.attributes.position.needsUpdate = true;
+    for (let i = this.pools.length - 1; i >= 0; i--) {
+      const P = this.pools[i]; P.t += dt; const sz = 0.2 + (P.max - 0.2) * Math.min(1, P.t / 6);
+      const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), new THREE.Vector3(P.n[0], P.n[1], P.n[2]));
+      this._m.compose(new THREE.Vector3(P.p[0], P.p[1] + 0.013, P.p[2]), q, new THREE.Vector3(sz, sz, sz)); this.bMesh.setMatrixAt(P.i, this._m); this.bMesh.instanceMatrix.needsUpdate = true;
+      if (P.t > 6) this.pools.splice(i, 1);
+    }
     if (this.lightT > 0) { this.lightT -= dt; if (this.lightT <= 0) this.light.intensity = 0; }
     if (this.boomT > 0) { this.boomT -= dt; this.boomLight.intensity *= Math.exp(-dt * 12); if (this.boomT <= 0) { this.boomLight.intensity = 0; this.boomLight.color.setHex(0xff8a3a); } }
   }

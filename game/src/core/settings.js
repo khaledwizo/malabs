@@ -1,33 +1,44 @@
 // الإعدادات: تُحفظ محلياً، وكل تغيير يُبث لمن يستمع
-const KEY = 'rafidain.settings.v1';
+const KEY = 'rafidain.settings.v2';
 
 export const RES_OPTIONS = [
   { id: 'auto', label: 'تلقائي' },
   { id: '0.5', label: '50%' }, { id: '0.67', label: '67%' }, { id: '0.75', label: '75%' },
   { id: '1', label: 'أصلية 100%' }, { id: '1.5', label: '150% (تنعيم)' }, { id: '2', label: '200% (فائق)' },
-  { id: '480', label: '480p' }, { id: '720', label: '720p' }, { id: '1080', label: '1080p' }, { id: '1440', label: '1440p' }, { id: '2160', label: '4K' },
+  { id: '480', label: '480p' }, { id: '720', label: '720p' }, { id: '1080', label: '1080p' }, { id: '1440', label: '1440p' },
 ];
 export const FPS_OPTIONS = [
-  { id: 30, label: '30' }, { id: 60, label: '60' }, { id: 90, label: '90' }, { id: 120, label: '120' },
-  { id: 144, label: '144' }, { id: 240, label: '240' }, { id: 0, label: 'تزامن الشاشة' }, { id: -1, label: 'غير محدود' },
+  { id: 30, label: '30' }, { id: 40, label: '40' }, { id: 60, label: '60' }, { id: 90, label: '90' }, { id: 120, label: '120' },
+  { id: 0, label: 'تزامن الشاشة' }, { id: -1, label: 'غير محدود' },
 ];
+// مستويات الرسوم: الظلال، الدقة، الجسيمات، المطر، التوهج، الانعكاسات
 export const QUALITY = {
-  low: { label: 'منخفضة', shadow: 0, tex: 256, aniso: 1, particles: 0.4, draw: 70, decals: 40, aa: false, details: 0 },
-  medium: { label: 'متوسطة', shadow: 1024, tex: 512, aniso: 2, particles: 0.7, draw: 110, decals: 80, aa: false, details: 1 },
-  high: { label: 'عالية', shadow: 2048, tex: 1024, aniso: 4, particles: 1, draw: 160, decals: 140, aa: true, details: 2 },
-  ultra: { label: 'فائقة', shadow: 4096, tex: 1024, aniso: 8, particles: 1.3, draw: 220, decals: 220, aa: true, details: 3 },
+  low: { label: 'منخفضة', shadow: 0, tex: 256, aniso: 1, particles: 0.45, decals: 50, aa: false, details: 0, rain: 2500, bloom: false, env: 64, dprCap: 1, cloth: false },
+  medium: { label: 'متوسطة', shadow: 1024, tex: 512, aniso: 2, particles: 0.75, decals: 100, aa: false, details: 1, rain: 5000, bloom: false, env: 128, dprCap: 1.5, cloth: true },
+  high: { label: 'عالية', shadow: 2048, tex: 1024, aniso: 4, particles: 1, decals: 160, aa: true, details: 2, rain: 9000, bloom: true, env: 256, dprCap: 2, cloth: true },
+  ultra: { label: 'فائقة', shadow: 4096, tex: 1024, aniso: 8, particles: 1.3, decals: 240, aa: true, details: 3, rain: 14000, bloom: true, env: 256, dprCap: 3, cloth: true },
 };
+export const WEATHER_OPTIONS = [
+  { id: 'random', label: 'متغيّر', sub: 'مفاجأة كل مباراة' }, { id: 'day', label: 'نهار', sub: 'شمس الظهيرة' }, { id: 'sunset', label: 'غروب', sub: 'ذهبي دافئ' },
+  { id: 'storm', label: 'عاصفة', sub: 'مطر وبرق' }, { id: 'horror', label: 'ليلة مرعبة', sub: 'ضباب وظلال' },
+];
 
 export const DEFAULTS = {
-  res: 'auto', fps: 0, showFps: true, quality: 'auto', fov: 78, sens: 1, adsSens: 0.7, invertY: false,
-  volume: 0.8, music: 0.4, touchSize: 1, autoFire: false, crosshair: 'cross', crossColor: '#5dffb0',
-  difficulty: 'normal', name: 'لاعب', char: 'khaled', haptics: true, mode: 'epic', rounds: 9, bots: true,
-  team: 0, gyro: false,
+  res: 'auto', fps: 0, showFps: true, quality: 'auto', fov: 82,
+  // التصويب (على طريقة ببجي): الكاميرا، التصويب القريب، المناظير البعيدة
+  sens: 1, adsSens: 1, scopeSens: 1, invertY: false, adsMode: 'mixed', aimAssist: true, autoFire: false, leftFire: true, gyro: 'off', gyroSens: 1,
+  touchSize: 1, hudAlpha: 0.9, crosshair: 'cross', crossColor: '#5dffb0',
+  volume: 0.85, music: 0.4, haptics: true,
+  name: 'لاعب', char: 'khaled', mode: 'tdm', teamSize: 4, difficulty: 'normal', rounds: 5, tdmTime: 600, weather: 'random', team: 0,
 };
 
 const listeners = new Set();
 export const Settings = { ...DEFAULTS };
-try { Object.assign(Settings, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) { }
+try {
+  const old = JSON.parse(localStorage.getItem('rafidain.settings.v1') || '{}');
+  for (const k of ['res', 'fps', 'showFps', 'quality', 'name', 'char', 'volume', 'haptics', 'crossColor']) if (k in old) Settings[k] = old[k];
+  Object.assign(Settings, JSON.parse(localStorage.getItem(KEY) || '{}'));
+} catch (e) { }
 
 export function setSetting(k, v) {
   Settings[k] = v;
@@ -40,8 +51,8 @@ export function onSetting(f) { listeners.add(f); return () => listeners.delete(f
 export function qualityId() {
   if (Settings.quality !== 'auto') return Settings.quality;
   const mobile = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
-  const cores = navigator.hardwareConcurrency || 4;
-  if (mobile) return cores >= 8 ? 'medium' : 'low';
+  const cores = navigator.hardwareConcurrency || 4, mem = navigator.deviceMemory || 4;
+  if (mobile) return cores >= 8 && mem >= 6 ? 'medium' : 'low';
   return cores >= 8 ? 'high' : 'medium';
 }
 export function quality() { return QUALITY[qualityId()]; }

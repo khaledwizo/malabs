@@ -6,13 +6,13 @@ function packet(type, flags, body) { const head = [(type << 4) | flags, ...varLe
 
 export const BROKERS = [
   'wss://broker.emqx.io:8084/mqtt',
-  'wss://broker.hivemq.com:8884/mqtt',
   'wss://test.mosquitto.org:8081/mqtt',
 ];
 
 export class Mqtt {
   constructor(url) { this.url = url; this.ws = null; this.subs = new Map(); this.pid = 1; this.connected = false; this.onmessage = null; this.onclose = null; this.buf = new Uint8Array(0); this.ping = null; }
-  connect(timeoutMs = 7000) {
+  // opt.will: رسالة «الوصية» يرسلها الوسيط باسمنا إن انقطعنا فجأة (لحالة الاتصال عند الأصدقاء)
+  connect(timeoutMs = 7000, opt = {}) {
     return new Promise((resolve, reject) => {
       let done = false;
       const fail = e => { if (done) return; done = true; try { this.ws && this.ws.close(); } catch (x) { } reject(e); };
@@ -20,8 +20,10 @@ export class Mqtt {
       let ws; try { ws = new WebSocket(this.url, ['mqtt']); } catch (e) { clearTimeout(to); return fail(e); }
       this.ws = ws; ws.binaryType = 'arraybuffer';
       ws.onopen = () => {
-        const id = 'rf' + Math.random().toString(36).slice(2, 12);
-        const body = [...str('MQTT'), 4, 0x02, 0, 40, ...str(id)]; // clean session، keepalive 40ث
+        const id = 'rf' + Math.random().toString(36).slice(2, 12), W = opt.will;
+        let flags = 0x02; const tail = [...str(id)];
+        if (W) { flags |= 0x04 | (W.retain ? 0x20 : 0); const wp = enc.encode(W.payload); tail.push(...str(W.topic), wp.length >> 8, wp.length & 255, ...wp); }
+        const body = [...str('MQTT'), 4, flags, 0, 40, ...tail]; // keepalive 40ث
         ws.send(packet(1, 0, body));
       };
       ws.onerror = () => fail(new Error('ws error'));
@@ -33,7 +35,7 @@ export class Mqtt {
           let mul = 1, len = 0, i = 1, byte;
           do { if (i >= this.buf.length) return; byte = this.buf[i++]; len += (byte & 127) * mul; mul *= 128; } while (byte & 128);
           if (this.buf.length < i + len) break;
-          const type = this.buf[0] >> 4, body = this.buf.subarray(i, i + len);
+          const type = this.buf[0] >> 4, hf = this.buf[0] & 15, body = this.buf.subarray(i, i + len);
           this.buf = this.buf.slice(i + len);
           if (type === 2) { // CONNACK
             if (body[1] !== 0) return fail(new Error('connack ' + body[1]));
@@ -42,19 +44,21 @@ export class Mqtt {
             resolve(this);
           } else if (type === 3) { // PUBLISH
             const tl = (body[0] << 8) | body[1], topic = dec.decode(body.subarray(2, 2 + tl));
-            const qos = (this.buf && 0) || 0; const payload = body.subarray(2 + tl);
-            if (this.onmessage) this.onmessage(topic, payload);
+            const qos = (hf >> 1) & 3, payload = body.subarray(2 + tl + (qos ? 2 : 0));
+            if (this.onmessage) this.onmessage(topic, payload, !!(hf & 1));
           }
         }
       };
     });
   }
   subscribe(topic) { const id = this.pid++ & 0xffff || 1; this.ws.send(packet(8, 2, [id >> 8, id & 255, ...str(topic), 0])); }
-  publish(topic, data) {
+  unsubscribe(topic) { const id = this.pid++ & 0xffff || 1; try { this.ws.send(packet(10, 2, [id >> 8, id & 255, ...str(topic)])); } catch (e) { } }
+  // retain: يحتفظ الوسيط بآخر رسالة على الموضوع ويسلّمها لكل من يشترك لاحقاً (طلبات الصداقة تصل ولو كان الصديق غير متصل)
+  publish(topic, data, retain) {
     if (!this.connected || this.ws.readyState !== 1) return false;
     const t = str(topic), p = typeof data === 'string' ? enc.encode(data) : data;
     const body = new Uint8Array(t.length + p.length); body.set(t, 0); body.set(p, t.length);
-    this.ws.send(packet(3, 0, body)); return true;
+    this.ws.send(packet(3, retain ? 1 : 0, body)); return true;
   }
   close() { try { this.ws.send(new Uint8Array([0xE0, 0])); this.ws.close(); } catch (e) { } this.connected = false; clearInterval(this.ping); }
 }

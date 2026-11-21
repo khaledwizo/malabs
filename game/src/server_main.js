@@ -14,7 +14,8 @@ const store = { get(k, d) { try { const v = localStorage.getItem('rafidain.srv.'
 
 const B = new Builder(null); buildSouq(B); const world = B.finish();
 let room = store.get('room', null); if (!room) { room = roomCode(); store.set('room', room); }
-const cfg = Object.assign({ mode: 'epic', size: 2, rounds: 5, difficulty: 'normal', fill: true }, store.get('cfg', {}));
+const cfg = Object.assign({ mode: 'tdm', size: 4, rounds: 5, time: 600, difficulty: 'normal', fill: true }, store.get('cfg', {}));
+if (!MODES[cfg.mode]) cfg.mode = 'tdm';
 const logs = [];
 const log = t => { const d = new Date(); logs.unshift(`${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}  ${t}`); logs.length = Math.min(logs.length, 40); renderLog(); };
 
@@ -38,8 +39,9 @@ function seg(id, items, key) {
 }
 function buildForm() {
   seg('#fMode', Object.entries(MODES).map(([k, m]) => [k, m.name, m.desc]), 'mode');
-  seg('#fSize', [[1, '1 ضد 1'], [2, '2 ضد 2'], [3, '3 ضد 3'], [5, '5 ضد 5']], 'size');
-  seg('#fRounds', [[3, 'قصيرة', '3 جولات للفوز'], [5, 'عادية', '5 جولات'], [7, 'طويلة', '7 جولات']], 'rounds');
+  seg('#fSize', [[2, '2 ضد 2'], [3, '3 ضد 3'], [4, '4 ضد 4'], [5, '5 ضد 5']], 'size');
+  if (MODES[cfg.mode].rules === 'tdm') seg('#fRounds', [[300, '5 دقائق'], [600, '10 دقائق', 'الأقل موتاً يفوز'], [900, '15 دقيقة']], 'time');
+  else seg('#fRounds', [[3, 'قصيرة', '3 جولات للفوز'], [5, 'عادية', '5 جولات'], [7, 'طويلة', '7 جولات']], 'rounds');
   seg('#fDiff', [['easy', 'سهل'], ['normal', 'عادي'], ['hard', 'صعب']], 'difficulty');
   seg('#fFill', [[true, 'نعم', 'بوتات تكمل الفريق الناقص'], [false, 'لا', 'بشر فقط']], 'fill');
 }
@@ -66,7 +68,7 @@ function renderLog() { const el = $('#log'); if (el) el.innerHTML = logs.map(l =
 $('#apply').onclick = () => { store.set('cfg', cfg); $('#apply').classList.remove('pulse'); if (srv) { srv.configure({ ...cfg }); log('إعدادات جديدة: ' + MODES[cfg.mode].name + ' · ' + cfg.size + ' ضد ' + cfg.size); } };
 $('#newCode').onclick = () => { if (!confirmNew()) return; room = roomCode(); store.set('room', room); boot(); };
 $('#copy').onclick = () => { try { if (AND) AND.copy(room); else navigator.clipboard.writeText(room); $('#copy').textContent = 'نُسخ ✓'; setTimeout(() => $('#copy').textContent = 'نسخ', 1500); } catch (e) { } };
-const shareText = () => `تعال نلعب «جبهة الرافدين» 2 ضد 2!\nافتح اللعبة ← اللعب أونلاين ← اكتب رمز الغرفة: ${room}`;
+const shareText = () => `تعال نلعب «جبهة الرافدين»!\nافتح اللعبة ← الإعدادات ← سيرفر خاص ← اكتب رمز الغرفة: ${room}`;
 $('#share').onclick = () => { try { if (AND) AND.share(shareText()); else if (navigator.share) navigator.share({ text: shareText() }); else navigator.clipboard.writeText(shareText()); } catch (e) { } };
 // تحسين البطارية قد يوقف السيرفر في الخلفية
 function battery() { const el = $('#batt'); if (!AND || !AND.batteryFree) { el.style.display = 'none'; return; } let free = true; try { free = AND.batteryFree(); } catch (e) { } el.style.display = free ? 'none' : ''; }

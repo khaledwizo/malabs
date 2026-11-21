@@ -61,9 +61,17 @@ export class Bot {
       const spot = N[Math.floor(Math.random() * Math.min(3, N.length))];
       if (spot) return { kind: 'hold', pos: [spot[0], spot[1], spot[2]], until: s.t + 25 + Math.random() * 25 };
     }
-    // اختيار مسار: غرب/وسط/شرق عبر نقطة وسيطة
-    const lanes = [[-37, 0, -2], [0, 0, -2], [29, 0, 0], [-25, 0, -2], [0, 0, 10], [24, 0, 12]];
+    // اختيار مسار: غرب/وسط/شرق عبر نقطة وسيطة (تشمل المقبرة والحارة المهجورة وساحة الساعة)
+    const lanes = [[-37, 0, -2], [0, 0, -2], [29, 0, 0], [-25, 0, -2], [0, 0, 10], [24, 0, 12], [-49, 0, -4], [-79, 0, -20], [-72, 0, 10], [66, 0, -2], [58, 0, -24], [66, 0, -32.4], [-70, 0, 26], [70, 0, 26]];
     const via = lanes[Math.floor(Math.random() * lanes.length)];
+    if (s.tdm) {
+      // وضع الإحياء: صيد في أرجاء الخريطة — أحياناً نحو أقرب عدو (كأنه سمع صوته)
+      let near = null, nd = 1e9; for (const q of s.players.values()) if (q.alive && q.team !== p.team) { const d = Math.hypot(q.pos[0] - p.pos[0], q.pos[2] - p.pos[2]); if (d < nd) { nd = d; near = q; } }
+      if (near && r < 0.45) return { kind: 'push', via: near.pos.slice(), pos: near.pos.slice(), stage: 1 };
+      if (r < 0.62) return { kind: 'hold', pos: via.slice(), until: s.t + 6 + Math.random() * 8 };
+      const to = lanes[Math.floor(Math.random() * lanes.length)];
+      return { kind: 'push', via: via.slice(), pos: to.slice(), stage: 0 };
+    }
     if (r < 0.25) return { kind: 'hold', pos: via.slice(), until: s.t + 10 + Math.random() * 15 };
     return { kind: 'push', via: via.slice(), pos: [enemySpawn[0], enemySpawn[1], enemySpawn[2]], stage: 0 };
   }
@@ -80,6 +88,8 @@ export class Bot {
       const fx = -Math.sin(fyaw), fz = -Math.cos(fyaw), dot = (fx * dx + fz * dz) / Math.max(0.01, Math.hypot(dx, dz));
       const inFov = dot > this.D.fov - (q === this.target ? 0.6 : 0);
       const heard = d < 7 && Math.hypot(q.vel[0], q.vel[2]) > 3.5;
+      // سماع إطلاق النار (الكاتم يقلّل المسافة كثيراً)
+      if (s.t - (q.lastShot ?? -9) < 0.5 && d < (q.lastShotQuiet ? 14 : 48) && !this.target) { this.heard = q.pos.slice(); this.heardT = s.t; }
       if (!inFov && !heard) continue;
       if (!s.w.los(e[0], e[1], e[2], qh[0], qh[1], qh[2]) && !s.w.los(e[0], e[1], e[2], q.pos[0], q.pos[1] + 0.9, q.pos[2])) continue;
       if (s.smokeBetween(e, qh)) continue;
@@ -124,7 +134,8 @@ export class Bot {
       if (wd) {
         if (wd.cls === 'sniper' || (dist > 25 && wd.cls === 'rifle' && p.scope && p.scope.startsWith('x'))) cmd.ads = true;
         const scopedOk = wd.cls !== 'sniper' || p.adsT > 0.85;
-        if (this.react <= 0 && onTarget && scopedOk && this.pauseT <= 0) {
+        const blocked = this.mateInLine(e, [tx, ty, tzz], dist);
+        if (this.react <= 0 && onTarget && scopedOk && this.pauseT <= 0 && !blocked) {
           cmd.fire = true;
           if (!wd.auto) { if (this.fireToggle) cmd.fire = false; this.fireToggle = !this.fireToggle; }
           this.burstN += dt * (wd.rpm / 60);
@@ -140,10 +151,13 @@ export class Bot {
       if (!standStill && Math.random() < D.strafe) cmd.mx = this.strafeDir;
       cmd.crouch = !!this.crouchNow;
       if (dist < 4 && wd && wd.cls !== 'shotgun') cmd.mz = -0.6;
+      // جريح: يتراجع إلى ساتر ليستعيد صحته (وضع الإحياء) بدل الموت المجاني
+      if (s.tdm && p.hp < 38 && dist > 7 && !this.retreat && Math.random() < dt * 2.5) { const c = this.findCover(q); if (c) { this.retreat = { pos: c, until: s.t + 6 }; this.plan = { kind: 'hold', pos: c, until: s.t + 6 }; this.path = this.route(c); this.target = null; } }
       // قنبلة على عدو قريب خلف غطاء جزئي
     } else {
       this.aimHead = Math.random() < D.head;
       // لا هدف: اتبع الخطة
+      if (this.retreat && s.t > this.retreat.until) this.retreat = null;
       if (!this.plan || this.planDone()) { this.plan = this.pickPlan(); this.path = []; }
       let goalPos = null;
       const recent = this.lastSeen && s.t - this.lastSeenT < 6;
@@ -155,7 +169,7 @@ export class Bot {
       this.nadeCd -= dt;
       if (recent && this.nadeCd <= 0 && p.inv[4] && p.inv[4].length && Math.random() < D.nade) {
         const d = Math.hypot(this.lastSeen[0] - p.pos[0], this.lastSeen[2] - p.pos[2]);
-        if (d > 7 && d < 26) this.startNade(this.lastSeen);
+        if (d > 9 && d < 26 && this.safeThrow(this.lastSeen)) this.startNade(this.lastSeen);
         this.nadeCd = 6 + Math.random() * 8;
       }
       if (this.nading) return this.doNade(cmd, dt);
@@ -217,8 +231,41 @@ export class Bot {
     const v = 17, g = 15, ang = 0.5 * Math.asin(Math.min(1, g * d / (v * v)));
     this.yaw += angTo(this.yaw, yaw) * Math.min(1, dt * 8); this.pitch += (ang - 0.08 - this.pitch) * Math.min(1, dt * 8);
     cmd.yaw = this.yaw; cmd.pitch = this.pitch;
-    if (p.slot === 4 && p.switchT <= 0) cmd.fire = N.t < 0.9;
+    if (p.slot === 4 && p.switchT <= 0) cmd.fire = N.t < 0.9 && this.safeThrow(N.at);
+    if (N.t > 0.6 && !this.safeThrow(N.at)) { this.nading = null; cmd.slot = 1; cmd.fire = false; return cmd; }
     if (N.t > 1.2 || !p.inv[4].length) { this.nading = null; cmd.slot = 1; }
     return cmd;
+  }
+  // هل يقف زميل في خط النار؟
+  mateInLine(e, t, dist) {
+    const dx = (t[0] - e[0]) / dist, dy = (t[1] - e[1]) / dist, dz = (t[2] - e[2]) / dist;
+    for (const m of this.s.players.values()) {
+      if (m === this.p || !m.alive || m.team !== this.p.team) continue;
+      const vx = m.pos[0] - e[0], vy = m.pos[1] + 1.1 - e[1], vz = m.pos[2] - e[2], k = vx * dx + vy * dy + vz * dz;
+      if (k < 0 || k > dist) continue;
+      if (Math.hypot(vx - dx * k, vy - dy * k, vz - dz * k) < 0.7) return true;
+    }
+    return false;
+  }
+  // رمي آمن: لا جدار قريب أمام اليد، والهدف بعيد عن الزملاء
+  safeThrow(at) {
+    const s = this.s, p = this.p, e = s.eye(p), dx = at[0] - p.pos[0], dz = at[2] - p.pos[2], d = Math.hypot(dx, dz) || 1;
+    const ux = dx / d, uz = dz / d;
+    if (!s.w.los(e[0], e[1], e[2], e[0] + ux * 5, e[1] + 1.2, e[2] + uz * 5)) return false;
+    if (!s.w.los(e[0], e[1], e[2], e[0] + ux * 3, e[1] + 0.3, e[2] + uz * 3)) return false;
+    for (const m of s.players.values()) if (m.alive && m.team === p.team && m !== p && Math.hypot(m.pos[0] - at[0], m.pos[2] - at[2]) < 6) return false;
+    return true;
+  }
+  // أقرب ساتر لا يراه العدو
+  findCover(q) {
+    const s = this.s, p = this.p, N = s.w.nav.nodes, qe = s.eye(q), out = [];
+    for (const n of N) { if (n[3] === 'dead') continue; const d = Math.hypot(n[0] - p.pos[0], n[2] - p.pos[2]); if (d > 4 && d < 18) out.push([d, n]); }
+    out.sort((a, b) => a[0] - b[0]);
+    for (const [, n] of out.slice(0, 36)) {
+      const dq = Math.hypot(n[0] - q.pos[0], n[2] - q.pos[2]), dp = Math.hypot(p.pos[0] - q.pos[0], p.pos[2] - q.pos[2]);
+      if (dq < dp) continue; // لا نتراجع نحو العدو
+      if (!s.w.los(qe[0], qe[1], qe[2], n[0], n[1] + 1.2, n[2])) return [n[0], n[1], n[2]];
+    }
+    return null;
   }
 }

@@ -1,7 +1,7 @@
 // سيرفر المباراة: يدير المحاكاة المرجعية (الحركة، الإطلاق، الإصابات، البوتات، الجولات) ويرسل الحالة للاعبين
 // يعمل في تطبيق «سيرفر الرافدين» على الهاتف الوسيط، أو في أي متصفح
 import { Sim } from '../sim/sim.js';
-import { defaultLoadout } from '../sim/weapons.js';
+import { defaultLoadout, MODES } from '../sim/weapons.js';
 import { CHAR_ORDER } from '../game/chardefs.js';
 import { HostLink } from './link.js';
 import { PROTO, decCmd, encSnap, encRoster, slimEvent } from './proto.js';
@@ -14,7 +14,8 @@ const clean = s => String(s || '').replace(/[<>]/g, '').trim().slice(0, 16) || '
 export class GameServer {
   constructor(world, opt = {}) {
     this.world = world; this.room = opt.room;
-    this.cfg = { mode: 'epic', size: 2, rounds: 5, difficulty: 'normal', fill: true, ...(opt.cfg || {}) };
+    this.cfg = { mode: 'tdm', size: 4, rounds: 5, time: 600, difficulty: 'normal', fill: true, pref: false, ...(opt.cfg || {}) };
+    if (!MODES[this.cfg.mode]) this.cfg.mode = 'tdm';
     this.clients = new Map(); // cid → عميل
     this.pid = 100; this.botN = 0; this.eid = 0; this.evq = [];
     this.status = 'جارٍ الاتصال بالوسيط…'; this.onchange = opt.onChange || (() => { }); this.log = opt.log || (() => { });
@@ -32,7 +33,7 @@ export class GameServer {
   // ---------- المحاكاة ----------
   newSim() {
     const c = this.cfg;
-    const sim = this.sim = new Sim(this.world, { mode: c.mode, roundsToWin: c.rounds, difficulty: c.difficulty, seed: (Date.now() & 0xffff) + 1 });
+    const sim = this.sim = new Sim(this.world, { mode: c.mode, roundsToWin: c.rounds, timeLimit: c.time, difficulty: c.difficulty, seed: (Date.now() & 0xffff) + 1 });
     sim.beforeStep = () => this.feed();
     sim.onStep = () => this.afterStep();
     this.evq.length = 0; this.overT = 0;
@@ -53,7 +54,8 @@ export class GameServer {
       while (bots.length > want) sim.removePlayer(bots.shift().id);
       for (let k = bots.length; k < want; k++) {
         const id = ++this.pid;
-        sim.addPlayer({ id, name: BOT_NAMES[(this.botN++ + t * 5) % BOT_NAMES.length], team: t, bot: true, char: CHAR_ORDER[Math.floor(Math.random() * CHAR_ORDER.length)], loadout: defaultLoadout(sim.mode) });
+        const used = new Set([...sim.players.values()].map(p => p.name)); let nm = BOT_NAMES[(this.botN++ + t * 5) % BOT_NAMES.length]; for (let g = 0; g < BOT_NAMES.length && used.has(nm); g++) nm = BOT_NAMES[(this.botN++ + t * 5) % BOT_NAMES.length];
+        sim.addPlayer({ id, name: nm, team: t, bot: true, char: CHAR_ORDER[Math.floor(Math.random() * CHAR_ORDER.length)], loadout: defaultLoadout(sim.mode) });
       }
     }
   }
@@ -119,7 +121,8 @@ export class GameServer {
       if (!cl) {
         if (this.clients.size >= MAX_HUMANS) { this.link.sendTo(cid, { k: 'err', msg: 'السيرفر ممتلئ' }, true); return; }
         const h0 = this.humans(0), h1 = this.humans(1);
-        const team = h0 === h1 ? (m.tm === 1 ? 1 : 0) : h0 < h1 ? 0 : 1;
+        // في فريق الأصدقاء يقرّر المضيف الفرق مسبقاً
+        const team = this.cfg.pref && (m.tm === 0 || m.tm === 1) ? m.tm : h0 === h1 ? (m.tm === 1 ? 1 : 0) : h0 < h1 ? 0 : 1;
         cl = { cid, pid: ++this.pid, name: clean(m.n), char: CHAR_ORDER.includes(m.ch) ? m.ch : 'khaled', loadout: m.lo || {}, team, queue: [], lastCmd: null, ack: 0, top: 0, last: now(), rtt: 0, joined: now() };
         this.clients.set(cid, cl);
         const first = this.humans() === 1;
@@ -146,7 +149,7 @@ export class GameServer {
       case 'bye': this.log('غادر: ' + cl.name); this.remove(cid); break;
     }
   }
-  welcome(cid, cl) { this.link.sendTo(cid, { k: 'wl', pid: cl.pid, tm: cl.team, mo: this.sim.mode, rw: this.sim.roundsToWin, room: this.room }, true); }
+  welcome(cid, cl) { this.link.sendTo(cid, { k: 'wl', pid: cl.pid, tm: cl.team, mo: this.sim.mode, rw: this.sim.roundsToWin, tl: this.sim.timeLimit, room: this.room }, true); }
   remove(cid) {
     const cl = this.clients.get(cid); if (!cl) return;
     this.clients.delete(cid); this.sim.removePlayer(cl.pid); this.link.drop(cid);

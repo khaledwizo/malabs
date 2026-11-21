@@ -8,24 +8,36 @@ export function gfxKit(Q) {
   return { THREE, mats, Batch, boxInto, Q };
 }
 
-// قبة سماء بتدرّج لوني وقرص شمس وغيوم خفيفة
+// قبة سماء بتدرّج لوني وقرص شمس/قمر وغيوم ونجوم وومضات برق
 export function makeSky(info, sunDir) {
   const g = new THREE.SphereGeometry(900, 32, 16);
+  const C = c => new THREE.Color(c);
   const m = new THREE.ShaderMaterial({
     side: THREE.BackSide, depthWrite: false, fog: false,
-    uniforms: { top: { value: new THREE.Color(info.sky.top) }, mid: { value: new THREE.Color(info.sky.mid) }, bot: { value: new THREE.Color(info.sky.bottom) }, sun: { value: new THREE.Vector3(...sunDir).normalize() }, t: { value: 0 } },
+    uniforms: { top: { value: C(info.sky.top) }, mid: { value: C(info.sky.mid) }, bot: { value: C(info.sky.bottom) }, sun: { value: new THREE.Vector3(...sunDir).normalize() }, t: { value: 0 },
+      night: { value: 0 }, flash: { value: 0 }, cloud: { value: 0.45 }, cloudCol: { value: C(0xffb894) }, sunVis: { value: 1 }, moon: { value: 0 } },
     vertexShader: `varying vec3 vP; void main(){ vP = normalize(position); vec4 p = projectionMatrix * modelViewMatrix * vec4(position,1.0); gl_Position = p.xyww; }`,
-    fragmentShader: `uniform vec3 top, mid, bot, sun; uniform float t; varying vec3 vP;
+    fragmentShader: `uniform vec3 top, mid, bot, sun, cloudCol; uniform float t, night, flash, cloud, sunVis, moon; varying vec3 vP;
       float h(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7)))*43758.5453); }
       float n(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f); return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y); }
       void main(){
         float y = vP.y;
         vec3 c = y > 0.0 ? mix(mid, top, pow(clamp(y*1.6,0.,1.), 0.7)) : mix(mid, bot, clamp(-y*4.0,0.,1.));
         float sd = max(dot(vP, sun), 0.0);
-        c += vec3(1.0,0.75,0.45) * pow(sd, 12.0) * 0.55 + vec3(1.0,0.9,0.7) * pow(sd, 900.0) * 6.0;
-        // غيوم ناعمة
-        if (y > 0.02) { vec2 uv = vP.xz / (y + 0.25) * 2.0 + vec2(t*0.004, 0.); float cl = n(uv) * 0.6 + n(uv*2.3)*0.3 + n(uv*5.1)*0.1; cl = smoothstep(0.55, 0.85, cl) * smoothstep(0.02, 0.3, y);
-          vec3 ccol = mix(vec3(1.0,0.72,0.55), vec3(0.95,0.6,0.55), y) + vec3(1.0,0.6,0.3)*pow(sd,4.0)*0.6; c = mix(c, ccol, cl*0.55); }
+        c += (vec3(1.0,0.75,0.45) * pow(sd, 12.0) * 0.55 + vec3(1.0,0.9,0.7) * pow(sd, 900.0) * 6.0) * sunVis;
+        // القمر وهالته
+        c += moon * (vec3(0.85,0.9,1.0) * smoothstep(0.9993, 0.99955, sd) * 2.2 + vec3(0.25,0.3,0.42) * pow(sd, 60.0) * 0.6);
+        float cl = 0.0;
+        if (y > 0.02) {
+          vec2 uv = vP.xz / (y + 0.25) * 2.0 + vec2(t*0.004 + flash*0.0, t*0.0015);
+          cl = n(uv) * 0.6 + n(uv*2.3)*0.3 + n(uv*5.1)*0.1;
+          cl = smoothstep(0.62 - cloud * 0.5, 0.9 - cloud * 0.25, cl) * smoothstep(0.02, 0.3, y);
+          vec3 cc = cloudCol * (0.8 + 0.4 * n(uv * 3.7)) + vec3(1.0,0.6,0.3)*pow(sd,4.0)*0.5*sunVis;
+          c = mix(c, cc, cl * (0.5 + cloud * 0.45));
+        }
+        // نجوم الليل
+        if (night > 0.01 && y > 0.04) { vec2 sp = vP.xz / (y + 0.3) * 70.0; vec2 ip = floor(sp); float hh = h(ip); float st = step(0.982, hh) * smoothstep(0.45, 0.0, length(fract(sp) - 0.5)); c += vec3(0.85,0.9,1.0) * st * night * (0.55 + 0.45*sin(t*2.3 + hh*60.0)) * (1.0 - cl) * smoothstep(0.04, 0.3, y); }
+        c += flash * (vec3(0.55,0.6,0.75) * (0.35 + cl * 1.6));
         gl_FragColor = vec4(c, 1.0);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
@@ -39,25 +51,26 @@ export function makeSky(info, sunDir) {
 function waterMaterial(info) {
   return new THREE.ShaderMaterial({
     transparent: true, fog: true,
-    uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, { t: { value: 0 }, sky: { value: new THREE.Color(info.sky.mid) }, top: { value: new THREE.Color(info.sky.top) }, deep: { value: new THREE.Color(0x16302e) }, sun: { value: new THREE.Vector3(...info.sun.dir).normalize() } }]),
+    uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, { t: { value: 0 }, sky: { value: new THREE.Color(info.sky.mid) }, top: { value: new THREE.Color(info.sky.top) }, deep: { value: new THREE.Color(0x16302e) }, sun: { value: new THREE.Vector3(...info.sun.dir).normalize() }, glint: { value: 1 }, rain: { value: 0 }, flash: { value: 0 } }]),
     vertexShader: `varying vec3 vW; varying vec3 vN; uniform float t;
       #include <fog_pars_vertex>
       void main(){ vec4 w = modelMatrix * vec4(position,1.0); vW = w.xyz; vec4 mvPosition = viewMatrix * w; gl_Position = projectionMatrix * mvPosition;
       #include <fog_vertex>
       }`,
-    fragmentShader: `uniform float t; uniform vec3 sky, top, deep, sun; varying vec3 vW;
+    fragmentShader: `uniform float t, glint, rain, flash; uniform vec3 sky, top, deep, sun; varying vec3 vW;
       #include <fog_pars_fragment>
       void main(){
         vec2 p = vW.xz;
         float w1 = sin(p.x*1.3 + t*1.1) * cos(p.y*1.1 - t*0.8), w2 = sin(p.x*3.1 - t*1.7 + p.y*2.3) * 0.5, w3 = sin(p.y*5.7 + t*2.3) * 0.25;
-        vec3 n = normalize(vec3((w1 + w2) * 0.08, 1.0, (w2 + w3) * 0.08));
+        float rr = rain * (sin(length(fract(p * 0.7) - 0.5) * 60.0 - t * 14.0) * 0.5 + sin(p.x * 9.1 + p.y * 7.3 + t * 9.0) * 0.5);
+        vec3 n = normalize(vec3((w1 + w2) * 0.08 + rr * 0.05, 1.0, (w2 + w3) * 0.08 + rr * 0.05));
         vec3 v = normalize(cameraPosition - vW);
         float fr = pow(1.0 - max(dot(n, v), 0.0), 3.0);
         vec3 r = reflect(-v, n);
         vec3 refl = mix(sky, top, clamp(r.y * 2.2, 0.0, 1.0));
         vec3 c = mix(deep, refl, 0.12 + fr * 0.7);
         float gl = pow(max(dot(r, sun), 0.0), 60.0);
-        c += vec3(1.0,0.78,0.45) * (gl * 2.2 + pow(max(dot(r, sun), 0.0), 8.0) * 0.25);
+        c += vec3(1.0,0.78,0.45) * (gl * 2.2 + pow(max(dot(r, sun), 0.0), 8.0) * 0.25) * glint + flash * fr * vec3(0.6,0.65,0.8);
         gl_FragColor = vec4(c, 0.92);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
@@ -97,26 +110,41 @@ export function buildWorldMeshes(B, kit, info) {
   }
   // اللافتات
   for (const s of (B.signs || [])) {
-    const g = new THREE.PlaneGeometry(s.w, s.w / 4);
-    const mesh = new THREE.Mesh(g, signMat(s.text)); mesh.position.set(s.x, s.y, s.z); mesh.rotation.y = s.ry; mesh.receiveShadow = Q.shadow > 0; group.add(mesh);
+    const g = new THREE.PlaneGeometry(s.w, s.h || s.w / 4);
+    const mesh = new THREE.Mesh(g, signMat(s.text, s.opt || {})); mesh.position.set(s.x, s.y, s.z); mesh.rotation.order = 'YXZ'; mesh.rotation.y = s.ry; if (s.rx) mesh.rotation.x = s.rx; mesh.receiveShadow = Q.shadow > 0; group.add(mesh);
   }
   // توهّج الفوانيس
   if (B.glows.length) {
-    const pos = new Float32Array(B.glows.length * 3), sizes = new Float32Array(B.glows.length);
-    B.glows.forEach((g, i) => { pos[i * 3] = g.x; pos[i * 3 + 1] = g.y; pos[i * 3 + 2] = g.z; sizes[i] = g.size; });
-    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+    const pos = new Float32Array(B.glows.length * 3), sizes = new Float32Array(B.glows.length), fl = new Float32Array(B.glows.length);
+    B.glows.forEach((g, i) => { pos[i * 3] = g.x; pos[i * 3 + 1] = g.y; pos[i * 3 + 2] = g.z; sizes[i] = g.size; fl[i] = g.fl || 0; });
+    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('size', new THREE.BufferAttribute(sizes, 1)); geo.setAttribute('fl', new THREE.BufferAttribute(fl, 1));
     const mat = new THREE.ShaderMaterial({
       transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
-      uniforms: { map: { value: glowTexture() }, scale: { value: 600 } },
-      vertexShader: `attribute float size; uniform float scale; void main(){ vec4 mv = modelViewMatrix * vec4(position,1.0); gl_PointSize = size * scale / -mv.z; gl_Position = projectionMatrix * mv; }`,
-      fragmentShader: `uniform sampler2D map; void main(){ vec4 c = texture2D(map, gl_PointCoord); gl_FragColor = vec4(c.rgb * 1.2, c.a * 0.85); }`,
+      uniforms: { map: { value: glowTexture() }, scale: { value: 600 }, gain: { value: 1 }, t: { value: 0 } },
+      vertexShader: `attribute float size; attribute float fl; uniform float scale, t; varying float vF; void main(){ vec4 mv = modelViewMatrix * vec4(position,1.0);
+        float k = position.x * 3.7 + position.z * 1.3; float f = 0.78 + 0.22 * (sin(t * 23.0 + k) * 0.5 + sin(t * 7.3 + k * 2.0) * 0.3 + sin(t * 51.0 + k) * 0.2); if (sin(t * 1.7 + k * 5.0) > 0.93) f *= 0.15;
+        vF = mix(1.0, f, fl); gl_PointSize = size * scale / -mv.z * (0.7 + 0.3 * vF); gl_Position = projectionMatrix * mv; }`,
+      fragmentShader: `uniform sampler2D map; uniform float gain; varying float vF; void main(){ vec4 c = texture2D(map, gl_PointCoord); gl_FragColor = vec4(c.rgb * 1.2 * gain * vF, c.a * 0.85); }`,
     });
     const pts = new THREE.Points(geo, mat); pts.frustumCulled = false; group.add(pts); group.userData.glowMat = mat;
   }
   // أضواء نقطية حقيقية (محدودة العدد حسب الجودة)
-  const maxL = [0, 3, 6, 10][Q.details] || 0;
-  const lights = B.lights.slice().sort((a, b) => b.intensity - a.intensity).slice(0, maxL);
-  for (const l of lights) { const pl = new THREE.PointLight(l.color, l.intensity, l.dist, 1.6); pl.position.set(l.x, l.y, l.z); group.add(pl); }
+  // مجمّع أضواء نقطية حقيقية: تُسند لأقرب الفوانيس إلى الكاميرا (عدد ثابت حسب الجودة لتفادي إعادة ترجمة الظلال)
+  const maxL = [0, 4, 6, 10][Q.details] || 0, pool = [], all = B.lights;
+  for (let i = 0; i < maxL; i++) { const pl = new THREE.PointLight(0xffb060, 0, 8, 1.6); pl.userData.idx = -1; group.add(pl); pool.push(pl); }
+  const flick = (t, i) => { let f = 0.74 + 0.26 * (Math.sin(t * 23 + i * 7.1) * 0.5 + Math.sin(t * 7.3 + i * 3.7) * 0.3 + Math.sin(t * 51 + i) * 0.2); if (Math.sin(t * 1.7 + i * 5) > 0.93) f *= 0.12; return f; };
+  let pickT = 0; const d2 = new Float32Array(all.length);
+  group.userData.updateLights = (cx, cy, cz, t, dt, mul) => {
+    if (!maxL) return;
+    if ((pickT -= dt) <= 0) {
+      pickT = 0.25;
+      for (let i = 0; i < all.length; i++) { const l = all[i]; d2[i] = ((l.x - cx) ** 2 + (l.y - cy) ** 2 + (l.z - cz) ** 2) / (l.intensity * l.intensity + 0.5); }
+      const order = [...all.keys()].sort((a, b) => d2[a] - d2[b]).slice(0, maxL), want = new Set(order);
+      const free = pool.filter(p => !want.has(p.userData.idx));
+      for (const i of order) { if (pool.some(p => p.userData.idx === i)) continue; const p = free.shift(); if (!p) break; const l = all[i]; p.userData.idx = i; p.position.set(l.x, l.y, l.z); p.color.setHex(l.color); p.distance = l.dist * (mul > 1.2 ? 1.25 : 1); p.userData.fade = 0; }
+    }
+    for (const p of pool) { const i = p.userData.idx; if (i < 0) { p.intensity = 0; continue; } const l = all[i]; p.userData.fade = Math.min(1, (p.userData.fade ?? 1) + dt * 3); p.intensity = l.intensity * mul * p.userData.fade * (l.fl ? flick(t, i) : 1); }
+  };
   group.userData.waters = waters; group.userData.waterMat = wm;
   return group;
 }

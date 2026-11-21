@@ -57,6 +57,9 @@ function charMats(id) {
     tie: d.tie ? std({ color: d.tie, roughness: 0.5 }) : null, glass: std({ color: 0x0a0c10, roughness: 0.05, metalness: 0.8 }),
     shemagh: d.hairStyle === 'shemagh' ? std({ map: TX.fabric(256, { check: 14, col: '#b3202a' }).map, roughness: 0.95, side: THREE.DoubleSide }) : null,
     black: std({ color: 0x101010, roughness: 0.6 }),
+    leather: std({ color: d.leather || '#3a2a1e', roughness: 0.55 }), glove: d.gloves ? std({ color: d.gloves, roughness: 0.5 }) : skin,
+    cape: d.cape ? std({ map: TX.fabric(256, { base: hexRgb(d.cape) }).map, roughness: 0.95, side: THREE.DoubleSide }) : null,
+    coatIn: std({ color: 0x1a1410, roughness: 0.9, side: THREE.DoubleSide }), gold: std({ color: 0xc9a043, roughness: 0.35, metalness: 0.85 }),
   };
   texCache.set(id, M); return M;
 }
@@ -85,7 +88,16 @@ export class CharModel {
     // الورك والساقان
     const hips = this.hips = new THREE.Group(); hips.position.y = 0.96; root.add(hips);
     mesh(roundBox(0.34, 0.2, 0.22, 0.07), M.pants, 0, 0.02, 0, hips);
-    mesh(roundBox(0.35, 0.05, 0.23, 0.02), M.black, 0, 0.11, 0, hips); // حزام
+    mesh(roundBox(0.36, 0.055, 0.24, 0.02), M.leather, 0, 0.11, 0, hips); // حزام جلدي بإبزيم وجراب
+    mesh(roundBox(0.06, 0.045, 0.02, 0.006), M.gold, 0, 0.11, -0.125, hips);
+    mesh(roundBox(0.08, 0.1, 0.05, 0.015), M.leather, 0.17, 0.04, -0.03, hips);
+    // أذيال المعطف الطويل (تتطاير مع الجري وتتبع الساقين)
+    this.tails = [];
+    if (d.coat) {
+      const L = d.coat, tail = (x, z, w, len, kind) => { const g = new THREE.Group(); g.position.set(x, 0.06, z); hips.add(g); mesh(roundBox(w, len, 0.022, 0.009), M.jacket, 0, -len / 2, 0, g); mesh(roundBox(w * 0.96, len * 0.97, 0.004, 0.002), M.coatIn, 0, -len / 2, kind === 'back' ? -0.014 : 0.014, g); this.tails.push({ g, kind, side: Math.sign(x) }); };
+      tail(-0.095, -0.118, 0.165, L * 0.92, 'front'); tail(0.095, -0.118, 0.165, L * 0.92, 'front'); tail(0, 0.125, 0.34, L, 'back');
+      tail(-0.178, 0.02, 0.022, L * 0.9, 'side'); tail(0.178, 0.02, 0.022, L * 0.9, 'side');
+    }
     this.legs = [];
     for (const s of [-1, 1]) {
       const thigh = new THREE.Group(); thigh.position.set(s * 0.095, -0.04, 0); hips.add(thigh);
@@ -100,6 +112,9 @@ export class CharModel {
     const torso = this.torso = new THREE.Group(); torso.position.y = 0.1; hips.add(torso);
     const chest = this.chest = new THREE.Group(); torso.add(chest);
     mesh(roundBox(0.45, 0.5, 0.26, 0.09), M.jacket, 0, 0.27, 0, chest);
+    mesh(roundBox(0.5, 0.17, 0.275, 0.08), M.jacket, 0, 0.43, 0, chest); // صدر وكتفان عريضان
+    if (d.cape) { const cp = mesh(cached('cape', () => new THREE.CylinderGeometry(0.2, 0.3, 0.3, 16, 1, true, -Math.PI * 0.62, Math.PI * 1.24)), M.cape, 0, 0.39, 0.005, chest); cp.rotation.y = Math.PI; cp.scale.set(1.12, 1, 0.82); }
+    if (d.hood) { const hd = mesh(cached('hood', () => new THREE.SphereGeometry(0.16, 16, 10, 0, Math.PI * 2, Math.PI * 0.35, Math.PI * 0.45)), M.jacket, 0, 0.54, 0.1, chest); hd.scale.set(1.05, 0.8, 0.9); hd.rotation.x = 0.5; }
     if (d.jacketOpen || d.tie) { mesh(roundBox(0.13, 0.42, 0.04, 0.015), M.shirt, 0, 0.29, -0.11, chest); }
     if (d.tie) { const t = mesh(roundBox(0.045, 0.32, 0.02, 0.008), M.tie, 0, 0.3, -0.135, chest); mesh(roundBox(0.05, 0.04, 0.025, 0.01), M.tie, 0, 0.47, -0.135, chest); t.rotation.x = 0.03; }
     if (d.jacketOpen && !d.tie) mesh(roundBox(0.15, 0.06, 0.06, 0.02), M.shirt, 0, 0.5, -0.06, chest);
@@ -116,12 +131,14 @@ export class CharModel {
     this.arms = [];
     for (const s of [-1, 1]) {
       const sh = new THREE.Group(); sh.position.set(s * 0.25, 0.45, 0); chest.add(sh);
+      const dl = mesh(cached('delt', () => new THREE.SphereGeometry(0.074, 12, 10)), M.jacket, 0, 0.0, 0, sh); dl.scale.set(1.05, 0.9, 1.1);
       const upper = new THREE.Group(); sh.add(upper);
       mesh(capsule(0.058, 0.2), M.jacket, 0, -0.14, 0, upper);
       if (s < 0) { const band = mesh(cached('band', () => new THREE.CylinderGeometry(0.064, 0.064, 0.05, 12)), teamMats[team], 0, -0.1, 0, upper); band.castShadow = false; this.band = band; }
       const fore = new THREE.Group(); fore.position.y = -0.29; upper.add(fore);
       mesh(capsule(0.05, 0.18), M.jacket, 0, -0.12, 0, fore);
-      const hand = mesh(roundBox(0.07, 0.095, 0.04, 0.018), M.skin, 0, -0.29, 0, fore);
+      if (d.bracers) { mesh(capsule(0.056, 0.09), M.leather, 0, -0.2, 0, fore); mesh(cached('bstrap', () => new THREE.CylinderGeometry(0.06, 0.06, 0.014, 12)), M.gold, 0, -0.17, 0, fore); }
+      const hand = mesh(roundBox(0.07, 0.095, 0.04, 0.018), M.glove, 0, -0.29, 0, fore);
       this.arms.push({ sh, upper, fore, hand, side: s });
     }
     // شارة الفريق على الكتف
@@ -156,14 +173,21 @@ export class CharModel {
   // st: { yaw, pitch, speed, vx, vz, crouch, onGround, alive, reloading, fireT, ads }
   update(st, dt) {
     const root = this.root;
+    this.t = (this.t || 0) + dt;
     if (!st.alive) {
-      if (this.deadT < 0) { this.deadT = 0; this.fallDir = Math.random() < 0.6 ? 1 : -1; }
-      this.deadT += dt; const t = Math.min(1, this.deadT / 0.55), e = 1 - Math.pow(1 - t, 3);
-      root.rotation.set(this.fallDir * e * Math.PI / 2, st.yaw, 0, 'YXZ');
-      this.hips.position.y = 0.96 - e * 0.55;
-      for (const a of this.arms) { a.upper.quaternion.setFromEuler(new THREE.Euler(-0.4 * e, 0, a.side * (0.3 + 0.9 * e))); a.fore.rotation.set(-0.3 * e, 0, 0); }
-      for (const l of this.legs) { l.thigh.rotation.x = 0.25 * e; l.shin.rotation.x = -0.3 * e; }
-      if (this.gun) this.gun.group.visible = t < 0.2;
+      // سقوط على مرحلتين: انهيار الركبتين ثم السقوط مع التفاف بسيط وارتداد خفيف
+      if (this.deadT < 0) { this.deadT = 0; this.fallDir = Math.random() < 0.6 ? 1 : -1; this.twist = (Math.random() - 0.5) * 0.9; }
+      this.deadT += dt;
+      const k1 = Math.min(1, this.deadT / 0.22), e1 = 1 - Math.pow(1 - k1, 2);
+      const t = Math.min(1, Math.max(0, (this.deadT - 0.12) / 0.6)), e = t < 1 ? 1 - Math.pow(1 - t, 3) : 1;
+      const bounce = t >= 1 ? Math.max(0, Math.sin(Math.min(1, (this.deadT - 0.72) / 0.25) * Math.PI)) * 0.04 : 0;
+      root.rotation.set(this.fallDir * e * Math.PI / 2 * 0.96, st.yaw + this.twist * e, this.twist * 0.4 * e, 'YXZ');
+      this.hips.position.y = 0.96 - e1 * 0.32 - e * 0.28 + bounce;
+      for (const a of this.arms) { a.upper.quaternion.setFromEuler(new THREE.Euler(-0.5 * e - 0.6 * e1 * (1 - e), 0, a.side * (0.25 + 1.1 * e))); a.fore.rotation.set(-0.5 * e, 0, 0); }
+      for (const l of this.legs) { l.thigh.rotation.x = 1.1 * e1 * (1 - e) + 0.25 * e; l.shin.rotation.x = -1.6 * e1 * (1 - e) - 0.3 * e; }
+      for (const T of this.tails) T.g.rotation.set(T.kind === 'back' ? -0.3 * e : 0.2 * e, 0, 0);
+      this.torso.rotation.set(0.3 * e1 * (1 - e), 0, 0);
+      if (this.gun) this.gun.group.visible = this.deadT < 0.15;
       return;
     }
     if (this.deadT >= 0) { this.deadT = -1; if (this.gun) this.gun.group.visible = true; }
@@ -183,11 +207,22 @@ export class CharModel {
       L.thigh.rotation.x = th; L.shin.rotation.x = sh; L.foot.rotation.x = -(th + sh) * 0.6;
     }
     this.hips.position.y = 0.96 - c * 0.4 + (air ? 0 : Math.abs(Math.sin(ph)) * 0.03 * k);
-    // الجذع يتبع زاوية التصويب
-    const pitch = st.pitch || 0;
-    this.torso.rotation.x = pitch * 0.55 + c * 0.25 + k * 0.08;
-    this.head.rotation.x = pitch * 0.45 - c * 0.15;
+    // الجذع يتبع زاوية التصويب + تنفّس + ميل جانبي + ارتداد عند الإصابة
+    const pitch = st.pitch || 0, lean = st.lean || 0, hurt = st.hurt ?? 9, fl = hurt < 0.3 ? (0.3 - hurt) / 0.3 : 0;
+    this.torso.rotation.x = pitch * 0.55 + c * 0.25 + k * 0.08 - fl * 0.28;
+    this.torso.rotation.z = -lean * 0.32;
+    this.hips.position.x = lean * 0.06;
+    this.head.rotation.x = pitch * 0.45 - c * 0.15 + fl * 0.15;
+    this.head.rotation.z = lean * 0.12;
     this.torso.rotation.y = Math.sin(ph) * 0.06 * k;
+    this.chest.scale.set(1, 1 + Math.sin(this.t * 1.7) * 0.008 * (1 - k), 1 + Math.sin(this.t * 1.7) * 0.012 * (1 - k));
+    // أذيال المعطف: تتبع الساقين وتتطاير خلفه عند الجري وترفرف بلطف
+    for (const T of this.tails) {
+      const fl2 = Math.sin(this.t * 9 + T.side * 1.7) * 0.05 * k + Math.sin(this.t * 2.1 + T.side) * 0.015;
+      if (T.kind === 'front') { const leg = this.legs[T.side < 0 ? 0 : 1].thigh.rotation.x; T.g.rotation.set(Math.max(-0.1, leg * 0.92) - k * 0.12 + fl2, 0, T.side * (0.04 + c * 0.25)); }
+      else if (T.kind === 'back') T.g.rotation.set(-(0.06 + k * 0.55 + (air ? 0.4 : 0) + c * 0.5) + fl2, 0, 0);
+      else T.g.rotation.set(-k * 0.3 + fl2, 0, T.side * (0.06 + k * 0.12 + c * 0.3));
+    }
     // السلاح واليدان
     const P = this.gun ? this.gun.P : null, g = this.gun ? this.gun.group : null;
     let grip, fore;

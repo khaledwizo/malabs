@@ -6,6 +6,7 @@ import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
+import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -21,6 +22,9 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /** غلاف بسيط: يعرض اللعبة (assets/index.html) في WebView بملء الشاشة. */
 public class MainActivity extends Activity {
@@ -53,6 +57,8 @@ public class MainActivity extends Activity {
         s.setSupportZoom(false);
         s.setUseWideViewPort(true);
         s.setLoadWithOverviewMode(true);
+        s.setBuiltInZoomControls(false);
+        s.setDisplayZoomControls(false);
         web.setWebChromeClient(new WebChromeClient());
         web.setWebViewClient(new WebViewClient() {
             @Override
@@ -65,6 +71,14 @@ public class MainActivity extends Activity {
         });
         web.addJavascriptInterface(new Bridge(), "RafidainAndroid");
         setContentView(web);
+        // منع إيماءة الرجوع من حافتي الشاشة كي لا تسرق لمسات عصا الحركة والتصويب
+        if (Build.VERSION.SDK_INT >= 29) web.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
+            int ex = (int) (200 * getResources().getDisplayMetrics().density), w2 = r - l, h2 = b - t;
+            List<Rect> rects = new ArrayList<>();
+            rects.add(new Rect(0, Math.max(0, h2 - ex * 2), Math.min(ex / 2, w2), h2));
+            rects.add(new Rect(Math.max(0, w2 - ex / 2), Math.max(0, h2 - ex * 2), w2, h2));
+            v.setSystemGestureExclusionRects(rects);
+        });
         hideBars();
         if (state != null) web.restoreState(state);
         if (web.getUrl() == null) web.loadUrl("file:///android_asset/index.html");
@@ -151,6 +165,13 @@ public class MainActivity extends Activity {
                 Toast.makeText(MainActivity.this, "نُسخ", Toast.LENGTH_SHORT).show();
             });
         }
+
+        /** نسخة احتياطية من معرّف اللاعب وقائمة أصدقائه (تبقى حتى لو مُسحت بيانات الصفحة) */
+        @JavascriptInterface
+        public String loadId() { return getSharedPreferences("rafidain", MODE_PRIVATE).getString("social", ""); }
+
+        @JavascriptInterface
+        public void saveId(String data) { getSharedPreferences("rafidain", MODE_PRIVATE).edit().putString("social", data).apply(); }
 
         @JavascriptInterface
         public void share(final String text) {

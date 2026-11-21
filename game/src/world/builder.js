@@ -6,6 +6,9 @@ const MATCOL = {
   stone: MAT.stone, marble: MAT.stone, paving: MAT.brick, sand: MAT.sand, mud: MAT.sand, roof: MAT.plaster, wood: MAT.wood, woodDark: MAT.wood, woodBlue: MAT.wood, woodGreen: MAT.wood,
   beam: MAT.wood, lattice: MAT.wood, latticeBlue: MAT.wood, tileTurq: MAT.tile, tileBlue: MAT.tile, tileGold: MAT.tile, carpet: MAT.cloth, carpet2: MAT.cloth, metal: MAT.metal, iron: MAT.metal,
   copper: MAT.metal, brass: MAT.metal, gold: MAT.metal, palm: MAT.wood, clothRed: MAT.cloth, clothCream: MAT.cloth, clothGreen: MAT.cloth, sack: MAT.cloth, glass: MAT.glass,
+  brickBurnt: MAT.brick, plasterBurnt: MAT.plaster, charred: MAT.wood, rust: MAT.metal, tomb: MAT.stone, graveDirt: MAT.sand, grass: MAT.sand, tileGreen: MAT.tile,
+  paintRed: MAT.metal, paintOrange: MAT.metal, gunmetal: MAT.metal, ammo: MAT.wood, olive: MAT.cloth, tan: MAT.cloth, clay: MAT.brick, deadwood: MAT.wood, bone: MAT.stone,
+  leafGreen: MAT.cloth, leafDark: MAT.cloth,
 };
 
 export class Builder {
@@ -46,8 +49,9 @@ export class Builder {
     L.push([x, y, z, ry, s, sy ?? s]);
     return this;
   }
-  light(x, y, z, color = 0xffb35a, intensity = 1, dist = 8) { if (this.vis) this.lights.push({ x, y, z, color, intensity, dist }); return this; }
-  glow(x, y, z, size = 0.6, color = 0xffb04a) { if (this.vis) this.glows.push({ x, y, z, size, color }); return this; }
+  // fl: وميض (0 ثابت، 1 يرتجف كمصباح معطوب)
+  light(x, y, z, color = 0xffb35a, intensity = 1, dist = 8, fl = 0) { if (this.vis) this.lights.push({ x, y, z, color, intensity, dist, fl }); return this; }
+  glow(x, y, z, size = 0.6, color = 0xffb04a, fl = 0) { if (this.vis) this.glows.push({ x, y, z, size, color, fl }); return this; }
   spawn(team, x, y, z, yaw) { this.w.spawns[team].push([x, y, z, yaw]); return this; }
   // عقد الملاحة للبوتات
   node(x, y, z, tag) { this.navN.push([x, y, z, tag || '']); return this.navN.length - 1; }

@@ -30,3 +30,25 @@ Architecture (src/):
   checks prediction error (~1mm), lag-compensated hits on moving target, leave/bot refill.
 
 IDEAS NEXT: more maps, voice/chat quick messages, bomb/defuse mode, ranked stats, in-game host (no 3rd phone) option.
+
+STAGE 3 (DONE, Nov 2026) — overhaul requested by the user
+- Map renamed «سوق المجاهدين» (weapons-market look only): souq shops are weapon shops (rifles/pistols/ammo/armor/blades/heavy via gunProp
+  box silhouettes, 'flat' lying on tables) + one green shop «مشتل ريحانة» (plants, visual only, forced at left shop z -10..-7.6).
+  Map extended to x -92..92 (mapRect [-94,-38,94,36]): maps/districts.js = west «الحارة المهجورة» (enterable ruinHouse with jagWall,
+  burnt car, graffiti signs opt.graffiti, flicker lights fl=1) + «المقبرة القديمة» (tombs grid, dead trees, green-dome shrine, city wall,
+  watchtower) ; east «ساحة الساعة» (clock tower w/ clock signs opt.clock, القشلة arcade split into 2 archWalls, red bus, sandbag
+  checkpoint, weapon stalls, orange taxi) ; shore extended. Nav graph fully connected (369 nodes). w.spawnsTdm for respawns.
+  FIXED old bug: archWall 'z' visuals were mirrored vs collision (now T(c+t/2,y0,a0,-PI/2)).
+- gfx/weather.js: presets day/sunset/storm/horror (+random), GPU rain (instanced, roof-occlusion DataTexture from colliders, uses
+  camera-right uniform — cameraPosition-based cross gave zero quads), splashes, lightning bolts+flash+Audio.thunder, mist sprites,
+  ghost apparitions in info.haunt (cosmetic), wet materials + PMREM env reflections, shadow camera follows player (texel snapped),
+  light pool in scene.js (nearest N PointLights, flicker). gfx/post.js: HDR bloom + grade + vignette on high/ultra (Q.bloom).
+- Modes tdm (respawn, fewer deaths wins after timeLimit) / rounds / snipers / pistols ; PUBG-like scopes & aiming ; 18 weapons.
+- Social (net/social.js): 10-digit Luhn IDs, friend requests via RETAINED MQTT msgs (rafidain/v2/u/{id}/rq|ac|rm/{from}), presence
+  retained /st with Last Will, inbox /in for invite/join/party/start/disband. Party host runs GameServer IN THE GAME PAGE
+  (game.hostParty) + LocalLink loopback for host player; members auto-join room 'p'+hostId+rand. No codes needed.
+  Private dedicated server still supported (friends screen → «سيرفر خاص» code). PROTO=2 (lean, helmet, spawnProt, respawnT, att).
+  Brokers: emqx + mosquitto (HiveMQ dropped: its public broker terms forbid production use).
+- Bots: safe grenade throws (no self-kills), hear gunshots, retreat to cover when hurt (tdm), map-wide hunting, no friendly fire.
+- Characters: coat tails (sway with legs/run), hood/cape variants, broad shoulders, bracers, gloves, breathing, lean, hit flinch,
+  2-stage death. Tests: test/party.mjs (2 players friend→invite→host start), test/dedicated.mjs, test/mapshot.mjs (free cam).

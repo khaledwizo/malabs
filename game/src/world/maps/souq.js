@@ -1,9 +1,10 @@
-// خريطة «سوق الشناشيل» — بغداد القديمة عند الغروب
+// خريطة «سوق المجاهدين» — سوق السلاح في بغداد القديمة
 // جنوباً: شريعة دجلة (الفريق أ) · شمالاً: صحن الجامع بالقبة الفيروزية (الفريق ب)
-// ثلاثة مسارات: الخان غرباً · السوق المسقوف وسطاً · أزقّة الشناشيل وساحة البئر شرقاً
+// الوسط: السوق المسقوف بدكاكين السلاح ومشتل ريحانة · غرباً: الخان ثم الحارة المهجورة والمقبرة القديمة · شرقاً: ساحة البئر ثم ساحة الساعة
 import * as THREE from 'three';
 import { archWallGeo } from '../../gfx/geo.js';
 import { MAT, F } from '../collide.js';
+import { buildDistricts } from './districts.js';
 
 const M4 = new THREE.Matrix4(), Q = new THREE.Quaternion(), V = new THREE.Vector3(), SC = new THREE.Vector3(), EU = new THREE.Euler();
 const T = (x, y, z, ry = 0, sx = 1, sy = 1, sz = 1, rx = 0, rz = 0) => { EU.set(rx, ry, rz, 'YXZ'); Q.setFromEuler(EU); return new THREE.Matrix4().compose(V.set(x, y, z), Q, SC.set(sx, sy, sz)); };
@@ -11,10 +12,20 @@ let seedV = 7; const R = () => { seedV = (seedV * 16807) % 2147483647; return se
 const pick = a => a[Math.floor(R() * a.length)];
 
 export const SOUQ_INFO = {
-  id: 'souq', name: 'سوق الشناشيل', sub: 'بغداد القديمة · عند الغروب',
+  id: 'mujahideen', name: 'سوق المجاهدين', sub: 'سوق السلاح · بغداد القديمة',
   sun: { dir: [-0.62, 0.42, 0.38], color: 0xffc58a, intensity: 3.1 },
   sky: { top: 0x3a5a9a, mid: 0xe7a06a, bottom: 0xf3c99a, fog: 0xd9a77c, fogDensity: 0.0085 },
-  bounds: [-50, -40, 50, 36],
+  bounds: [-96, -40, 96, 36],
+  mapRect: [-94, -38, 94, 36],
+  water: [[-110, 33.6, 110, 70]],
+  areas: [
+    { name: 'سوق المجاهدين', x: 0, z: -2, big: true }, { name: 'صحن الجامع', x: 0, z: -29 }, { name: 'خان المرجان', x: -25, z: -6 },
+    { name: 'ساحة البئر', x: 30, z: -3 }, { name: 'الشريعة', x: 0, z: 27 }, { name: 'الحارة المهجورة', x: -55, z: -8, col: '#ffb3a8' },
+    { name: 'المقبرة القديمة', x: -77, z: -6, col: '#ff8f8f', big: true }, { name: 'ساحة الساعة', x: 66, z: -9, big: true }, { name: 'مشتل ريحانة', x: -6.5, z: -8.8, col: '#a6ff9a' },
+  ],
+  lineup: { x: -2.4, z: 23.6, dx: 1.6 },
+  mist: [[-90, -30, -66, 18], [-66, -30, -46, 18]],
+  haunt: [[-90, -30, -68, 16], [-66, -30, -47, 18]],
 };
 
 export function buildSouq(B) {
@@ -41,8 +52,9 @@ export function buildSouq(B) {
     for (const [a, b, h] of houses) {
       const hx0 = alongX ? x0 + a : x0, hx1 = alongX ? x0 + b : x1, hz0 = alongX ? z0 : z0 + a, hz1 = alongX ? z1 : z0 + b;
       const style = pick(['brick', 'brick', 'mix', 'plaster', 'mix']);
-      const lower = style === 'plaster' ? pick(['plasterOchre', 'plaster', 'plasterBlue']) : pick(['brick', 'brick', 'brickPale', 'brickRed']);
-      const upper = style === 'brick' ? lower : pick(['plaster', 'plasterOchre', 'plasterWhite', 'plasterBlue']);
+      let lower = style === 'plaster' ? pick(['plasterOchre', 'plaster', 'plasterBlue']) : pick(['brick', 'brick', 'brickPale', 'brickRed']);
+      let upper = style === 'brick' ? lower : pick(['plaster', 'plasterOchre', 'plasterWhite', 'plasterBlue']);
+      if (o.ruin) { lower = pick(['brickBurnt', 'brickBurnt', 'brick', 'brickPale']); upper = pick(['plasterBurnt', 'brickBurnt', 'plaster', lower]); }
       const split = 3.4;
       B.box(hx0, 0, hz0, hx1, split, hz1, lower);
       B.box(hx0, split, hz0, hx1, h, hz1, upper, { col: true });
@@ -71,16 +83,23 @@ export function buildSouq(B) {
   const facade = (f, h, split, o) => {
     if (!vis || f.L < 2) return;
     // باب في الطابق الأرضي
+    const ruin = o && o.ruin;
     if (f.L > 3.2 && R() < 0.85) {
-      const w = 1.2 + R() * 0.4, u = 0.8 + R() * (f.L - w - 1.6);
-      door(f, u, w, 2.3 + R() * 0.3, pick(['wood', 'woodDark', 'woodBlue', 'woodGreen']));
+      const w = 1.2 + R() * 0.4, u = 0.8 + R() * (f.L - w - 1.6), dh = 2.3 + R() * 0.3;
+      door(f, u, w, dh, ruin ? pick(['charred', 'woodDark', 'charred']) : pick(['wood', 'woodDark', 'woodBlue', 'woodGreen']));
+      if (ruin) { fbox(f, u - 0.3, u + w + 0.3, dh + 0.3, Math.min(h - 0.4, dh + 2.2), 0, 0.025, 'charred', { col: false }); for (let k = 0; k < 2; k++) fbox(f, u - 0.1, u + w + 0.1, 0.7 + k * 0.9, 0.86 + k * 0.9, 0.16, 0.2, 'wood', { col: false }); }
     }
     // نوافذ صغيرة بقضبان
-    for (let u = 0.9; u < f.L - 1.2; u += 2.6 + R() * 1.5) if (R() < 0.45) { fbox(f, u, u + 0.8, 1.6, 2.5, -0.02, 0.06, 'dark', { col: false }); for (let k = 1; k < 4; k++) fbox(f, u + k * 0.2 - 0.02, u + k * 0.2 + 0.02, 1.6, 2.5, 0.06, 0.1, 'iron', { col: false }); fbox(f, u - 0.1, u + 0.9, 1.5, 1.6, 0, 0.14, 'brickPale', { col: false }); }
+    for (let u = 0.9; u < f.L - 1.2; u += 2.6 + R() * 1.5) if (R() < 0.45) {
+      fbox(f, u, u + 0.8, 1.6, 2.5, -0.02, 0.06, 'dark', { col: false });
+      if (ruin) { for (const yy of [1.75, 2.2]) fbox(f, u - 0.08, u + 0.88, yy, yy + 0.13, 0.07, 0.11, 'wood', { col: false }); fbox(f, u - 0.2, u + 1.0, 2.5, 3.3, 0, 0.025, 'charred', { col: false }); }
+      else for (let k = 1; k < 4; k++) fbox(f, u + k * 0.2 - 0.02, u + k * 0.2 + 0.02, 1.6, 2.5, 0.06, 0.1, 'iron', { col: false });
+      fbox(f, u - 0.1, u + 0.9, 1.5, 1.6, 0, 0.14, 'brickPale', { col: false });
+    }
     // شناشيل في الطابق العلوي
     if (h > split + 2.6 && f.L >= 3.4 && R() < 0.8) {
       const w = Math.min(f.L - 0.8, 2.6 + R() * 2.4), u = (f.L - w) * (0.2 + R() * 0.6);
-      shanasheel(f, u, w, split + 0.35, Math.min(h - split - 0.6, 2.9), 0.85 + R() * 0.25, R() < 0.3 ? 'latticeBlue' : 'lattice');
+      shanasheel(f, u, w, split + 0.35, Math.min(h - split - 0.6, 2.9), 0.85 + R() * 0.25, R() < 0.3 ? 'latticeBlue' : 'lattice', ruin);
     } else if (h > split + 2) {
       for (let u = 1; u < f.L - 1.2; u += 2.2 + R()) { fbox(f, u, u + 0.9, split + 0.8, split + 2.1, -0.02, 0.05, R() < 0.5 ? 'lattice' : 'dark', { col: false }); fbox(f, u - 0.08, u + 0.98, split + 2.1, split + 2.25, 0, 0.12, 'woodDark', { col: false }); }
     }
@@ -100,8 +119,8 @@ export function buildSouq(B) {
     fbox(f, u - 0.25, u + w + 0.25, 0, 0.18, 0, 0.35, 'stone', { col: false }); // عتبة
   };
   // الشنشول: بروز خشبي فوق الزقاق بمشبكات وقاعدة مزخرفة
-  const shanasheel = (f, u, w, y0, h, d, lat) => {
-    const frameM = lat === 'latticeBlue' ? 'woodBlue' : 'woodDark';
+  const shanasheel = (f, u, w, y0, h, d, lat, ruin) => {
+    const frameM = ruin ? 'charred' : lat === 'latticeBlue' ? 'woodBlue' : 'woodDark';
     fbox(f, u, u + w, y0 + 0.35, y0 + h, 0, d, null, { vis: false, cm: MAT.wood, flags: F.THIN }); // تصادم واحد للجسم
     fbox(f, u, u + w, y0, y0 + 0.35, 0, d, frameM, { col: false });
     // كوابيل خشبية تحت القاعدة
@@ -110,7 +129,8 @@ export function buildSouq(B) {
     const panels = Math.max(2, Math.round(w / 0.75)), pw = w / panels;
     for (let k = 0; k < panels; k++) {
       const a = u + k * pw;
-      fbox(f, a + 0.05, a + pw - 0.05, y0 + 0.5, y0 + h - 0.55, d - 0.06, d - 0.02, lat, { col: false });
+      if (!ruin || R() < 0.55) fbox(f, a + 0.05, a + pw - 0.05, y0 + 0.5, y0 + h - 0.55, d - 0.06, d - 0.02, ruin && R() < 0.5 ? 'charred' : lat, { col: false });
+      else fbox(f, a + 0.05, a + pw - 0.05, y0 + 0.5, y0 + h - 0.55, 0.02, 0.06, 'dark', { col: false });
       fbox(f, a, a + 0.06, y0 + 0.35, y0 + h - 0.35, d - 0.08, d, frameM, { col: false });
       fbox(f, a + 0.05, a + pw - 0.05, y0 + 0.36, y0 + 0.5, d - 0.06, d - 0.02, 'woodBlue', { col: false });
     }
@@ -146,7 +166,7 @@ export function buildSouq(B) {
     const g = archWallGeo(L, H, t, holes.map(hl => ({ x: hl.u, y: hl.y || 0, w: hl.w, h: hl.h, rise: hl.rise ?? hl.w * 0.55 })));
     // الشكل في XY مبثوق على +Z؛ ننقله ليتمركز على السماكة
     if (axis === 'x') B.geo(g, T(a0, y0, c - t / 2), mat, { ao: v => Math.min(1, 0.6 + 0.4 * Math.min(1, (v.y - y0) / 0.9)) });
-    else B.geo(g, T(c - t / 2, y0, a1, Math.PI / 2), mat, { ao: v => Math.min(1, 0.6 + 0.4 * Math.min(1, (v.y - y0) / 0.9)) });
+    else B.geo(g, T(c + t / 2, y0, a0, -Math.PI / 2), mat, { ao: v => Math.min(1, 0.6 + 0.4 * Math.min(1, (v.y - y0) / 0.9)) }); // يطابق فتحات التصادم (a0 + u)
     if (o.trim) { // إطار كاشي حول الأقواس
       for (const hl of holes) {
         const rise = hl.rise ?? hl.w * 0.55, top = (hl.y || 0) + hl.h + rise;
@@ -213,42 +233,87 @@ export function buildSouq(B) {
     B.geo(() => new THREE.CylinderGeometry(0.05, 0.08, 0.72, 8), T(x, 0.36, z), 'iron');
     pot(x + 0.12, 0.77, z, 0.05, 'glass'); pot(x - 0.15, 0.77, z + 0.1, 0.05, 'glass');
   };
-  // دكّان في السوق: رفوف وبضائع على جانب (side: 1 يمين/-1 يسار من شارع السوق)
-  const shop = (xFace, z0, z1, side) => {
+  // مجسّم سلاح مبسّط للعرض (يُبنى من صناديق محاذية للمحاور): o='h' أفقي (السبطانة نحو ±z) أو 'v' عمودي
+  const gunProp = (x, y, z, o = 'h', dir = 1, kind = 'rifle', s = 1) => {
+    if (!vis) return;
+    const P = kind === 'pistol' ? [[-0.08, 0.1, -0.03, 0.012, 'gunmetal'], [-0.08, -0.035, 0.012, 0.1, 'gunmetal']]
+      : kind === 'sniper' ? [[-0.62, -0.3, -0.03, 0.1, 'woodDark'], [-0.3, 0.12, -0.04, 0.03, 'gunmetal'], [0.12, 0.62, -0.012, 0.012, 'gunmetal'], [-0.22, 0.02, -0.11, -0.05, 'gunmetal'], [-0.25, -0.2, 0.03, 0.12, 'gunmetal'], [-0.1, -0.03, 0.03, 0.08, 'gunmetal']]
+      : kind === 'launcher' ? [[-0.55, 0.55, -0.06, 0.06, 'olive'], [-0.1, -0.05, 0.06, 0.18, 'gunmetal'], [0.1, 0.15, 0.06, 0.15, 'gunmetal']]
+      : [[-0.46, -0.18, -0.02, 0.09, kind === 'ak' ? 'woodDark' : 'gunmetal'], [-0.18, 0.12, -0.045, 0.03, 'gunmetal'], [0.12, 0.3, -0.03, 0.03, kind === 'ak' ? 'woodDark' : 'gunmetal'], [0.3, 0.5, -0.011, 0.011, 'gunmetal'], [-0.02, 0.06, 0.03, 0.18, 'gunmetal'], [-0.13, -0.08, 0.03, 0.12, 'gunmetal']];
+    const th = (kind === 'pistol' ? 0.03 : 0.05) * s;
+    for (const [u0, u1, v0, v1, m] of P) {
+      if (o === 'h') { const za = z + u0 * dir * s, zb = z + u1 * dir * s; B.box(x - th / 2, y - v1 * s, Math.min(za, zb), x + th / 2, y - v0 * s, Math.max(za, zb), m, { col: false }); }
+      else if (o === 'v') B.box(x - th / 2, y + u0 * s, z + v0 * s * dir, x + th / 2, y + u1 * s, z + v1 * s * dir, m, { col: false });
+      else if (o === 'flat') B.box(x + u0 * dir * s, y, z + v0 * s, x + u1 * dir * s, y + th, z + v1 * s, m, { col: false }); // ممدّد على طاولة: السبطانة نحو ±x
+      else { const xa = x + u0 * dir * s, xb = x + u1 * dir * s; B.box(Math.min(xa, xb), y - v1 * s, z - th / 2, Math.max(xa, xb), y - v0 * s, z + th / 2, m, { col: false }); } // 'x': قائم والسبطانة نحو ±x
+    }
+  };
+  // دكّان سلاح في السوق (side: 1 يمين/-1 يسار من شارع السوق). kind 'nursery' = مشتل ريحانة
+  const SHOP_SIGN = { rifles: 'بنادق ومناظير', pistols: 'مسدسات الرافدين', ammo: 'ذخيرة وعتاد', armor: 'دروع وخوذ', blades: 'خناجر وسيوف', heavy: 'رشاشات وقاذفات' };
+  const shop = (xFace, z0, z1, side, forceKind) => {
     const d = 2.2, x0 = side > 0 ? xFace : xFace - d, x1 = side > 0 ? xFace + d : xFace;
     const inner = side > 0 ? x1 : x0;
-    // فتحة الدكان: أرضية خشبية مرتفعة قليلاً + سقف خشبي + جدار خلفي
     B.box(x0, 0, z0, x1, 0.25, z1, 'woodDark');
     B.box(side > 0 ? inner - 0.3 : inner, 0.25, z0, side > 0 ? inner : inner + 0.3, 4.6, z1, 'plaster');
     if (!vis) { B.col(x0, 0.25, z0, x1, 1.0, z1, MAT.wood, F.THIN); return; }
     B.box(x0, 3.2, z0, x1, 3.35, z1, 'beam', { col: false });
     B.box(x0, 3.35, z0, x1, 4.6, z1, 'brick', { faces: side > 0 ? 'nxny' : 'pxny' });
-    const kind = pick(['copper', 'spice', 'carpet', 'cloth', 'dates', 'lantern', 'books']);
-    const mid = (z0 + z1) / 2, cx = (x0 + x1) / 2, back = inner - side * 0.55;
-    // رفوف
-    for (let k = 0; k < 3; k++) B.box(side > 0 ? back - 0.25 : back - 0.25, 1.1 + k * 0.7, z0 + 0.2, back + 0.25, 1.14 + k * 0.7, z1 - 0.2, 'wood', { col: false });
+    const kind = forceKind || pick(['rifles', 'rifles', 'pistols', 'ammo', 'armor', 'blades', 'heavy']);
+    const mid = (z0 + z1) / 2, cx = (x0 + x1) / 2, wallX = inner - side * 0.32, back = inner - side * 0.55;
     B.col(x0, 0.25, z0, x1, 1.0, z1, MAT.wood, F.THIN);
-    if (kind === 'copper') { for (let k = 0; k < 3; k++) for (let j = 0; j < 4; j++) pot(back, 1.14 + k * 0.7, z0 + 0.5 + j * (z1 - z0 - 1) / 3, 0.12 + R() * 0.05, R() < 0.5 ? 'copper' : 'brass'); pot(cx, 0.25, mid, 0.3); }
-    if (kind === 'spice') { for (let j = 0; j < 3; j++) sackVis(cx - side * 0.3, z0 + 0.6 + j * (z1 - z0 - 1.2) / 2, ['spice1', 'spice2', 'spice3'][j], 0.25); }
-    if (kind === 'carpet') { for (let j = 0; j < 3; j++) B.box(back - 0.03, 0.6, z0 + 0.2 + j * (z1 - z0 - 0.4) / 3, back + 0.03, 3.1, z0 + 0.2 + (j + 1) * (z1 - z0 - 0.4) / 3 - 0.08, j % 2 ? 'carpet' : 'carpet2', { col: false }); B.box(x0 + 0.2, 0.25, z0 + 0.3, x1 - 0.2, 0.55, z1 - 0.3, 'carpet', { col: false }); }
-    if (kind === 'cloth') { for (let j = 0; j < 5; j++) B.geo(() => new THREE.CylinderGeometry(0.12, 0.12, 1.3, 10), T(back, 1.4 + (j % 2) * 0.7, z0 + 0.4 + j * (z1 - z0 - 0.8) / 4, 0, 1, 1, 1, Math.PI / 2), pick(['clothRed', 'clothCream', 'clothGreen'])); }
-    if (kind === 'dates') { for (let j = 0; j < 4; j++) { B.box(cx - 0.3, 0.25, z0 + 0.3 + j * 0.6, cx + 0.3, 0.55, z0 + 0.8 + j * 0.6, 'wood', { col: false }); B.box(cx - 0.26, 0.55, z0 + 0.34 + j * 0.6, cx + 0.26, 0.62, z0 + 0.76 + j * 0.6, j % 2 ? 'dates' : 'fruit', { col: false }); } }
-    if (kind === 'lantern') { for (let j = 0; j < 4; j++) lantern(cx, 2.4 - (j % 2) * 0.3, z0 + 0.5 + j * (z1 - z0 - 1) / 3, 0.5); }
-    if (kind === 'books') { for (let k = 0; k < 3; k++) for (let j = 0; j < 8; j++) B.box(back - 0.15, 1.14 + k * 0.7, z0 + 0.3 + j * 0.22, back + 0.15, 1.14 + k * 0.7 + 0.25 + R() * 0.1, z0 + 0.48 + j * 0.22, pick(['clothRed', 'clothGreen', 'woodBlue', 'clothCream']), { col: false }); }
-    // لافتة
-    const names = ['عطارة البغدادي', 'صفّار الرافدين', 'سجّاد ونقوش', 'قماش وحرير', 'تمور البصرة', 'فوانيس السوق', 'مكتبة الوراق', 'حلويات الشكرجي', 'خياط المحلة'];
-    const signTxt = { copper: 'صفّار الرافدين', spice: 'عطارة البغدادي', carpet: 'سجّاد ونقوش', cloth: 'قماش وحرير', dates: 'تمور البصرة', lantern: 'فوانيس السوق', books: 'مكتبة الوراق' }[kind] || pick(names);
-    signs.push({ text: signTxt, x: xFace - side * 0.03, y: 3.98, z: mid, ry: side > 0 ? -Math.PI / 2 : Math.PI / 2, w: Math.min(2.6, z1 - z0 - 0.3) });
+    const counter = (mat = 'woodDark') => { B.box(Math.min(xFace + side * 0.15, xFace + side * 0.75), 0.25, z0 + 0.25, Math.max(xFace + side * 0.15, xFace + side * 0.75), 1.05, z1 - 0.25, mat, { col: false }); B.box(Math.min(xFace + side * 0.1, xFace + side * 0.8), 1.05, z0 + 0.2, Math.max(xFace + side * 0.1, xFace + side * 0.8), 1.1, z1 - 0.2, 'beam', { col: false }); };
+    if (kind === 'nursery') {
+      // مشتل ريحانة: أصص ونباتات وزهور ونخلة صغيرة وسلال معلّقة
+      B.box(x0, 0.25, z0, x1, 0.27, z1, 'mud', { col: false });
+      for (let k = 0; k < 3; k++) B.box(Math.min(back - side * 0.25, back + side * 0.25), 0.9 + k * 0.65, z0 + 0.15, Math.max(back - side * 0.25, back + side * 0.25), 0.95 + k * 0.65, z1 - 0.15, 'wood', { col: false });
+      const plant = (x, y, z, sz) => { pot(x, y, z, sz * 0.55, 'clay'); B.geo(() => new THREE.IcosahedronGeometry(sz, 1), T(x, y + sz * 1.6, z, R() * 3, 1, 0.85, 1), pick(['leafGreen', 'leafDark'])); if (R() < 0.6) for (let f = 0; f < 4; f++) B.geo(() => new THREE.SphereGeometry(sz * 0.18, 6, 4), T(x + (R() - 0.5) * sz * 1.3, y + sz * (1.6 + R() * 0.7), z + (R() - 0.5) * sz * 1.3), pick(['flowerRed', 'flowerYellow', 'flowerPink', 'flowerWhite'])); };
+      for (let k = 0; k < 3; k++) for (let j = 0; j < 4; j++) plant(back, 0.95 + k * 0.65, z0 + 0.4 + j * (z1 - z0 - 0.8) / 3, 0.13 + R() * 0.05);
+      for (let j = 0; j < 3; j++) plant(cx + side * 0.2, 0.27, z0 + 0.5 + j * (z1 - z0 - 1) / 2, 0.24 + R() * 0.08);
+      // نخلة صغيرة في أصيص كبير على باب المشتل وأصص خارج الدكان
+      pot(xFace - side * 0.55, 0, z0 - 0.15, 0.3, 'clay'); for (let k = 0; k < 7; k++) { const g = new THREE.PlaneGeometry(1.1, 0.5); g.translate(0.55, 0, 0); g.rotateX(-Math.PI / 2 + 0.3); B.geo(g, T(xFace - side * 0.55, 0.75, z0 - 0.15, k / 7 * Math.PI * 2, 1, 1, 1, 0, -0.4), 'leaf', { uvs: 1 }); }
+      plant(xFace - side * 0.5, 0, z1 + 0.15, 0.26); plant(xFace - side * 0.9, 0, z1 - 0.3, 0.2);
+      for (let j = 0; j < 3; j++) { const z = z0 + 0.5 + j * (z1 - z0 - 1) / 2; B.box(cx - 0.01, 2.5, z - 0.01, cx + 0.01, 3.2, z + 0.01, 'iron', { col: false }); B.geo(() => new THREE.SphereGeometry(0.2, 8, 6, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), T(cx, 2.5, z), 'clay'); B.geo(() => new THREE.IcosahedronGeometry(0.24, 1), T(cx, 2.42, z, 0, 1, 1.3, 1), 'leafGreen'); }
+      B.light(cx, 2.8, mid, 0xd8ffb0, 2.2, 7);
+      signs.push({ text: 'مشتل ريحانة', x: xFace - side * 0.03, y: 3.98, z: mid, ry: side > 0 ? -Math.PI / 2 : Math.PI / 2, w: Math.min(2.6, z1 - z0 - 0.3), opt: { bg: '#1f5a2e', border: '#c8f5a0', fg: '#f4ffe8' } });
+      return;
+    }
+    // لوح عرض خشبي على الجدار الخلفي
+    B.box(Math.min(wallX, wallX + side * 0.04), 1.0, z0 + 0.2, Math.max(wallX, wallX + side * 0.04), 3.0, z1 - 0.2, kind === 'blades' ? 'carpet' : kind === 'armor' ? 'woodDark' : 'clothCream', { col: false });
+    const gx = wallX - side * 0.04;
+    if (kind === 'rifles' || kind === 'heavy') {
+      const n = Math.max(2, Math.floor((z1 - z0 - 0.4) / 0.36));
+      for (let j = 0; j < n; j++) gunProp(gx, 1.6, z0 + 0.38 + j * (z1 - z0 - 0.76) / (n - 1), 'v', side, R() < 0.4 ? 'ak' : 'rifle', 0.95);
+      gunProp(gx, 2.72, mid, 'h', R() < 0.5 ? 1 : -1, kind === 'heavy' ? 'launcher' : 'sniper', 1);
+      counter(); gunProp(xFace + side * 0.45, 1.1, mid, 'flat', -side, 'pistol', 1.2);
+      if (kind === 'heavy') for (let j = 0; j < 2; j++) B.boxB(cx, 0.25, z0 + 0.5 + j * 0.6, 0.5, 0.3, 0.3, 'ammo', { col: false });
+    } else if (kind === 'pistols') {
+      counter(); B.box(Math.min(xFace + side * 0.15, xFace + side * 0.75), 1.1, z0 + 0.25, Math.max(xFace + side * 0.15, xFace + side * 0.75), 1.3, z1 - 0.25, 'glass', { col: false });
+      for (let j = 0; j < 4; j++) gunProp(xFace + side * 0.45, 1.1, z0 + 0.45 + j * (z1 - z0 - 0.9) / 3, 'flat', -side, 'pistol', 1.1);
+      for (let r = 0; r < 3; r++) for (let j = 0; j < 4; j++) gunProp(gx, 1.35 + r * 0.55, z0 + 0.5 + j * (z1 - z0 - 1) / 3, 'h', 1, 'pistol', 1.4);
+    } else if (kind === 'ammo') {
+      for (let k = 0; k < 3; k++) for (let j = 0; j < 3; j++) if (R() < 0.85) { const bz = z0 + 0.35 + j * (z1 - z0 - 0.7) / 2; B.boxB(back + side * 0.05, 0.25 + k * 0.32, bz, 0.42, 0.3, 0.6, 'ammo', { col: false }); B.boxB(back + side * 0.05, 0.25 + k * 0.32 + 0.12, bz, 0.43, 0.05, 0.61, 'gold', { col: false }); }
+      for (let j = 0; j < 5; j++) B.geo(() => new THREE.CylinderGeometry(0.025, 0.025, 0.12, 6), T(cx + (R() - 0.5) * 0.5, 0.31, z0 + 0.4 + R() * (z1 - z0 - 0.8), 0, 1, 1, 1, Math.PI / 2, R() * 3), 'brass');
+      B.boxB(cx, 0.25, mid, 0.7, 0.4, 0.9, 'sack', { col: false }); B.boxB(cx, 0.65, mid, 0.66, 0.35, 0.86, 'sack', { col: false });
+      gunProp(gx, 2.4, mid, 'h', -1, 'rifle', 1);
+    } else if (kind === 'armor') {
+      for (let k = 0; k < 2; k++) for (let j = 0; j < 4; j++) { const z = z0 + 0.45 + j * (z1 - z0 - 0.9) / 3, y = 1.5 + k * 0.8; B.box(Math.min(back - side * 0.2, back + side * 0.2), y - 0.05, z - 0.2, Math.max(back - side * 0.2, back + side * 0.2), y, z + 0.2, 'wood', { col: false }); B.geo(() => new THREE.SphereGeometry(0.16, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), T(back, y, z, 0, 1, 0.9, 1.1), R() < 0.5 ? 'olive' : 'tan'); }
+      for (let j = 0; j < 2; j++) { const z = z0 + 0.6 + j * (z1 - z0 - 1.2); B.boxB(gx, 0.4, z, 0.14, 0.62, 0.5, R() < 0.5 ? 'olive' : 'tan', { col: false }); B.boxB(gx - side * 0.04, 0.55, z, 0.1, 0.16, 0.46, 'iron', { col: false }); }
+    } else if (kind === 'blades') {
+      for (let j = 0; j < 4; j++) { const z = z0 + 0.45 + j * (z1 - z0 - 0.9) / 3; B.box(gx - 0.01, 1.15, z - 0.03, gx + 0.01, 2.5, z + 0.03, 'metal', { col: false }); B.box(gx - 0.02, 1.35, z - 0.14, gx + 0.02, 1.4, z + 0.14, 'gold', { col: false }); B.box(gx - 0.025, 1.12, z - 0.03, gx + 0.025, 1.35, z + 0.03, 'woodDark', { col: false }); }
+      counter(); for (let j = 0; j < 3; j++) B.box(xFace + side * 0.4 - 0.15, 1.1, z0 + 0.5 + j * 0.6 - 0.02, xFace + side * 0.4 + 0.15, 1.13, z0 + 0.5 + j * 0.6 + 0.02, 'metal', { col: false });
+    }
+    lantern(cx, 2.6, mid, 0.5);
+    signs.push({ text: SHOP_SIGN[kind], x: xFace - side * 0.03, y: 3.98, z: mid, ry: side > 0 ? -Math.PI / 2 : Math.PI / 2, w: Math.min(2.6, z1 - z0 - 0.3), opt: { bg: '#2a2320', border: '#d9b56a' } });
   };
   const sackVis = (x, z, col, y) => { if (!vis) return; B.geo(() => new THREE.CylinderGeometry(0.28, 0.33, 0.6, 10), T(x, y + 0.3, z), 'sack'); B.geo(() => new THREE.ConeGeometry(0.26, 0.22, 10), T(x, y + 0.7, z), col); };
   const signs = [];
 
   // ================= الأرض والحدود =================
-  B.col(-60, -1, -50, 60, 0, 34, MAT.stone); // أرضية التصادم
+  B.col(-100, -1, -50, 100, 0, 34, MAT.stone); // أرضية التصادم
   const floor = (x0, z0, x1, z1, mat) => { if (vis) B.box(x0, -0.2, z0, x1, 0, z1, mat, { col: false, faces: 'py' }); };
   floor(-14, -34, 14, -20, 'marble');           // صحن الجامع
   floor(-3, -20, 3, 18, 'stone');               // السوق
-  floor(-44, 18, 44, 33.5, 'stone');            // الشريعة
+  floor(-92, 18, 92, 33.5, 'stone');            // الشريعة
   floor(-40, -24, -34, 18, 'paving');           // الشارع الغربي
   floor(-40, -24, -14, -20, 'paving');          // الزقاق الشمالي الغربي
   floor(-16, -2, -3, 2, 'paving');              // ممرّ السوق-الخان
@@ -256,14 +321,18 @@ export function buildSouq(B) {
   floor(14, -24, 34, -20, 'paving');            // الزقاق الشمالي الشرقي
   floor(30, -20, 34, -6, 'paving');             // زقاق الشناشيل 1
   floor(22, -6, 36, 6, 'stone');                // ساحة البئر
+  floor(36, -6, 38, 6, 'stone'); floor(38, -2.5, 46, 2.5, 'paving'); // باب الساعة
+  floor(-46, -6, -40, -2, 'paving'); floor(-46, 8, -40, 12, 'paving'); // ممرّا الحارة المهجورة
   floor(22, 6, 26, 18, 'paving');               // زقاق الشناشيل 2
   floor(-32, -11, -18, 7, 'stone');             // الخان
   // جدران حدودية غير مرئية عالية
-  B.col(-60, 0, -50, -46, 40, 40); B.col(46, 0, -50, 60, 40, 40); B.col(-60, 0, -50, 60, 40, -36);
-  B.col(-60, -3, 33.6, 60, 6, 40, MAT.water, F.NOBULLET); // حافة النهر
+  B.col(-110, 0, -50, -92, 40, 40); B.col(92, 0, -50, 110, 40, 40); B.col(-110, 0, -50, 110, 40, -36);
+  B.col(-110, -3, 33.6, 110, 6, 40, MAT.water, F.NOBULLET); // حافة النهر
   // ================= كتل البيوت =================
   block(-46, -36, -14, -24, ['s', 'e']);           // شمال غرب
-  block(-46, -24, -40, 18, ['e']);                 // غرب الشارع الغربي
+  block(-46, -24, -40, -6, ['e', 'w']);            // غرب الشارع الغربي (ممرّان نحو الحارة المهجورة)
+  block(-46, -2, -40, 8, ['e', 'w']);
+  block(-46, 12, -40, 18, ['e', 'w']);
   block(-34, -20, -14, -14, ['w', 'n', 's']);      // بين الشارع والخان شمالاً
   block(-34, 10, -16, 18, ['w', 's', 'n'], { hMin: 6, hMax: 8 }); // جنوب الخان
   block(-16, -20, -5.2, -2, ['s', 'n'], { hMin: 7, hMax: 9 }); // بين الخان والسوق شمالاً
@@ -272,11 +341,10 @@ export function buildSouq(B) {
   block(5.2, 2, 22, 18, ['n', 's', 'e'], { hMin: 6.5, hMax: 8.5 }); // شرق السوق جنوباً
   block(14, -36, 46, -24, ['s', 'w']);             // شمال شرق
   block(22, -20, 30, -6, ['e', 'n', 's', 'w']);    // بين الزقاقين
-  block(34, -24, 46, -6, ['w', 'n', 's']);         // شرق الزقاق
-  block(36, -6, 46, 6, ['w']);                     // شرق الساحة
-  block(26, 6, 46, 18, ['w', 'n', 's'], { hMin: 6, hMax: 8 }); // جنوب شرق
-  block(-46, 18, -44, 33.5, ['e'], { hMin: 4, hMax: 5 });
-  block(44, 18, 46, 33.5, ['w'], { hMin: 4, hMax: 5 });
+  block(34, -24, 46, -6, ['w', 'n', 's', 'e']);    // شرق الزقاق
+  block(38, -6, 46, -2.5, ['w', 's', 'e']);        // شرق الساحة: باب الساعة بينهما
+  block(38, 2.5, 46, 6, ['w', 'n', 'e']);
+  block(26, 6, 46, 18, ['w', 'n', 's', 'e'], { hMin: 6, hMax: 8 }); // جنوب شرق
 
   // ================= صحن الجامع (شمال) =================
   // الحرم شمالاً بإيوان كبير وقبة فيروزية ومنارة
@@ -374,7 +442,7 @@ export function buildSouq(B) {
     const zA = -20, zB = 18, vz0 = -16, vz1 = 14;
     // صفوف الدكاكين على الجانبين (جدار الكتل عند x=±3)
     const shopsAt = [[-15.6, -13.2], [-12.8, -10.4], [-10, -7.6], [-7.2, -4.8], [5.2, 7.6], [8, 10.4], [10.8, 13.2]];
-    for (const [z0, z1] of shopsAt) { shop(-3, z0, z1, -1); shop(3, z0, z1, 1); }
+    for (const [z0, z1] of shopsAt) { shop(-3, z0, z1, -1, z0 === -10 ? 'nursery' : null); shop(3, z0, z1, 1); }
     // دعامات بين الدكاكين + جدار علوي حتى القبو
     const piers = [[-20, -15.6], [-13.2, -12.8], [-10.4, -10], [-7.6, -7.2], [-4.8, -2], [2, 5.2], [7.6, 8], [10.4, 10.8], [13.2, 18]];
     for (const [z0, z1] of piers) { B.box(-5.2, 0, z0, -3, 4.6, z1, 'brick'); B.box(3, 0, z0, 5.2, 4.6, z1, 'brick'); }
@@ -410,8 +478,8 @@ export function buildSouq(B) {
     if (vis) { for (const zz of [-14.6, -13.4]) B.geo(() => new THREE.CylinderGeometry(0.45, 0.45, 0.08, 12), T(-0.8 - 0.65, 0.45, zz, 0, 1, 1, 1, 0, Math.PI / 2), 'woodDark'); pot(-0.6, 1.0, -14.2, 0.2); pot(-1, 1.0, -13.6, 0.16, 'brass'); }
     // بوابة السوق الجنوبية على الشريعة
     archWall('x', -6, 6, 18, 0, 7, 0.9, [{ u: 6, w: 5, h: 3.4, rise: 2 }], 'brick', { trim: 'tileBlue' });
-    signs.push({ text: 'سوق الشناشيل', x: 0, y: 6.1, z: 18.48, ry: 0, w: 3.6 });
-    signs.push({ text: 'سوق الشناشيل', x: 0, y: 6.1, z: -20.45, ry: Math.PI, w: 3.6 });
+    signs.push({ text: 'سوق المجاهدين', x: 0, y: 6.1, z: 18.48, ry: 0, w: 3.8, opt: { bg: '#3b1d14', border: '#e0b45a' } });
+    signs.push({ text: 'سوق المجاهدين', x: 0, y: 6.1, z: -20.45, ry: Math.PI, w: 3.8, opt: { bg: '#3b1d14', border: '#e0b45a' } });
   }
 
   // ================= الخان (غرب) =================
@@ -509,18 +577,18 @@ export function buildSouq(B) {
   // ================= الشريعة (جنوب) =================
   {
     // حافة النهر: سور حجري واطئ + أعمدة ربط
-    B.box(-44, 0, 33, 44, 0.55, 33.6, 'stone');
-    if (vis) for (let x = -42; x <= 42; x += 4) B.geo(() => new THREE.CylinderGeometry(0.14, 0.18, 0.8, 8), T(x, 0.4, 33.3), 'iron');
+    B.box(-92, 0, 33, 92, 0.55, 33.6, 'stone');
+    if (vis) for (let x = -90; x <= 90; x += 4) B.geo(() => new THREE.CylinderGeometry(0.14, 0.18, 0.8, 8), T(x, 0.4, 33.3), 'iron');
     // مرسى خشبي وزوارق (بلم)
     B.box(-20, -0.1, 33.6, -16, 0.15, 39, 'wood', { cm: MAT.wood });
     B.col(-20.1, 0.15, 38.9, -15.9, 1, 39.1);
     B.col(-20.1, 0.15, 33.6, -20, 1, 39); B.col(-16, 0.15, 33.6, -15.9, 1, 39);
     if (vis) {
       for (const [bx, bz, ry] of [[-23, 37, 0.15], [-13, 36.5, -0.2], [8, 37.5, 0.4], [20, 36, -0.1]]) boat(bx, bz, ry);
-      B.water.push({ x: 0, y: -0.9, z: 58, w: 200, d: 50 });
+      B.water.push({ x: 0, y: -0.9, z: 58, w: 340, d: 50 });
       // الضفة البعيدة: نخيل وبيوت واطئة كخلفية
-      for (let x = -90; x <= 90; x += 7 + R() * 6) { const h = 4 + R() * 5; B.box(x, -1, 84, x + 5 + R() * 4, h, 90, pick(['brickPale', 'plaster', 'plasterOchre']), { col: false, ao: null }); }
-      for (let x = -95; x <= 95; x += 5 + R() * 5) palmFar(x, 82 - R() * 4, 7 + R() * 5);
+      for (let x = -140; x <= 140; x += 7 + R() * 6) { const h = 4 + R() * 5; B.box(x, -1, 84, x + 5 + R() * 4, h, 90, pick(['brickPale', 'plaster', 'plasterOchre']), { col: false, ao: null }); }
+      for (let x = -145; x <= 145; x += 5 + R() * 5) palmFar(x, 82 - R() * 4, 7 + R() * 5);
     }
     // مقهى الشريعة: مبنى بطابقين وسطح يصعد إليه بدرج خارجي (موقع قنّاص)
     const cx0 = -14, cx1 = -6, cz0 = 19, cz1 = 24;
@@ -578,6 +646,10 @@ export function buildSouq(B) {
   // أسطح الأروقة والمقهى
   for (const s of [-1, 1]) { n(s * 11.5, -24, 4.7); n(s * 11.5, -32.5, 4.7); B.chain([s * 13, 0, -22.6], [s * 13, 2.3, -26.6], [s * 13, 4.64, -29.7], [s * 11.5, 4.7, -29.7]); }
   n(-10, 21.5, 4.15); n(-12, 22.2, 4.15); B.chain([-2.5, 0, 19.8], [-5.35, 0, 18.85], [-5.35, 2.0, 21.2], [-5.35, 4.06, 23.6], [-6.8, 4.15, 23.3]);
+  // ممرّات الحارة المهجورة وباب الساعة
+  n(-43, -4); n(-43, 10); n(-49, -4); n(-49, 10); n(40, 0); n(45, 0);
+  // المناطق الجديدة: الحارة المهجورة والمقبرة غرباً، ساحة الساعة شرقاً، امتداد الشريعة
+  buildDistricts(B, { T, R, pick, vis, block, frame, facade, lantern, lanternWall, crate, sack, pot, palm, column, archWall, wallX, wallZ, floor, signs, gunProp, boat, n, MAT, F, bench, table, fbox, palmFar, door, shanasheel });
   return SOUQ_INFO;
 
   function boat(x, z, ry) {
