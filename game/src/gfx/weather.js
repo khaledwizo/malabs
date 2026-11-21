@@ -11,8 +11,8 @@ const PRESETS = {
     sky: null, fog: null, fogD: null, exp: 1.08, cloud: 0.45, cloudCol: 0xffb894, night: 0, sunVis: 1, moon: 0, rain: 0, wet: 0, lamps: 1, glow: 1, amb: 'sunset', bolt: 0, ghosts: 0, mist: 0, deep: 0x16302e, grade: [1.03, 1, 0.97, 1.04] },
   storm: { sunDir: [-0.45, 0.72, 0.3], sunCol: 0xa0aabb, sunI: 0.55, hemiSky: 0x75818f, hemiGround: 0x3b3b3b, hemiI: 0.78, ambCol: 0xb8c4d4, ambI: 0.22,
     sky: [0x1b2129, 0x3f4853, 0x4d5661], fog: 0x4a535e, fogD: 0.0145, exp: 1.18, cloud: 0.96, cloudCol: 0x2d333b, night: 0, sunVis: 0, moon: 0, rain: 1, wet: 1, lamps: 1.25, glow: 1.1, amb: 'storm', bolt: 1, ghosts: 0.2, mist: 0.45, deep: 0x1a2426, grade: [0.96, 1, 1.05, 0.86] },
-  horror: { sunDir: [0.34, 0.6, -0.58], sunCol: 0x8aa2d6, sunI: 0.62, hemiSky: 0x2a3654, hemiGround: 0x121212, hemiI: 0.5, ambCol: 0x6878a8, ambI: 0.14,
-    sky: [0x03050a, 0x0d1422, 0x18202d], fog: 0x0f141c, fogD: 0.024, exp: 1.3, cloud: 0.62, cloudCol: 0x1b212d, night: 1, sunVis: 0, moon: 1, rain: 0.3, wet: 0.55, lamps: 1.75, glow: 1.5, amb: 'horror', bolt: 0.4, ghosts: 1, mist: 1, deep: 0x0a1214, grade: [0.94, 1, 1.08, 0.72] },
+  horror: { sunDir: [0.34, 0.6, -0.58], sunCol: 0x9fb6e6, sunI: 1.0, hemiSky: 0x3a4a6c, hemiGround: 0x1c1c22, hemiI: 0.9, ambCol: 0x7888b8, ambI: 0.32,
+    sky: [0x04070e, 0x111a2c, 0x1e2838], fog: 0x18202c, fogD: 0.016, exp: 1.6, cloud: 0.6, cloudCol: 0x1f2633, night: 1, sunVis: 0, moon: 1, rain: 0.3, wet: 0.55, lamps: 2.1, glow: 1.6, amb: 'horror', bolt: 0.4, ghosts: 1, mist: 1, deep: 0x0a1214, grade: [0.94, 1, 1.08, 0.72] },
 };
 
 export class Weather {
@@ -154,32 +154,70 @@ export class Weather {
     if (id === 'menu') id = 'sunset';
     return PRESETS[id] ? id : 'sunset';
   }
-  set(want) {
-    const id = this.pick(want); this.id = id; const P = this.cur = PRESETS[id];
-    const L = this.L, sky = this.sky.material.uniforms;
-    this.sunDir.set(...P.sunDir).normalize();
-    L.sun.color.setHex(P.sunCol); L.sun.intensity = P.sunI;
-    L.hemi.color.setHex(P.hemiSky); L.hemi.groundColor.setHex(P.hemiGround); L.hemi.intensity = P.hemiI; this.hemiI = P.hemiI;
-    L.amb.color.setHex(P.ambCol); L.amb.intensity = P.ambI; this.ambI = P.ambI;
-    sky.top.value.setHex(P.sky[0]); sky.mid.value.setHex(P.sky[1]); sky.bot.value.setHex(P.sky[2]); sky.sun.value.copy(this.sunDir);
-    sky.night.value = P.night; sky.cloud.value = P.cloud; sky.cloudCol.value.setHex(P.cloudCol); sky.sunVis.value = P.sunVis; sky.moon.value = P.moon;
-    this.scene.fog.color.setHex(P.fog); this.scene.fog.density = P.fogD; this.fogD = P.fogD;
-    this.renderer.toneMappingExposure = P.exp;
-    const wm = this.meshes.userData.waterMat; if (wm) { const u = wm.uniforms; u.sky.value.setHex(P.sky[1]); u.top.value.setHex(P.sky[0]); u.deep.value.setHex(P.deep); u.sun.value.copy(this.sunDir); u.glint.value = P.sunVis * 1 + P.moon * 0.35; u.rain.value = P.rain; }
-    const gm = this.meshes.userData.glowMat; if (gm) gm.uniforms.gain.value = P.glow;
-    this.wet = P.wet;
-    for (const [m, r0, c0, k] of this.matBase) {
-      const floorish = /stone|marble|paving|brick|tile|wood|metal|iron|mud|graveDirt|roof|plaster/.test(k);
-      m.roughness = Math.max(0.06, r0 * (1 - (floorish ? 0.62 : 0.35) * P.wet)); m.color.copy(c0).multiplyScalar(1 - 0.22 * P.wet);
-      m.envMapIntensity = (m.metalness > 0.3 ? 0.9 : 0.04) + P.wet * (floorish ? 0.5 : 0.22);
+  // حالة رقمية للطقس (لنمزج بين حالتين تدريجياً داخل المباراة)
+  stateOf(id) {
+    const P = PRESETS[id], c = h => new THREE.Color(h);
+    return { id, P, sunDir: new THREE.Vector3(...P.sunDir).normalize(), sunCol: c(P.sunCol), sunI: P.sunI, hemiSky: c(P.hemiSky), hemiGround: c(P.hemiGround), hemiI: P.hemiI, ambCol: c(P.ambCol), ambI: P.ambI,
+      sky: P.sky.map(c), fog: c(P.fog), fogD: P.fogD, exp: P.exp, cloud: P.cloud, cloudCol: c(P.cloudCol), night: P.night, sunVis: P.sunVis, moon: P.moon, rain: P.rain, wet: P.wet, lamps: P.lamps, glow: P.glow, mist: P.mist, deep: c(P.deep), grade: P.grade.slice(), bolt: P.bolt, ghosts: P.ghosts, amb: P.amb, mistCol: c(id.startsWith('horror') ? 0x55626f : 0x9aa6b2) };
+  }
+  mix(A, B, k) {
+    const lc = (a, b) => a.clone().lerp(b, k), ln = (a, b) => a + (b - a) * k;
+    return { id: k < 0.5 ? A.id : B.id, P: k < 0.5 ? A.P : B.P, sunDir: A.sunDir.clone().lerp(B.sunDir, k).normalize(), sunCol: lc(A.sunCol, B.sunCol), sunI: ln(A.sunI, B.sunI), hemiSky: lc(A.hemiSky, B.hemiSky), hemiGround: lc(A.hemiGround, B.hemiGround), hemiI: ln(A.hemiI, B.hemiI), ambCol: lc(A.ambCol, B.ambCol), ambI: ln(A.ambI, B.ambI),
+      sky: A.sky.map((x, i) => lc(x, B.sky[i])), fog: lc(A.fog, B.fog), fogD: ln(A.fogD, B.fogD), exp: ln(A.exp, B.exp), cloud: ln(A.cloud, B.cloud), cloudCol: lc(A.cloudCol, B.cloudCol), night: ln(A.night, B.night), sunVis: ln(A.sunVis, B.sunVis), moon: ln(A.moon, B.moon), rain: ln(A.rain, B.rain), wet: ln(A.wet, B.wet), lamps: ln(A.lamps, B.lamps), glow: ln(A.glow, B.glow), mist: ln(A.mist, B.mist), deep: lc(A.deep, B.deep), grade: A.grade.map((x, i) => ln(x, B.grade[i])), bolt: k < 0.6 ? A.bolt : B.bolt, ghosts: k < 0.5 ? A.ghosts : B.ghosts, amb: k < 0.5 ? A.amb : B.amb, mistCol: lc(A.mistCol, B.mistCol) };
+  }
+  apply(S) {
+    this.S = S; const L = this.L, sky = this.sky.material.uniforms;
+    this.cur = { ...S.P, sunI: S.sunI, hemiI: S.hemiI, ambI: S.ambI, sunCol: S.sunCol.getHex(), hemiSky: S.hemiSky.getHex(), grade: S.grade, bolt: S.bolt, ghosts: S.ghosts, lamps: S.lamps, rain: S.rain };
+    this.sunDir.copy(S.sunDir);
+    L.sun.color.copy(S.sunCol); L.sun.intensity = S.sunI;
+    L.hemi.color.copy(S.hemiSky); L.hemi.groundColor.copy(S.hemiGround); L.hemi.intensity = S.hemiI; this.hemiI = S.hemiI;
+    L.amb.color.copy(S.ambCol); L.amb.intensity = S.ambI; this.ambI = S.ambI;
+    sky.top.value.copy(S.sky[0]); sky.mid.value.copy(S.sky[1]); sky.bot.value.copy(S.sky[2]); sky.sun.value.copy(this.sunDir);
+    sky.night.value = S.night; sky.cloud.value = S.cloud; sky.cloudCol.value.copy(S.cloudCol); sky.sunVis.value = S.sunVis; sky.moon.value = S.moon;
+    this.scene.fog.color.copy(S.fog); this.scene.fog.density = S.fogD; this.fogD = S.fogD;
+    this.renderer.toneMappingExposure = S.exp;
+    const wm = this.meshes.userData.waterMat; if (wm) { const u = wm.uniforms; u.sky.value.copy(S.sky[1]); u.top.value.copy(S.sky[0]); u.deep.value.copy(S.deep); u.sun.value.copy(this.sunDir); u.glint.value = S.sunVis + S.moon * 0.35; u.rain.value = S.rain; }
+    const gm = this.meshes.userData.glowMat; if (gm) gm.uniforms.gain.value = S.glow;
+    if (Math.abs((this.wetApplied ?? -1) - S.wet) > 0.02) {
+      this.wetApplied = S.wet;
+      for (const [m, r0, c0, k] of this.matBase) {
+        const floorish = /stone|marble|paving|brick|tile|wood|metal|iron|mud|graveDirt|roof|plaster/.test(k);
+        m.roughness = Math.max(0.06, r0 * (1 - (floorish ? 0.62 : 0.35) * S.wet)); m.color.copy(c0).multiplyScalar(1 - 0.22 * S.wet);
+        m.envMapIntensity = (m.metalness > 0.3 ? 0.9 : 0.04) + S.wet * (floorish ? 0.5 : 0.22);
+      }
     }
-    this.rain.visible = P.rain > 0; this.rainU.alpha.value = 0.5 * P.rain + (P.rain > 0 ? 0.12 : 0);
-    this.splash.visible = P.rain > 0; this.splU.alpha.value = P.rain;
-    if (this.mist) { this.mist.visible = P.mist > 0; this.mistU.alpha.value = 0.22 * P.mist; this.mistU.col.value.setHex(id === 'horror' ? 0x52606e : 0x9aa6b2); }
+    this.wet = S.wet;
+    const pm = this.kit.mats.puddle; if (pm) pm.mat.opacity = Math.max(0, S.wet - 0.25) * 1.15;
+    this.rain.visible = S.rain > 0.02; this.rainU.alpha.value = 0.5 * S.rain + (S.rain > 0.02 ? 0.12 : 0) * Math.min(1, S.rain * 4);
+    this.splash.visible = S.rain > 0.02; this.splU.alpha.value = S.rain;
+    if (this.mist) { this.mist.visible = S.mist > 0.02; this.mistU.alpha.value = 0.2 * S.mist; this.mistU.col.value.copy(S.mistCol); }
+    if (this.ambKind !== S.amb) { this.ambKind = S.amb; Audio.setAmbience(S.amb); }
+    Audio.setRainLevel && Audio.setRainLevel(S.amb === 'storm' ? 0.9 * Math.min(1, S.rain + 0.1) : S.amb === 'horror' ? 0.45 * S.rain / 0.3 : 0);
+  }
+  set(want) {
+    const id = this.pick(want); this.id = id; this.blend = null; this.plan = null;
+    this.ambKind = null; this.apply(this.stateOf(id));
     this.ghost.visible = false; this.ghostState = null; this.ghostT = 20 + Math.random() * 25;
     this.boltT = 3 + Math.random() * 6; this.flash = 0;
-    Audio.setAmbience(P.amb);
     this.updateEnv();
+  }
+  // انتقال تدريجي إلى طقس آخر (مثلاً غروب صافٍ ← عاصفة ممطرة)
+  blendTo(id, dur = 25) { if (!PRESETS[id] || !this.S) return; this.blend = { from: this.S, to: this.stateOf(id), t: 0, dur }; this.id = id; }
+  // جدول تغيّر الطقس خلال المباراة (نفسه عند كل اللاعبين لأنه مبني على البذرة)
+  schedule(seed) {
+    let a = (seed | 0) || 1; const r = () => { a = (a * 1103515245 + 12345) & 0x7fffffff; return a / 0x7fffffff; };
+    const base = this.id, plan = [];
+    const other = base === 'storm' ? (r() < 0.5 ? 'sunset' : 'day') : base === 'horror' ? 'horrorRain' : 'storm';
+    let t = 140 + r() * 120; plan.push([t, other]); t += 150 + r() * 120; plan.push([t, base]); t += 150 + r() * 100; plan.push([t, other]);
+    this.plan = plan; this.planBase = base;
+  }
+  tick(matchT) {
+    if (!this.plan) return;
+    while (this.plan.length && matchT >= this.plan[0][0]) {
+      const [, id] = this.plan.shift();
+      if (id === 'horrorRain') { PRESETS.horrorRain = PRESETS.horrorRain || { ...PRESETS.horror, rain: 0.9, wet: 0.9, bolt: 1, fogD: 0.019 }; this.blendTo('horrorRain', 20); }
+      else this.blendTo(id, 28);
+    }
   }
   // خريطة بيئة من السماء للانعكاسات (تُحدّث عند تغيّر الطقس)
   updateEnv() {
@@ -233,8 +271,12 @@ export class Weather {
   }
   inHaunt(cam, pad = 12) { for (const z of this.info.haunt || []) if (cam.x > z[0] - pad && cam.x < z[2] + pad && cam.z > z[1] - pad && cam.z < z[3] + pad) return true; return false; }
   update(dt, t) {
-    this.t = t; const P = this.cur; if (!P) return;
+    this.t = t;
+    if (this.blend) { const B = this.blend; B.t += dt; const k = Math.min(1, B.t / B.dur), e = k * k * (3 - 2 * k); this.apply(this.mix(B.from, B.to, e)); if (k >= 1) { this.blend = null; this.updateEnv(); } }
+    const P = this.cur; if (!P) return;
     const cam = this.camera.position, L = this.L;
+    // صوت المطر مكتوم تحت الأسقف
+    if (P.rain > 0.02 && (this.coverT = (this.coverT || 0) - dt) <= 0) { this.coverT = 0.3; const r = this.roof, u = (cam.x - r.rect.x) / r.rect.z, v = (cam.z - r.rect.y) / r.rect.w; let h = 0; if (u > 0 && u < 1 && v > 0 && v < 1) { const im = r.tex.image; h = im.data[Math.floor(v * im.height) * im.width + Math.floor(u * im.width)] / 255 * 32; } Audio.setRainCover(h > cam.y + 0.3 ? 1 : 0); }
     // المطر
     if (this.rain.visible) { this.rainU.t.value = t; this.rainU.cam.value.copy(cam); this.rainU.rgt.value.setFromMatrixColumn(this.camera.matrixWorld, 0); this.splU.t.value = t; this.splU.cam.value.copy(cam); }
     if (this.mist && this.mist.visible) this.mistU.t.value = t;
@@ -263,6 +305,7 @@ export class Weather {
     // الأضواء القريبة والوميض
     const glm = this.meshes.userData.glowMat; if (glm) glm.uniforms.t.value = t;
     if (this.meshes.userData.updateLights) this.meshes.userData.updateLights(cam.x, cam.y, cam.z, t, dt, P.lamps);
+    if (this.meshes.userData.setLampGlow && this.lampK !== P.lamps) { this.lampK = P.lamps; this.meshes.userData.setLampGlow(P.lamps); }
     // الظل يتبع الكاميرا (مع تثبيت على شبكة بكسلات الظل لمنع الارتعاش)
     const s = L.sun;
     if (s.castShadow) {

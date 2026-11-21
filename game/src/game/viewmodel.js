@@ -132,6 +132,9 @@ export class ViewModel {
     if (this.slashT >= 0) { const e = Math.sin(this.slashT * Math.PI); ry += e * 1.2; rx -= e * 0.4; pos.x -= e * 0.12; pos.z -= e * 0.08; }
     if (this.throwT >= 0) { const e = Math.sin(this.throwT * Math.PI); pos.z -= e * 0.25; pos.y += e * 0.1; rx += e * 0.8; }
     if (this.inspectT >= 0) { const e = Math.sin(this.inspectT * Math.PI); ry += e * 0.9; rz += e * 0.4; pos.x -= e * 0.06; pos.y += e * 0.03; }
+    // أثناء العلاج: السلاح ينخفض جانباً
+    this.healA = (this.healA || 0) + (((this.healT || 0) > 0 ? 1 : 0) - (this.healA || 0)) * Math.min(1, dt * 7); if (this.healT > 0) this.healT -= dt;
+    if (this.healA > 0.01) { const e = this.healA; pos.y -= e * 0.22; pos.x += e * 0.06; rx -= e * 0.55; rz += e * 0.35; }
     const g = this.gunHolder; g.position.copy(pos); g.rotation.set(rx, ry, rz, 'YXZ');
     this.root.visible = !st.scoped;
     // اليدان

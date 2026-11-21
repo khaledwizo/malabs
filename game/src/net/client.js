@@ -9,7 +9,7 @@ import { brokerList } from './mqtt.js';
 import { PROTO, encCmd, decPlayer } from './proto.js';
 
 const STEP = 1 / 60, INTERP = 0.12, now = () => performance.now() / 1000;
-const LOCAL_EV = new Set(['shot', 'impact', 'draw', 'reload', 'reloaded', 'dry', 'knife', 'throw']);
+const LOCAL_EV = new Set(['shot', 'impact', 'draw', 'reload', 'reloaded', 'dry', 'knife', 'throw', 'heal', 'healed']);
 const lerpA = (a, b, k) => { let d = b - a; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; return a + d * k; };
 
 export class NetSim {
@@ -24,6 +24,15 @@ export class NetSim {
   }
   get via() { return this.link ? this.link.via : 'relay'; }
   get rules() { return (MODES[this.mode] || MODES.tdm).rules; }
+  get props() { return this.mini ? this.mini.props : []; }
+  get npcs() { return this.mini ? this.mini.npcs : []; }
+  // تطبيق حالة العالم القادمة من السيرفر (تحطّم الأجسام وموت أهل السوق) على نسختنا المحلية
+  worldEvent(e) {
+    const mini = this.mini; if (!mini) return;
+    if (e.t === 'break') { const st = mini.props[e.id]; if (st && st.alive) { st.alive = false; st.hp = 0; for (const b of this.w.props[e.id].boxes) this.w.disable(b); } }
+    else if (e.t === 'npcDie') { const st = mini.npcs[e.id]; if (st && st.alive) { st.alive = false; const w = this.w.npcs[e.id]; if (w && w.box >= 0) this.w.disable(w.box); } }
+    else if (e.t === 'reset') mini.resetWorld(false);
+  }
   get tdm() { return this.rules === 'tdm'; }
   // ---------- الاتصال ----------
   // نجرّب الوسطاء بالترتيب حتى يردّ السيرفر (السيرفر يستمع على كل الوسطاء معاً)
@@ -82,7 +91,10 @@ export class NetSim {
       case 'wl': this.welcome(m); break;
       case 'who': if (this.state === 'joined') this.sayHi(); break;
       case 'po': { const r = now() - m.c; if (r >= 0 && r < 10) this.ping = this.ping ? this.ping * 0.75 + r * 0.25 : r; break; }
-      case 'ro': for (const [id, name, bot, team, ch, rtt] of m.p) { this.roster.set(id, { name, bot: !!bot, team, char: ch, rtt }); const p = this.players.get(id); if (p) { p.name = name; p.bot = !!bot; } } break;
+      case 'ro': for (const [id, name, bot, team, ch, rtt] of m.p) { this.roster.set(id, { name, bot: !!bot, team, char: ch, rtt }); const p = this.players.get(id); if (p) { p.name = name; p.bot = !!bot; } }
+        if (this.mini && m.br) { for (const i of m.br) if (this.mini.props[i] && this.mini.props[i].alive) { this.worldEvent({ t: 'break', id: i }); this.events.push({ t: 'break', id: i, silent: 1 }); } }
+        if (this.mini && m.nd) { for (const i of m.nd) if (this.mini.npcs[i] && this.mini.npcs[i].alive) { this.worldEvent({ t: 'npcDie', id: i }); this.events.push({ t: 'npcDie', id: i, silent: 1 }); } }
+        break;
       case 's': if (this.state === 'joined') this.onSnap(m); break;
       case 'err': this.lost(m.msg || 'رفض السيرفر الاتصال'); break;
       case 'bye': this.lost('أُغلق السيرفر'); break;
@@ -94,7 +106,7 @@ export class NetSim {
     this.me = m.pid; this.mode = m.mo; this.roundsToWin = m.rw; if (m.tl) this.timeLimit = m.tl;
     if (fresh) {
       const mini = this.mini = new Sim(this.w, { mode: m.mo, timeLimit: m.tl });
-      mini.damage = () => { }; // الضرر يقرّره السيرفر وحده
+      mini.damage = () => { }; mini.hitProp = () => { }; mini.damageNpc = () => { }; // الضرر يقرّره السيرفر وحده
       this.pp = mini.addPlayer({ id: m.pid, name: this.opt.name, team: m.tm, char: this.opt.char, loadout: this.opt.loadout });
       this.hist.length = 0; this.recent.length = 0; this.seq = 0; this.snaps.length = 0; this.offset = null; this.lastSnapT = -1;
       this.players.clear(); this.players.set(m.pid, this.view = { ...this.pp });
@@ -139,6 +151,7 @@ export class NetSim {
       if (eid <= this.maxEid - 400 || this.seen.has(eid)) continue;
       this.seen.set(eid, 1); if (eid > this.maxEid) this.maxEid = eid;
       if (e.id === this.me && LOCAL_EV.has(e.t)) continue; // سبق أن عرضناها محلياً
+      if (e.t === 'break' || e.t === 'npcDie' || e.t === 'reset') this.worldEvent(e);
       this.events.push(e);
     }
     if (this.events.length > 160) this.events.splice(0, this.events.length - 160);

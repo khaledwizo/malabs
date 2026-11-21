@@ -1,5 +1,5 @@
 // صفحة «سيرفر الرافدين»: تعمل على الهاتف الوسيط وتدير المباراة بلا رسوميات
-import { Builder } from './world/builder.js';
+import { Builder, NULL_GFX } from './world/builder.js';
 import { buildSouq } from './world/maps/souq.js';
 import { GameServer } from './net/server.js';
 import { roomCode } from './net/link.js';
@@ -12,7 +12,7 @@ const AND = window.RafidainServer || null; // جسر تطبيق أندرويد
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const store = { get(k, d) { try { const v = localStorage.getItem('rafidain.srv.' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem('rafidain.srv.' + k, JSON.stringify(v)); } catch (e) { } } };
 
-const B = new Builder(null); buildSouq(B); const world = B.finish();
+const B = new Builder(NULL_GFX); buildSouq(B); const world = B.finish();
 let room = store.get('room', null); if (!room) { room = roomCode(); store.set('room', room); }
 const cfg = Object.assign({ mode: 'tdm', size: 4, rounds: 5, time: 600, difficulty: 'normal', fill: true }, store.get('cfg', {}));
 if (!MODES[cfg.mode]) cfg.mode = 'tdm';

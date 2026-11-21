@@ -5,13 +5,13 @@
 import * as THREE from 'three';
 
 export function buildDistricts(B, H) {
-  const { T, R, pick, vis, block, frame, facade, lantern, crate, sack, pot, palm, column, archWall, wallX, wallZ, floor, signs, gunProp, n, MAT, F, bench, table, fbox, palmFar, door } = H;
+  const { T, R, pick, vis, block, frame, facade, lantern, crate, sack, pot, vase, barrel, palm, column, archWall, wallX, wallZ, floor, signs, gunProp, n, MAT, F, bench, table, fbox, palmFar, door, streetLamp } = H;
   const PI = Math.PI;
   const graffiti = (text, x, y, z, ry, w = 2.4, o = {}) => { if (vis) signs.push({ text, x, y, z, ry, w, h: o.h || w * 0.375, rx: o.rx || 0, opt: { graffiti: true, ...(o.opt || {}) } }); };
   const sign = (text, x, y, z, ry, w, opt) => { if (vis) signs.push({ text, x, y, z, ry, w, opt: opt || {} }); };
   // تحويل إحداثيات محلية لجسم مدار حول y
   const loc = (x, z, ry, lx, lz) => [x + Math.cos(ry) * lx + Math.sin(ry) * lz, z - Math.sin(ry) * lx + Math.cos(ry) * lz];
-  const post = (x, z, h = 3.4, col = 0xffb060, it = 2.6, dist = 10, fl = 0) => { B.boxB(x, 0, z, 0.2, h, 0.2, 'iron', {}); lantern(x, h, z); B.light(x, h, z, col, it, dist, fl); };
+  const post = (x, z, h = 3.4, col = 0xffb060, it = 2.6, dist = 10, fl = 0) => streetLamp(x, z, col, it, dist, fl);
 
   // ---------------- أدوات الخراب ----------------
   // جدار متكسّر الحافة العليا. holes: [{u, w, type: 'door'|'win'}] (u من بداية الجدار)
@@ -55,18 +55,52 @@ export function buildDistricts(B, H) {
     if (vis && o.beams) for (const bm of o.beams) fallenBeam(...bm);
   };
   // سيارة (ry=0 بطولها على z)
+  // سيارة بهيكل منحوت (مقطع جانبي مبثوق بحواف مشطوفة، أقواس عجلات، زجاج، مصابيح، صدّامات كروم)
   const car = (x, z, ry, body = 'rust', cabin = 'charred', o = {}) => {
-    const L = o.L || 4.3, W = o.W || 1.8, al = Math.abs(Math.sin(ry)) > 0.5;
+    const L = 4.4, W = 1.74, al = Math.abs(Math.sin(ry)) > 0.5;
     const sx = al ? L : W, sz = al ? W : L;
-    B.box(x - sx / 2, 0, z - sz / 2, x + sx / 2, 1.3, z + sz / 2, null, { vis: false, cm: MAT.metal });
+    B.box(x - sx / 2, 0, z - sz / 2, x + sx / 2, 1.0, z + sz / 2, null, { vis: false, cm: MAT.metal });
+    B.box(x - sx / 2 * (al ? 0.55 : 1), 1.0, z - sz / 2 * (al ? 1 : 0.55), x + sx / 2 * (al ? 0.55 : 1), 1.45, z + sz / 2 * (al ? 1 : 0.55), null, { vis: false, cm: MAT.metal });
     if (!vis) return;
-    B.geo(() => new THREE.BoxGeometry(W, 0.62, L), T(x, 0.66, z, ry), body);
-    B.geo(() => new THREE.BoxGeometry(W * 0.9, 0.56, L * 0.48), T(...[loc(x, z, ry, 0, -0.1)].flatMap(p => [p[0], 1.25, p[1]]), ry), cabin);
-    for (const s of [-1, 1]) { const p = loc(x, z, ry, 0, s * L * 0.245); B.geo(() => new THREE.BoxGeometry(W * 0.86, 0.42, 0.06), T(p[0], 1.25, p[1], ry, 1, 1, 1, s * 0.35), 'dark'); }
-    for (const s of [-1, 1]) { const p = loc(x, z, ry, s * W * 0.452, -0.1); B.geo(() => new THREE.BoxGeometry(0.03, 0.36, L * 0.42), T(p[0], 1.25, p[1], ry), 'dark'); }
-    for (const [lx, lz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { if (o.missing && R() < 0.35) continue; const p = loc(x, z, ry, lx * W * 0.47, lz * L * 0.31); B.geo(() => new THREE.CylinderGeometry(0.34, 0.34, 0.24, 12), T(p[0], 0.34, p[1], ry, 1, 1, 1, 0, PI / 2), 'dark'); }
-    if (o.lights !== false) for (const s of [-1, 1]) { const p = loc(x, z, ry, s * W * 0.32, L / 2); B.geo(() => new THREE.BoxGeometry(0.3, 0.14, 0.04), T(p[0], 0.82, p[1], ry), o.burnt ? 'dark' : 'glass'); }
-    if (o.top) { const p = loc(x, z, ry, 0, -0.1); B.geo(() => new THREE.BoxGeometry(0.55, 0.16, 0.22), T(p[0], 1.6, p[1], ry), o.top); }
+    const burnt = !!o.burnt, paint = body, M = (m) => burnt && m !== 'rubber' ? (m === 'chrome' ? 'rust' : 'charred') : m;
+    const g = () => { const eg = new THREE.ExtrudeGeometry((() => { const sh = new THREE.Shape(); sh.moveTo(-2.2, 0.3); sh.lineTo(-2.2, 0.8); sh.quadraticCurveTo(-2.18, 0.93, -2.0, 0.95); sh.lineTo(-1.38, 0.98); sh.lineTo(-0.98, 1.4); sh.quadraticCurveTo(-0.86, 1.47, -0.7, 1.47); sh.lineTo(0.42, 1.47); sh.quadraticCurveTo(0.58, 1.46, 0.68, 1.39); sh.lineTo(1.25, 0.99); sh.lineTo(2.05, 0.9); sh.quadraticCurveTo(2.22, 0.86, 2.22, 0.7); sh.lineTo(2.22, 0.3); sh.lineTo(1.74, 0.3); sh.absarc(1.36, 0.3, 0.38, 0, Math.PI, false); sh.lineTo(-0.98, 0.3); sh.absarc(-1.36, 0.3, 0.38, 0, Math.PI, false); sh.lineTo(-2.2, 0.3); return sh; })(), { depth: W - 0.12, bevelEnabled: true, bevelThickness: 0.06, bevelSize: 0.05, bevelSegments: 2, curveSegments: 10 });
+      eg.translate(0, 0, -(W - 0.12) / 2); eg.rotateY(-PI / 2); return eg; };
+    B.geo(g, T(x, 0, z, ry), burnt ? 'rust' : paint, { uvs: 0.3 });
+    // تكسي بغداد: برتقالي بسقف أبيض
+    if (o.top === 'paintOrange' && !burnt) { const p = loc(x, z, ry, 0, -0.14); B.geo(() => new THREE.BoxGeometry(W - 0.14, 0.03, 1.08), T(p[0], 1.485, p[1], ry), 'paintWhite'); }
+    // الزجاج: جانبيّ بنافذتين، أمامي وخلفي مائل
+    const glass = burnt ? 'dark' : 'glassDark';
+    for (const s2 of [-1, 1]) { for (const [a0, a1] of [[-0.95, -0.15], [-0.08, 0.62]]) { const p = loc(x, z, ry, s2 * (W / 2 + 0.002), (a0 + a1) / 2); B.geo(() => new THREE.BoxGeometry(0.02, 0.38, a1 - a0), T(p[0], 1.2, p[1], ry), glass); } }
+    { const p = loc(x, z, ry, 0, -1.17); B.geo(() => new THREE.BoxGeometry(W - 0.2, 0.56, 0.02), T(p[0], 1.19, p[1], ry, 1, 1, 1, 0.76), glass); }
+    { const p = loc(x, z, ry, 0, 0.97); B.geo(() => new THREE.BoxGeometry(W - 0.22, 0.66, 0.02), T(p[0], 1.19, p[1], ry, 1, 1, 1, -0.96), glass); }
+    // صدّامات ومصابيح ومرايا
+    for (const e of [-1, 1]) { const p = loc(x, z, ry, 0, e * 2.29); B.geo(() => new THREE.BoxGeometry(W + 0.04, 0.14, 0.1), T(p[0], 0.4, p[1], ry), M('chrome')); }
+    for (const s2 of [-1, 1]) { const f = loc(x, z, ry, s2 * 0.62, -2.265); B.geo(() => new THREE.BoxGeometry(0.32, 0.13, 0.04), T(f[0], 0.66, f[1], ry), burnt ? 'dark' : 'lampWhite'); const r2 = loc(x, z, ry, s2 * 0.65, 2.285); B.geo(() => new THREE.BoxGeometry(0.28, 0.14, 0.04), T(r2[0], 0.72, r2[1], ry), burnt ? 'dark' : 'lampRed'); const m = loc(x, z, ry, s2 * (W / 2 + 0.1), -0.6); B.geo(() => new THREE.BoxGeometry(0.12, 0.08, 0.06), T(m[0], 1.02, m[1], ry), M(paint)); }
+    { const p = loc(x, z, ry, 0, -2.27); B.geo(() => new THREE.BoxGeometry(0.9, 0.16, 0.03), T(p[0], 0.56, p[1], ry), M('chrome')); }
+    // العجلات: إطار ومركز
+    for (const [lx, lz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+      if (o.missing && R() < 0.35) continue;
+      const p = loc(x, z, ry, lx * (W / 2 - 0.12), lz * 1.36);
+      B.geo(() => new THREE.CylinderGeometry(0.33, 0.33, 0.22, 16), T(p[0], 0.33, p[1], ry, 1, 1, 1, 0, PI / 2), 'rubber');
+      if (!burnt) { const h = loc(x, z, ry, lx * (W / 2 - 0.005), lz * 1.36); B.geo(() => new THREE.CylinderGeometry(0.17, 0.17, 0.02, 12), T(h[0], 0.33, h[1], ry, 1, 1, 1, 0, PI / 2), 'chrome'); }
+    }
+    if (o.top && o.top !== 'paintOrange') { const p = loc(x, z, ry, 0, -0.14); B.geo(() => new THREE.BoxGeometry(0.55, 0.16, 0.22), T(p[0], 1.56, p[1], ry), o.top); }
+    if (o.top === 'paintOrange' && !burnt) { const p = loc(x, z, ry, 0, -0.14); B.geo(() => new THREE.BoxGeometry(0.6, 0.16, 0.2), T(p[0], 1.57, p[1], ry), 'lampWhite'); }
+  };
+  // صبّة كونكريتية (جدار حماية بغدادي) — ساتر لا يُخترق
+  const twall = (x, z, along = 'x', h = 3.2) => {
+    const [sx, sz] = along === 'x' ? [1.5, 0.32] : [0.32, 1.5];
+    B.box(x - sx / 2, 0, z - sz / 2, x + sx / 2, h, z + sz / 2, 'concrete');
+    if (vis) { const [bx, bz] = along === 'x' ? [1.5, 1.1] : [1.1, 1.5]; B.box(x - bx / 2, 0, z - bz / 2, x + bx / 2, 0.42, z + bz / 2, 'concrete'); }
+    else B.box(x - (along === 'x' ? 0.75 : 0.55), 0, z - (along === 'x' ? 0.55 : 0.75), x + (along === 'x' ? 0.75 : 0.55), 0.42, z + (along === 'x' ? 0.55 : 0.75), null, { vis: false });
+  };
+  // حاجز خشبي مؤقت قابل للكسر
+  const woodBar = (x, z, along = 'x', len = 2.4) => {
+    B.prop('crate', 220);
+    const [sx, sz] = along === 'x' ? [len, 0.22] : [0.22, len];
+    B.box(x - sx / 2, 0, z - sz / 2, x + sx / 2, 1.15, z + sz / 2, null, { vis: false, cm: MAT.wood, flags: F.THIN });
+    if (vis) { for (const yy of [0.25, 0.62, 0.98]) B.box(x - sx / 2, yy, z - sz / 2 * 0.5, x + sx / 2, yy + 0.16, z + sz / 2 * 0.5, R() < 0.5 ? 'wood' : 'woodDark', { col: false }); for (const e of [-1, 1]) { const px = along === 'x' ? x + e * (len / 2 - 0.15) : x, pz = along === 'x' ? z : z + e * (len / 2 - 0.15); B.box(px - 0.06, 0, pz - 0.06, px + 0.06, 1.2, pz + 0.06, 'woodDark', { col: false }); } }
+    B.end();
   };
   const deadTree = (x, z, h = 5.2) => {
     B.col(x - 0.25, 0, z - 0.25, x + 0.25, h * 0.75, z + 0.25, MAT.wood);
@@ -89,10 +123,12 @@ export function buildDistricts(B, H) {
     }
     B.box(x - 0.85, 0, z - 0.36, x + 0.85, 0.22, z + 0.36, 'tomb');
     const broken = R() < 0.16, tilt = !broken && R() < 0.14, hh = broken ? 0.32 + R() * 0.18 : 0.72 + R() * 0.28;
+    B.prop('tomb', 140); // الشاهد يتحطم بالرصاص
     if (tilt) { B.col(x - 0.88, 0.22, z - 0.24, x - 0.7, 0.85, z + 0.24, MAT.stone); if (vis) B.geo(() => new THREE.BoxGeometry(0.12, hh, 0.5), T(x - 0.78, 0.22 + hh * 0.48, z, 0, 1, 1, 1, (R() - 0.5) * 0.25, (R() < 0.5 ? -1 : 1) * (0.18 + R() * 0.2)), 'tomb'); }
     else { B.box(x - 0.85, 0.22, z - 0.25, x - 0.72, 0.22 + hh, z + 0.25, 'tomb'); if (vis && !broken) B.geo(() => new THREE.CylinderGeometry(0.25, 0.25, 0.13, 12), T(x - 0.785, 0.22 + hh, z, 0, 1, 1, 1, 0, PI / 2), 'tomb'); }
+    B.end();
     if (broken && vis) B.geo(() => new THREE.BoxGeometry(0.12, 0.42, 0.5), T(x - 0.25, 0.28, z + 0.12, R(), 1, 1, 1, PI / 2 - 0.12, 0.3), 'tomb');
-    B.box(x + 0.74, 0.22, z - 0.16, x + 0.85, 0.6, z + 0.16, 'tomb');
+    B.prop('tomb', 80); B.box(x + 0.74, 0.22, z - 0.16, x + 0.85, 0.6, z + 0.16, 'tomb'); B.end();
     if (vis && R() < 0.12) B.geo(() => new THREE.PlaneGeometry(1.45, 0.6), T(x, 0.235, z, 0, 1, 1, 1, -PI / 2), 'clothGreen');
     if (vis && R() < 0.1) for (let k = 0; k < 3; k++) B.geo(() => new THREE.SphereGeometry(0.05, 6, 4), T(x + (R() - 0.5) * 1.2, 0.26, z + (R() - 0.5) * 0.4), pick(['flowerRed', 'flowerWhite']));
   };
@@ -251,8 +287,8 @@ export function buildDistricts(B, H) {
     for (let k = 0; k < 3; k++) B.geo(() => new THREE.PlaneGeometry(1.2, 1.6), T(-56.94, 1.4, 20.7 + k * 0.9, PI / 2, 1, 1, 1), 'lattice', { uvs: 0.5 });
   }
   // زورق متروك على الضفة
-  B.col(-77.8, 0, 22.3, -72.2, 0.75, 23.9, MAT.wood);
-  if (vis) { const pts = []; for (let i = 0; i <= 8; i++) { const t = i / 8; pts.push(new THREE.Vector2(Math.sin(t * PI) * 0.75 + 0.05, (t - 0.5) * 5.5)); } const g = new THREE.LatheGeometry(pts, 10, PI, PI); g.rotateZ(PI / 2); B.geo(g, T(-75, 0.02, 23.1, 0, 1, 0.8, 1, 0.06, PI), 'woodDark', { uvs: 0.6 }); }
+  B.col(-79.2, 0, 22.3, -73.6, 0.75, 23.9, MAT.wood);
+  if (vis) { const pts = []; for (let i = 0; i <= 8; i++) { const t = i / 8; pts.push(new THREE.Vector2(Math.sin(t * PI) * 0.75 + 0.05, (t - 0.5) * 5.5)); } const g = new THREE.LatheGeometry(pts, 10, PI, PI); g.rotateZ(PI / 2); B.geo(g, T(-76.4, 0.02, 23.1, 0, 1, 0.8, 1, 0.06, PI), 'woodDark', { uvs: 0.6 }); }
   crate(-68, 21, 1.0); crate(-67.2, 21.9, 0.8); crate(-51, 25, 1.1); sack(-52.2, 25.6, 'spice2'); crate(-84, 23.5, 1.1); crate(-83, 24.2, 0.7, 0, 0.4);
   if (vis) for (let x = -89; x < -44; x += 1.1 + R() * 1.4) for (let k = 0; k < 4; k++) B.geo(() => new THREE.ConeGeometry(0.04, 1.1 + R() * 0.8, 4), T(x + (R() - 0.5) * 0.6, 0.6, 32.6 + R() * 0.35, 0, 1, 1, 1, (R() - 0.5) * 0.3, (R() - 0.5) * 0.3), R() < 0.5 ? 'leafDark' : 'palm');
   post(-52, 31.6, 3.6, 0xffb060, 2.4, 10); post(-80, 27, 3.4, 0xffb060, 2.2, 10, 1);
@@ -347,7 +383,7 @@ export function buildDistricts(B, H) {
   car(49.4, -24.6, 0, 'paintOrange', 'plasterWhite', { top: 'paintOrange' });
   car(48.8, 6.2, PI / 2 + 0.12, 'rust', 'charred', { missing: true, burnt: true });
   crate(84.4, -26.6, 1.1); crate(84.6, -25.4, 0.8); crate(47.6, -28.6, 1); crate(62.5, -26.8, 1.1); crate(69.6, -26.4, 0.9); sack(70.6, -27.1, 'spice1');
-  for (const [x, z] of [[48.6, -19.5], [84.2, -1.5], [60, 7.2], [72, 7.2]]) post(x, z, 3.6, 0xffb060, 2.4, 10);
+  for (const [x, z] of [[46.7, -19.2], [84.2, -1.5], [60, 7.2], [72, 7.2]]) post(x, z, 3.6, 0xffb060, 2.4, 10);
 
   // ================= الشريعة الشرقية =================
   for (const [x, z, h] of [[47.5, 30.6, 8.2], [55.5, 29.6, 7.4], [66.5, 31.3, 9], [76.5, 30.1, 7.6], [86.6, 30.8, 8.5]]) palm(x, z, h, 0.1 + R() * 0.1, R() * 6);
@@ -366,16 +402,109 @@ export function buildDistricts(B, H) {
     for (let k = 0; k < 4; k++) B.geo(() => new THREE.BoxGeometry(0.8, 0.5, 0.04), T(63.2 + k * 1.2, 1.3, 41.58, 0.03), 'dark');
   }
   post(52, 31.6, 3.6, 0xffb060, 2.4, 10); post(70, 31.6, 3.6, 0xffb060, 2.4, 10); post(88, 31.6, 3.6, 0xffb060, 2.2, 10);
-  crate(57, 22, 1.1); crate(58.1, 22.5, 0.8); crate(86.5, 24, 1.2); sack(85.4, 24.6, 'spice3');
+  crate(52.6, 23.8, 1.1); crate(53.7, 24.3, 0.8); crate(86.5, 24, 1.2); sack(85.4, 24.6, 'spice3');
   B.box(90, 0, 18, 92, 7, 33.6, 'brickPale', { faces: 'nxpy' });
   if (vis) { for (let z = 18.3; z < 33.2; z += 1.4) B.box(90, 7, z, 90.6, 7.8, z + 0.7, 'brickPale', { col: false }); B.box(90, -3, 33.6, 92, 7, 46, 'brickPale', { col: false }); B.box(-92, -3, 33.6, -90, 7.5, 46, 'brickPale', { col: false }); }
+
+  // ================= أهل المدينة =================
+  // باعة البسطات واقفون خلفها، بائع الشاي وزبائنه، شيوخ على المصاطب، صيّاد على الكورنيش
+  for (const x of [61.5, 66, 70.5]) B.npc({ x: x + (R() - 0.5) * 0.6, z: 6.4, yaw: 0, pose: 'stand', look: 'vendor' });
+  B.npc({ x: 78, z: 23.85, yaw: PI, pose: 'stand', look: 'tea' });
+  B.npc({ x: 74.6, z: 25.6, yaw: 0, pose: 'sit', look: 'tea' });
+  B.npc({ x: 81.95, z: 24.6, yaw: PI / 2, pose: 'sit', look: 'tea' });
+  B.npc({ x: 53.9, y: 0.09, z: -18.85, yaw: PI, pose: 'sit', look: 'elder', stool: false });
+  B.npc({ x: 55.3, y: 0.09, z: -18.85, yaw: PI, pose: 'sit', look: 'elder', stool: false });
+  B.npc({ x: 77.0, y: 0.09, z: -3.15, yaw: 0, pose: 'sit', look: 'elder', stool: false });
+  B.npc({ x: 60.4, y: 0.09, z: 26.15, yaw: PI, pose: 'sit', look: 'elder', stool: false });
+  B.npc({ x: -70, z: 31.9, yaw: PI, pose: 'stand', look: 'vendor' });
+  // صيد اليوم: طبق خشبي عليه أسماك بنّي (نموذج مرخّص CC0)
+  B.box(-69.3, 0, 31.0, -67.9, 0.36, 31.8, 'woodDark', { cm: MAT.wood, flags: F.THIN });
+  for (const [dx, dz, r] of [[-0.38, -0.1, 0.15], [0.05, 0.12, -0.2], [0.42, -0.08, 0.35]]) B.put('fish', -68.6 + dx, 0.36, 31.4 + dz, PI / 2 + r, 1.25);
+  // زوّار الضريح يقرؤون الفاتحة رافعين أكفّهم (لا يُصابون احتراماً للمكان)
+  for (const [x, z, yaw] of [[-80.2, -5.55, PI], [-77.8, -5.55, PI + 0.2], [-78.2, -2.4, 0], [-80.6, -2.5, 0.3]]) B.npc({ x, z, yaw, pose: 'pray', look: 'pilgrim', kill: false });
+
+  // ================= سواتر الطرقات =================
+  // صبّات كونكريتية وأكياس رمل وحواجز خشبية قابلة للكسر — تُترك الممرات الرئيسة مفتوحة
+  twall(60.5, -24.4, 'x'); twall(62, -24.4, 'x');
+  woodBar(70.5, -20.6, 'x', 2.4);
+  sandbags(58.8, 20.4, 61.8, 21.2, 1.05);
+  twall(-56, 25.2, 'x'); twall(-54.5, 25.2, 'x');
+  twall(-34, 25.4, 'x'); twall(23.5, 25.2, 'x'); twall(25, 25.2, 'x');
+  sandbags(-40, -12.8, -38.3, -12, 1.05); sandbags(-35.7, 3.6, -34, 4.4, 1.05);
+  woodBar(-39, 13.6, 'x', 2.0);
+  sandbags(30, -15.5, 31.2, -14.7, 1.05);
+  sandbags(22.6, -24, 23.4, -22.9, 1.0);
+  woodBar(-51, -18, 'x', 2.0);
+  sandbags(-47.3, 0.4, -46.1, 1.8, 1.0);
+  if (vis) { graffiti('قف', 60.5, 1.8, -24.22, 0, 1.2); graffiti('', 24.25, 1.6, 25.38, 0, 2.2); }
+  // جرار وبراميل إضافية (قابلة للكسر)
+  for (const [x, z, h] of [[-46.6, -27.6, 0.8], [-51.4, 14.8, 0.95], [85.2, 1.2, 0.9], [-89.2, 22.6, 0.8], [55.4, 18.8, 0.8], [-34.6, 18.8, 0.85], [33.6, -19.4, 0.8], [-15.4, 24, 0.9], [90 - 0.5, 20.5, 0.9]]) vase(x, z, h, R() < 0.3 ? 'copper' : 'clay');
+  for (const [x, z] of [[85.3, -0.2], [-47, -26.6], [-33.8, 19.2], [56.2, 23.4], [-61, 24.3], [-38.6, -21]]) barrel(x, z);
+
+  // ================= الملوية على الضفة البعيدة =================
+  // مئذنة حلزونية من الآجر بمنحدر يلتفّ خمس دورات، وسور الجامع الكبير بأبراجه نصف الدائرية
+  if (vis) {
+    const mx = 30, mz = 104, base = 2.6, H = 30, R0 = 8.2, R1 = 2.9, turns = 5, ledge = 1.7, pitch = H / turns;
+    B.box(mx - 11, -1, mz - 11, mx + 11, base, mz + 11, 'brickPale', { col: false, ao: null });
+    B.geo(() => new THREE.CylinderGeometry(R1, R0, H + pitch * 0.6, 40, 1), T(mx, base + (H + pitch * 0.6) / 2, mz), 'brickPale', { uvs: 0.25 });
+    B.geo(() => {
+      const P = [], N = [], U = [], I = [], seg = turns * 72;
+      for (let i = 0; i <= seg; i++) {
+        const t = i / seg, a = t * turns * PI * 2, rc = R0 - (R0 - R1) * t, y = base + t * H, ro = rc + ledge * (1 - t * 0.35);
+        const c = Math.cos(a), s2 = Math.sin(a), arc = a * (rc + ro) / 2;
+        P.push(rc * c, y, rc * s2, ro * c, y, ro * s2); N.push(0, 1, 0, 0, 1, 0); U.push(arc / 3, 0, arc / 3, ledge / 3);
+        P.push(ro * c, y, ro * s2, ro * c, Math.max(base, y - pitch), ro * s2); N.push(c, 0, s2, c, 0, s2); U.push(arc / 3, y / 3, arc / 3, (y - pitch) / 3);
+        if (i < seg) { const b = i * 4; I.push(b, b + 4, b + 5, b, b + 5, b + 1, b + 2, b + 3, b + 7, b + 2, b + 7, b + 6); }
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(N, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(U, 2)); g.setIndex(I);
+      return g;
+    }, T(mx, 0, mz), 'brickPale', { uvs: 1 });
+    // الجوسق في القمّة: أسطوانة بأقواس ثم قبّة صغيرة
+    const top = base + H + pitch * 0.6;
+    B.geo(() => new THREE.CylinderGeometry(2.4, 2.6, 4.2, 20, 1), T(mx, top + 2.1, mz), 'brickPale', { uvs: 0.4 });
+    for (let k = 0; k < 8; k++) { const a = k / 8 * PI * 2; B.geo(() => new THREE.BoxGeometry(0.7, 1.8, 0.2), T(mx + Math.cos(a) * 2.52, top + 2.0, mz + Math.sin(a) * 2.52, -a + PI / 2), 'dark'); }
+    B.geo(() => new THREE.CylinderGeometry(1.7, 2.5, 1.0, 20, 1), T(mx, top + 4.7, mz), 'brickPale', { uvs: 0.4 });
+    // سور الجامع الكبير بأبراج نصف دائرية
+    for (const [x0, x1, z] of [[-14, 74, 122]]) {
+      B.box(x0, -1, z, x1, 10, z + 2.5, 'brickPale', { col: false, ao: null });
+      for (let x = x0 + 3; x < x1; x += 7.3) B.geo(() => new THREE.CylinderGeometry(1.6, 1.8, 11, 14, 1, false, PI, PI), T(x, 4.5, z, 0), 'brickPale', { uvs: 0.4 });
+    }
+    for (const [x, z0, z1] of [[-14, 96, 122], [74, 96, 122]]) { B.box(x - 1.25, -1, z0, x + 1.25, 10, z1, 'brickPale', { col: false, ao: null }); for (let z = z0 + 3; z < z1; z += 7.3) B.geo(() => new THREE.CylinderGeometry(1.6, 1.8, 11, 14, 1, false, x < 0 ? -PI / 2 : PI / 2, PI), T(x, 4.5, z), 'brickPale', { uvs: 0.4 }); }
+    // ضوء دافئ ليلاً عند القاعدة والقمّة
+    B.glow(mx, top + 2.4, mz, 1.6, 0xffc070, 0); B.glow(mx - 9, base + 1.2, mz - 11.2, 1.2, 0xffc070, 0); B.glow(mx + 9, base + 1.2, mz - 11.2, 1.2, 0xffc070, 0);
+  }
+
+  // ================= تفاصيل الأرضيات =================
+  // تشقّقات وبقع زيت وأوراق يابسة ومناهل وأظرفة رصاص وبرك مطر تظهر حين تبتلّ الأرض
+  const deco = (x0, z0, x1, z1, k, tiles, s0 = 0.8, s1 = 2.2) => { for (let i = 0; i < k; i++) { const x = x0 + R() * (x1 - x0), z = z0 + R() * (z1 - z0), s = s0 + R() * (s1 - s0), t = tiles[Math.floor(R() * tiles.length)], r = R() * PI * 2; B.decal(x, z, s, s * (0.7 + R() * 0.5), r, t); } };
+  const puddles = (x0, z0, x1, z1, k) => { for (let i = 0; i < k; i++) { const x = x0 + R() * (x1 - x0), z = z0 + R() * (z1 - z0), w = 1.4 + R() * 2.6; B.decal(x, z, w, w * (0.45 + R() * 0.4), R() * PI, -1, 0.014, 'puddle'); } };
+  const ST = [0, 1, 2, 4, 13, 14, 15, 15, 3];
+  deco(46.5, -29.5, 85.5, 7.5, 70, ST.concat([9, 3, 5])); deco(46.5, -29.5, 85.5, 7.5, 6, [8, 7], 0.9, 1.0); puddles(46.5, -29.5, 85.5, 7.5, 12);
+  deco(-51.8, -29.8, -46.2, 17.8, 34, [0, 1, 2, 4, 5, 15, 11, 14]); puddles(-51.5, -29, -46.5, 17, 6);
+  deco(-65.6, -21.8, -52.2, -18.2, 8, [1, 5, 15]); deco(-65.6, -5.8, -52.2, -2.2, 8, [1, 5, 15]); deco(-65.6, 8.2, -52.2, 11.8, 8, [1, 5, 15]);
+  deco(-89.5, -29.5, -66.5, 17.5, 40, [5, 5, 12, 12, 6, 2]);
+  deco(-91.5, 18.4, 91.5, 33, 120, [0, 2, 4, 5, 6, 12, 14, 15]); puddles(-91, 18.6, 91, 32.6, 22);
+  deco(-39.8, -23.8, -34.2, 17.8, 34, ST); deco(-39.8, -23.8, -34.2, 17.8, 3, [8, 7], 0.9, 1.0); puddles(-39.6, -23.4, -34.4, 17.4, 6);
+  deco(-2.8, -19.8, 2.8, 17.8, 30, [0, 2, 4, 13, 14, 15, 15]); puddles(-2.6, -19, 2.6, 17, 5);
+  deco(-39.8, -23.8, -14.2, -20.2, 16, ST); deco(14.2, -23.8, 33.8, -20.2, 14, ST); deco(30.2, -19.8, 33.8, -6.2, 10, ST);
+  deco(22.2, -5.8, 35.8, 5.8, 20, [0, 1, 2, 4, 14, 15]); puddles(22.4, -5.4, 35.6, 5.4, 4);
+  deco(-31.8, -10.8, -18.2, 6.8, 18, [2, 4, 14, 15]); deco(-13.8, -33.8, 13.8, -20.2, 16, [14, 15, 2]);
+  deco(-15.8, -1.8, -3.2, 1.8, 8, ST); deco(3.2, -1.8, 21.8, 1.8, 10, ST); deco(38.2, -2.3, 45.8, 2.3, 4, ST);
+  deco(51, -10, 55, -3.4, 12, [10, 10, 10, 2], 0.5, 1.0); // أظرفة رصاص عند نقطة التفتيش
+  deco(-58, -27, -54, -23, 3, [11, 2], 0.8, 1.4);
 
   // ================= نقاط الإحياء المتفرّقة (وضع الإحياء) =================
   B.w.spawnsTdm = [
     [-79, -27], [-87, -20], [-71, 10], [-87, 10], [-79, 15], [-49, -27], [-49, 15], [-60, -20], [-60, 10],
-    [48, -28.5], [82, -27], [52.6, 6], [83, 5], [66, -1.5], [60, -32.4], [76, -32.4],
-    [-82, 28], [-60, 30], [-46, 22], [58, 28], [84, 30], [46, 22], [-30, 22], [30, 22], [-37, -12], [32, -14],
+    [49.6, -28.5], [82, -27], [52.6, 6], [83, 5], [66, -1.5], [60, -32.4], [76, -32.4],
+    [-82, 28], [-60, 30], [-46, 22], [58, 28], [84, 30], [46, 22], [-30, 22], [30, 22], [-37, -12], [32.8, -12.2],
   ].map(([x, z]) => [x, 0, z, null]);
+  // بداية مباراة الإحياء: الفريق الأول على الكورنيش جنوباً، والثاني في الشمال
+  B.w.tdmStart = [
+    [[-82, 27], [-60, 27], [-30, 27.5], [-4, 29.6], [8, 29.6], [30, 27.5], [58, 28], [84, 27]].map(([x, z]) => [x, 0, z, 0]),
+    [[-79, -27], [-49, -27], [-25, -22], [-3, -27.5], [3, -27.5], [22, -22], [60, -32.4], [76, -32.4]].map(([x, z]) => [x, 0, z, PI]),
+  ];
 
   // ================= عقد الملاحة =================
   for (let z = -28; z <= 16; z += 4) n(-49, z);
@@ -385,7 +514,7 @@ export function buildDistricts(B, H) {
   n(-56, -0.4); n(-53.6, 3); n(-62, 6.4); n(-61, 1); n(-57, 1); n(-61, 6); n(-57, 6); n(-63.5, 3.5);
   for (const z of [-20, -4, 10]) { n(-67.6, z); n(-64.6, z); }
   for (const z of [-28, -24, -20, -16, -12, 4, 8, 12, 16]) n(-79, z);
-  n(-85.2, -10.6); n(-85.2, 2.6); n(-72.8, -10.6); n(-72.8, 2.6); n(-84.8, -4); n(-73.2, -4); n(-79, -4); n(-79, -1.2); n(-79, -6.8);
+  n(-85.2, -10.6); n(-85.2, 2.6); n(-72.8, -10.6); n(-72.8, 2.6); n(-84.8, -4); n(-73.2, -4); n(-82.65, -4); n(-75.35, -4); n(-81.3, -4); n(-76.7, -4); n(-79, -6.4); n(-79, -1.5); n(-81.4, -6.2); n(-76.6, -6.2); n(-81.4, -1.8); n(-76.6, -1.8);
   for (let x = -89; x <= -68; x += 4) { n(x, -20); n(x, -4); n(x, 10); }
   for (const z of [-26.7, -14.7, -8.7, 3.3, 15.3]) for (let x = -88; x <= -70; x += 6) n(x, z);
   n(-79, 16.6); n(-79, 20);
@@ -394,8 +523,9 @@ export function buildDistricts(B, H) {
   n(49, 0); n(48, -6); n(48, 6);
   for (let x = 48; x <= 84; x += 4) n(x, -32.4);
   const inBed = (x, z) => (x > 50.6 && x < 58.4 || x > 73.6 && x < 81.4) && (z > -26.4 && z < -19.6 || z > -2.4 && z < 4.4);
-  for (let x = 48; x <= 84; x += 5) for (let z = -28; z <= 6; z += 5) { if (Math.abs(x - 66) < 5.6 && Math.abs(z + 11) < 5.6 || inBed(x, z)) continue; n(x, z); }
+  for (let x = 48; x <= 84; x += 5) for (let z = -28; z <= 6; z += 5) { if (Math.abs(x - 66) < 5.6 && Math.abs(z + 11) < 5.6 || inBed(x, z) || (x > 80 && x < 84.6 && z > -18.8 && z < -6.4) || (Math.abs(z + 3) < 0.6 && (Math.abs(x - 77.5) < 2.4 || Math.abs(x - 54.5) < 2.4))) continue; n(x, z); }
   for (let x = 48; x <= 84; x += 4) n(x, -28.6);
-  for (const [x, z] of [[61.6, -15.6], [66, -15.6], [70.4, -15.6], [61.6, -6.4], [66, -6.4], [70.4, -6.4], [61.6, -11], [70.4, -11]]) n(x, z, 0.3);
+  for (const [x, z] of [[62.4, -14.6], [66, -14.6], [69.6, -14.6], [62.4, -7.4], [66, -7.4], [69.6, -7.4], [62.4, -11], [69.6, -11]]) n(x, z, 0.3);
+  n(84.8, -18.4); n(84.8, -6.4); n(79.8, -18.6); n(79.8, -6.2);
   for (const x of [58, 76]) { n(x, 10); n(x, 14); n(x, 17.2); }
 }

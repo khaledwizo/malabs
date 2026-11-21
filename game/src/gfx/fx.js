@@ -147,9 +147,17 @@ export class FX {
     return i;
   }
   // بركة دم تتسع ببطء تحت الجثة
-  bloodPool(pos, world) {
+  bloodPool(pos, world, max) {
     const g = world.ray(pos[0], pos[1] + 0.5, pos[2], 0, -1, 0, 2, 2, {}); if (!g) return;
-    this.pools.push({ p: [g.x + (Math.random() - 0.5) * 0.3, g.y, g.z + (Math.random() - 0.5) * 0.3], n: [g.nx, g.ny, g.nz], t: 0, i: this.splat([g.x, g.y, g.z], [g.nx, g.ny, g.nz], 0.2), max: 1.1 + Math.random() * 0.7 });
+    this.pools.push({ p: [g.x + (Math.random() - 0.5) * 0.3, g.y, g.z + (Math.random() - 0.5) * 0.3], n: [g.nx, g.ny, g.nz], t: 0, i: this.splat([g.x, g.y, g.z], [g.nx, g.ny, g.nz], 0.2), max: max || 1.1 + Math.random() * 0.7 });
+  }
+  // تحطّم جسم: شظايا تتطاير وتسقط مع غبار (خشب، فخّار، حجر، أكياس بهار)
+  debris(p, kind) {
+    const k = this.k, A = this.alpha;
+    const col = kind === 'vase' ? [0.62, 0.36, 0.22] : kind === 'tomb' ? [0.74, 0.72, 0.68] : kind === 'sack' ? [0.8, 0.55, 0.25] : [0.52, 0.36, 0.2];
+    const dust = kind === 'sack' ? [0.85, 0.6, 0.3] : kind === 'tomb' ? [0.7, 0.68, 0.64] : [0.66, 0.58, 0.48];
+    for (let i = 0; i < 28 * k; i++) { const a = Math.random() * 6.28, sp = 1.2 + Math.random() * 3.4, s = 0.05 + Math.random() * 0.09, v = 0.8 + Math.random() * 0.35; A.add(p[0] + (Math.random() - 0.5) * 0.4, p[1] + Math.random() * 0.4, p[2] + (Math.random() - 0.5) * 0.4, Math.cos(a) * sp, 1.5 + Math.random() * 3.2, Math.sin(a) * sp, 0.8 + Math.random() * 0.7, s, s * 0.85, col[0] * v, col[1] * v, col[2] * v, 1, 11, 0.6); }
+    for (let i = 0; i < 10 * k; i++) A.add(p[0] + (Math.random() - 0.5) * 0.5, p[1] + Math.random() * 0.5, p[2] + (Math.random() - 0.5) * 0.5, (Math.random() - 0.5) * 1.2, 0.3 + Math.random() * 0.8, (Math.random() - 0.5) * 1.2, 1.2 + Math.random() * 1.0, 0.25, 1.0 + Math.random() * 0.5, dust[0], dust[1], dust[2], kind === 'sack' ? 0.5 : 0.32, -0.2, 2.2);
   }
   clear() { this.bMesh.count = 0; this.bIdx = 0; this.dMesh.count = 0; this.dIdx = 0; this.pools.length = 0; this.tracers.length = 0; }
   tracer(a, b, speed = 400) {

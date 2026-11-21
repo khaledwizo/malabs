@@ -23,7 +23,7 @@ export function roundBox(w, h, d, r, seg = 3) {
 const capsule = (r, len) => cached(`cap${r},${len}`, () => new THREE.CapsuleGeometry(r, len, 4, 10));
 
 // رأس كروي بإسقاط مستوٍ لقوام الوجه على الجهة الأمامية (-z)
-function headGeo() {
+export function headGeo() {
   return cached('head', () => {
     const r = 0.115, g = new THREE.SphereGeometry(r, 28, 22), p = g.attributes.position, uv = g.attributes.uv;
     for (let i = 0; i < p.count; i++) {

@@ -1,8 +1,8 @@
 // اختبار المحاكاة بلا رسوميات: 4 بوتات تتقاتل
-import { Builder } from '../src/world/builder.js';
+import { Builder, NULL_GFX } from '../src/world/builder.js';
 import { buildSouq } from '../src/world/maps/souq.js';
 import { Sim } from '../src/sim/sim.js';
-const B = new Builder(null); buildSouq(B); const W = B.finish();
+const B = new Builder(NULL_GFX); buildSouq(B); const W = B.finish();
 console.log('boxes', W.mat.length, 'nav', W.nav.nodes.length, 'links', W.nav.adj.reduce((a, b) => a + b.length, 0) / 2, 'spawns', W.spawns.map(s => s.length));
 // عقد معزولة
 const iso = W.nav.adj.map((a, i) => a.length === 0 ? i : -1).filter(i => i >= 0);

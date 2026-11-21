@@ -7,7 +7,10 @@ import { Bot } from './bot.js';
 
 export const TEAMS = [{ id: 0, name: 'الصقور', color: '#f0b04a' }, { id: 1, name: 'الحُرّاس', color: '#4ad8f0' }];
 const PEN_COST = { [MAT.wood]: 0.9, [MAT.cloth]: 0.25, [MAT.plaster]: 1.6, [MAT.glass]: 0.2, [MAT.metal]: 3, [MAT.brick]: 3.5, [MAT.stone]: 5, [MAT.tile]: 3 };
-export const LEAN = 0.4; // متر: مقدار الميل الجانبي عند الاستراق
+export const LEAN = 0.4;
+export const MAX_HP = 150;
+// العلاج المتاح بعد كل إحياء: 5 ضمادات (+30 خلال 2.4ث) وإبرتان (+75 خلال 4ث)
+export const MEDS = { b: { n: 5, hp: 30, t: 2.4, name: 'ضمادة' }, s: { n: 2, hp: 75, t: 4, name: 'إبرة' } };
 
 export class Sim {
   constructor(world, opt = {}) {
@@ -26,6 +29,35 @@ export class Sim {
     this.round = 0; this.score = [0, 0]; this.phase = 'wait'; this.phaseT = 0; this.winner = -1; this.matchOver = false;
     this.rng = mulberry(opt.seed || 12345);
     this.history = []; // لتعويض التأخير عبر الشبكة
+    // أجسام قابلة للكسر وأهل السوق: حالة كل مباراة (العالم مشترك فنعيده لحالته السليمة)
+    this.props = (world.props || []).map(p => ({ hp: p.hp, alive: true }));
+    this.npcs = (world.npcs || []).map(n => ({ hp: 70, alive: true }));
+    this.resetWorld(false);
+  }
+  resetWorld(ev = true) {
+    const W = this.w;
+    (W.props || []).forEach((p, i) => { const st = this.props[i]; st.hp = p.hp; st.alive = true; for (const b of p.boxes) W.restore(b); });
+    this.npcs.forEach((n, i) => { n.alive = true; n.hp = 70; const w = (W.npcs || [])[i]; if (w && w.box >= 0) W.restore(w.box); });
+    if (ev) this.events.push({ t: 'reset' });
+  }
+  hitProp(pid, dmg, at) {
+    const st = this.props[pid]; if (!st || !st.alive) return;
+    st.hp -= dmg;
+    if (st.hp <= 0) { st.alive = false; for (const b of this.w.props[pid].boxes) this.w.disable(b); this.events.push({ t: 'break', id: pid, k: this.w.props[pid].kind, p: at || this.w.props[pid].c }); }
+  }
+  // صناديق إصابة شخص من أهل السوق (جالس أو واقف)
+  hitNpc(n, ox, oy, oz, d, maxT) {
+    const sit = n.pose === 'sit', top = sit ? 1.12 : 1.5, hy = sit ? 1.27 : 1.64;
+    if (raySphere(ox, oy, oz, d[0], d[1], d[2], n.x, n.y + 0.9, n.z, 1.2) < 0) return null;
+    let best = null; const test = (t, part) => { if (t >= 0 && t < maxT && (!best || t < best.t)) best = { t, part }; };
+    test(raySphere(ox, oy, oz, d[0], d[1], d[2], n.x, n.y + hy, n.z, 0.14), 'head');
+    test(rayBox(ox, oy, oz, d[0], d[1], d[2], n.x - 0.25, n.y + (sit ? 0.35 : 0), n.z - 0.25, n.x + 0.25, n.y + top, n.z + 0.25), 'chest');
+    return best;
+  }
+  damageNpc(i, att, dmg, dir, at) {
+    const st = this.npcs[i]; if (!st || !st.alive) return;
+    st.hp -= dmg; this.events.push({ t: 'npcHit', id: i, p: at });
+    if (st.hp <= 0) { st.alive = false; const w = this.w.npcs[i]; if (w && w.box >= 0) this.w.disable(w.box); this.events.push({ t: 'npcDie', id: i, k: att ? att.id : -1, d: dir ? [dir[0], dir[1], dir[2]] : null }); }
   }
   get tdm() { return this.rules === 'tdm'; }
   // ---------- اللاعبون ----------
@@ -34,7 +66,7 @@ export class Sim {
     const p = {
       id, name: o.name || ('لاعب ' + id), team: o.team ?? 0, char: o.char || 'khaled', bot: !!o.bot,
       pos: [0, 0, 0], vel: [0, 0, 0], yaw: 0, pitch: 0, crouch: 0, lean: 0, onGround: true, jumpReady: true, height: PH.hStand,
-      hp: 100, armor: 100, helmet: 100, alive: false, loadout: validLoadout(o.loadout || defaultLoadout(this.mode, this.rng), this.mode),
+      hp: MAX_HP, maxHp: MAX_HP, armor: 100, helmet: 100, alive: false, meds: { b: 0, s: 0 }, healT: 0, healK: 0, loadout: validLoadout(o.loadout || defaultLoadout(this.mode, this.rng), this.mode),
       inv: {}, slot: 1, prevSlot: 2, switchT: 0, nextFire: 0, reloadT: 0, fireLatch: false, shots: 0, punch: [0, 0], ads: false, adsT: 0,
       kills: 0, deaths: 0, assists: 0, dmgDone: 0, hs: 0, streak: 0, flash: 0, lastAtt: -1, dmgBy: new Map(), cmd: blankCmd(), seq: 0, ping: 0,
       throwT: 0, spawnProt: 0, respawnT: 0, lastHurt: -9, lastShot: -9, lastShotQuiet: false,
@@ -60,12 +92,17 @@ export class Sim {
   spawn(p, respawn) {
     let sp;
     if (respawn && this.tdm) sp = this.tdmSpawn(p);
-    else {
+    else if (this.tdm && (this.w.tdmStart || [])[p.team] && this.w.tdmStart[p.team].length) {
+      // بداية مباراة الإحياء: كل فريق ينتشر في نصفه من الخريطة بعيداً عن الآخر
+      const S = this.w.tdmStart[p.team], used = [...this.players.values()].filter(q => q.team === p.team && q !== p && q.alive).length;
+      sp = S[(used * 3 + (p.id % S.length)) % S.length];
+    } else {
       const S = this.w.spawns[p.team]; const used = [...this.players.values()].filter(q => q.team === p.team && q !== p && q.alive).length;
       sp = S[(used + (p.id % S.length)) % S.length] || [0, 0, 0, 0];
     }
     p.pos = [sp[0] + (this.rng() - 0.5) * 0.6, sp[1] + 0.05, sp[2] + (this.rng() - 0.5) * 0.6]; p.vel = [0, 0, 0];
-    p.yaw = sp[3]; p.spawnYaw = sp[3]; p.pitch = 0; p.crouch = 0; p.lean = 0; p.hp = 100; p.armor = 100; p.helmet = 100; p.alive = true; p.flash = 0; p.onGround = true; p.dmgBy.clear();
+    p.yaw = sp[3]; p.spawnYaw = sp[3]; p.pitch = 0; p.crouch = 0; p.lean = 0; p.hp = p.maxHp = MAX_HP; p.armor = 100; p.helmet = 100; p.alive = true;
+    p.meds = { b: MEDS.b.n, s: MEDS.s.n }; p.healT = 0; p.healK = 0; p.flash = 0; p.onGround = true; p.dmgBy.clear();
     p.spawnProt = this.tdm ? 3 : 0; p.respawnT = 0; p.streak = 0; p.lastHurt = -9; this.equip(p);
     if (p.brain) p.brain.reset();
   }
@@ -81,13 +118,14 @@ export class Sim {
     let best = null, bs = -1e9;
     for (const c of C) {
       if (W.overlap(c[0], c[1] + 0.05, c[2], PH.r, PH.hStand)) continue;
-      let dmin = 80, seen = false;
+      let dmin = 120, seen = false;
       for (const q of foes) {
         const d = Math.hypot(q.pos[0] - c[0], q.pos[2] - c[2]); dmin = Math.min(dmin, d);
-        if (d < 55 && W.los(q.pos[0], q.pos[1] + 1.6, q.pos[2], c[0], c[1] + 1.4, c[2])) seen = true;
+        if (d < 80 && W.los(q.pos[0], q.pos[1] + 1.6, q.pos[2], c[0], c[1] + 1.4, c[2])) seen = true;
       }
-      let mate = 0; for (const q of mates) { const d = Math.hypot(q.pos[0] - c[0], q.pos[2] - c[2]); if (d < 25) mate += 1; }
-      const sc = Math.min(dmin, 45) + (seen ? -60 : 0) + c[4] + Math.min(mate, 2) * 3 + this.rng() * 10 - (dmin < 14 ? 40 : 0);
+      let mate = 0; for (const q of mates) { const d = Math.hypot(q.pos[0] - c[0], q.pos[2] - c[2]); if (d < 30) mate += 1; }
+      // بعيد عن الأعداء (يفضّل 45م فأكثر) وغير مكشوف لهم، وقرب الزملاء قليلاً
+      const sc = Math.min(dmin, 75) * 1.4 + (seen ? -120 : 0) + c[4] + Math.min(mate, 2) * 4 + this.rng() * 8 - (dmin < 30 ? 80 : 0);
       if (sc > bs) { bs = sc; best = c; }
     }
     if (!best) { const S = W.spawns[p.team][0]; return S; }
@@ -99,6 +137,7 @@ export class Sim {
   // ---------- الجولات والوقت ----------
   start() {
     this.round = 0; this.score = [0, 0]; this.matchOver = false; this.winner = -1;
+    this.resetWorld(true);
     for (const p of this.players.values()) { p.kills = p.deaths = p.assists = p.dmgDone = p.hs = 0; }
     this.newRound();
   }
@@ -184,14 +223,22 @@ export class Sim {
       const h = this.w.ray(p.pos[0], p.pos[1] + eh, p.pos[2], rx, 0, rz, LEAN + 0.2, F.NOPLAYER, {});
       if (h) { const lim = Math.max(0, (h.t - 0.2) / LEAN); if (Math.abs(p.lean) > lim) p.lean = s * lim; }
     }
-    const speedMul = wd.speed * (scoped ? 0.55 : p.ads ? 0.75 : 1) * (1 - Math.abs(p.lean) * 0.3);
+    // العلاج: ضمادة أو إبرة — يُلغى بالإطلاق أو القفز أو تبديل السلاح
+    if (!frozen && c.heal && p.healT <= 0) { const k = c.heal === 2 ? 's' : 'b', M = MEDS[k]; if (p.meds[k] > 0 && p.hp < p.maxHp - 1) { p.healT = M.t; p.healK = c.heal; p.ads = false; p.reloadT = 0; this.events.push({ t: 'heal', id: p.id, k: c.heal }); } }
+    if (p.healT > 0) {
+      if (c.fire || c.jump || (c.slot && c.slot !== p.slot) || c.reload) { p.healT = 0; p.healK = 0; }
+      else { p.healT -= dt; if (p.healT <= 0) { const k = p.healK === 2 ? 's' : 'b'; p.meds[k]--; p.hp = Math.min(p.maxHp, p.hp + MEDS[k].hp); p.healT = 0; p.healK = 0; this.events.push({ t: 'healed', id: p.id, k }); } }
+    }
+    const healing = p.healT > 0;
+    const speedMul = wd.speed * (scoped ? 0.55 : p.ads ? 0.75 : 1) * (1 - Math.abs(p.lean) * 0.3) * (healing ? 0.5 : 1);
     stepMove(p, frozen ? { ...c, mx: 0, mz: 0, jump: false } : c, dt, this.w, speedMul);
     if (p.landed > 11) this.damage(p, null, Math.round((p.landed - 11) * 9), 'fall', false);
     if (p.pos[1] < -8) this.damage(p, null, 999, 'fall', false);
     // الوميض والحماية والتعافي
     p.flash = Math.max(0, p.flash - dt);
     if (p.spawnProt > 0) p.spawnProt = Math.max(0, p.spawnProt - dt);
-    if (this.tdm && p.hp < 100 && this.t - p.lastHurt > 5 && this.phase === 'live') p.hp = Math.min(100, p.hp + 12 * dt);
+    // تعافٍ ذاتي بطيء حتى النصف فقط — الباقي بالضمادات والإبر
+    if (this.tdm && p.hp < p.maxHp * 0.5 && this.t - p.lastHurt > 8 && this.phase === 'live') p.hp = Math.min(p.maxHp * 0.5, p.hp + 3 * dt);
     for (const f of this.fires) if (Math.hypot(p.pos[0] - f.x, p.pos[2] - f.z) < f.r && Math.abs(p.pos[1] - f.y) < 1.5) { this.damage(p, this.players.get(f.owner), NADES.molotov.dps * dt, 'molotov', false, true); }
     if (!p.alive) return;
     // ارتداد: لا يرجع كثيراً أثناء الرشق، ثم يعود بسرعة عند التوقف
@@ -205,9 +252,9 @@ export class Sim {
     if (want !== p.slot && (want === 4 ? p.inv[4].length : p.inv[want])) { p.prevSlot = p.slot; p.slot = want; p.switchT = want === 1 && wd.cls === 'sniper' ? 0.8 : 0.55; p.reloadT = 0; p.ads = false; p.throwT = 0; this.events.push({ t: 'draw', id: p.id, w: this.curId(p) }); }
     p.switchT = Math.max(0, p.switchT - dt);
     const wd2 = this.curWD(p);
-    p.ads = !!c.ads && p.slot <= 2 && p.reloadT <= 0 && p.switchT <= 0 && !frozen && !(wd2.bolt && this.t - (p.boltT ?? -9) < 0.8);
+    p.ads = !!c.ads && p.slot <= 2 && p.reloadT <= 0 && p.switchT <= 0 && !frozen && p.healT <= 0 && !(wd2.bolt && this.t - (p.boltT ?? -9) < 0.8);
     p.adsT = Math.max(0, Math.min(1, p.adsT + (p.ads ? dt / (wd2.ads || 0.22) : -dt * 6)));
-    if (frozen) return;
+    if (frozen || healing) return;
     // قنبلة
     if (p.slot === 4) { this.handleNade(p, c, dt); return; }
     const w = this.curW(p); if (!w) return;
@@ -269,6 +316,18 @@ export class Sim {
         const h = this.hitPlayer(q, x, y, z, d, wt, back);
         if (h && (!best || h.t < best.t)) best = h, best.q = q;
       }
+      // أهل السوق
+      const NP = this.w.npcs;
+      if (NP) for (let i = 0; i < NP.length; i++) {
+        const n = NP[i]; if (!n.kill || !this.npcs[i].alive) continue;
+        const h = this.hitNpc(n, x, y, z, d, best ? best.t : wt);
+        if (h) { best = h; best.npc = i; best.q = null; }
+      }
+      if (best && best.npc !== undefined) {
+        const at = [x + d[0] * best.t, y + d[1] * best.t, z + d[2] * best.t];
+        this.damageNpc(best.npc, p, wd.dmg * (best.part === 'head' ? 2.5 : 1) * dmgMul, d, at);
+        return { end: at, kind: 'flesh', n: [0, 0, 0], mat: -1 };
+      }
       if (best) {
         const dist = travelled + best.t;
         const mul = best.part === 'head' ? (wd.head || 2.3) : best.part === 'stomach' ? 1.1 : best.part === 'legs' ? 0.8 : 1;
@@ -277,6 +336,9 @@ export class Sim {
         return { end: [x + d[0] * best.t, y + d[1] * best.t, z + d[2] * best.t], kind: 'flesh', n: [0, 0, 0], mat: -1 };
       }
       if (!wh) return { end: [x + d[0] * wt, y + d[1] * wt, z + d[2] * wt], kind: 'none', n: [0, 0, 0], mat: -1 };
+      // جسم قابل للكسر (صندوق، جرّة، شاهد قبر…): يتلقى الضرر
+      const pid = this.w.propOf ? this.w.propOf[wh.i] : -1;
+      if (pid >= 0) this.hitProp(pid, wd.dmg * dmgMul * (wd.pellets ? 1 : 1), [wh.x, wh.y, wh.z]);
       const cost = PEN_COST[wh.mat] ?? 4;
       const th = this.w.thickness(wh.i, wh.x, wh.y, wh.z, d[0], d[1], d[2]);
       const need = (wh.flags & F.THIN ? cost * 0.5 : cost) * Math.min(th, 2);
@@ -393,6 +455,8 @@ export class Sim {
         if (o && q.team === o.team && q !== o) continue;
         this.damage(q, o, dmg, 'frag', false, false, false, 0.6, 'chest', [(c[0] - x) / (d || 1), 0.4, (c[2] - z) / (d || 1)]);
       }
+      (this.w.props || []).forEach((pr, i) => { if (!this.props[i].alive) return; const dd = Math.hypot(pr.c[0] - x, pr.c[1] - y, pr.c[2] - z); if (dd < N.radius * 0.8) this.hitProp(i, N.dmg * 1.5 * (1 - dd / N.radius), pr.c); });
+      (this.w.npcs || []).forEach((nn, i) => { if (!nn.kill || !this.npcs[i].alive) return; const dd = Math.hypot(nn.x - x, nn.z - z); if (dd < N.radius && this.w.los(x, y + 0.2, z, nn.x, nn.y + 1, nn.z)) this.damageNpc(i, o, N.dmg * (1 - dd / N.radius), [(nn.x - x) / (dd || 1), 0.3, (nn.z - z) / (dd || 1)], [nn.x, nn.y + 1, nn.z]); });
     } else if (n.kind === 'smoke') this.smokes.push({ x, y, z, r: N.radius, t: 0, life: N.life });
     else if (n.kind === 'molotov') {
       const g = this.w.ray(x, y + 0.2, z, 0, -1, 0, 4, F.NOBULLET, {});
@@ -426,5 +490,5 @@ export class Sim {
 }
 
 export function dirFrom(yaw, pitch) { const cp = Math.cos(pitch); return [-Math.sin(yaw) * cp, Math.sin(pitch), -Math.cos(yaw) * cp]; }
-export function blankCmd() { return { mx: 0, mz: 0, yaw: 0, pitch: 0, jump: false, crouch: false, walk: false, fire: false, ads: false, reload: false, slot: 0, swap: false, lean: 0, seq: 0 }; }
+export function blankCmd() { return { mx: 0, mz: 0, yaw: 0, pitch: 0, jump: false, crouch: false, walk: false, fire: false, ads: false, reload: false, slot: 0, swap: false, lean: 0, heal: 0, seq: 0 }; }
 function mulberry(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }

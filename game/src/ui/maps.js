@@ -82,9 +82,16 @@ export class MapView {
   }
   drawFull(cv, g) {
     const x = cv.getContext('2d'), W = cv.width, H = cv.height, me = g.mp;
-    const s = Math.min(W / this.SW, H / this.SD) * (this.zoom || 1);
+    // تكبير سلس (بالقرص أو الزر) وسحب حرّ؛ يتبع اللاعب ما لم يُسحب يدوياً
+    const z = this.zoom || 1; this.zs = (this.zs || z) + (z - (this.zs || z)) * 0.3; if (Math.abs(this.zs - z) < 0.002) this.zs = z;
+    const s = Math.min(W / this.SW, H / this.SD) * this.zs;
     let ox = (W - this.SW * s) / 2, oy = (H - this.SD * s) / 2;
-    if ((this.zoom || 1) > 1 && me) { ox = W / 2 - this.px(me.pos[0]) * s; oy = H / 2 - this.pz(me.pos[2]) * s; ox = Math.min(0, Math.max(W - this.SW * s, ox)); oy = Math.min(0, Math.max(H - this.SD * s, oy)); }
+    if (this.zs > 1.001) {
+      const cx = this.follow !== false && me ? this.px(me.pos[0]) : (this.cx ?? this.SW / 2), cy = this.follow !== false && me ? this.pz(me.pos[2]) : (this.cy ?? this.SD / 2);
+      ox = W / 2 - cx * s; oy = H / 2 - cy * s;
+      ox = this.SW * s > W ? Math.min(0, Math.max(W - this.SW * s, ox)) : (W - this.SW * s) / 2; oy = this.SD * s > H ? Math.min(0, Math.max(H - this.SD * s, oy)) : (H - this.SD * s) / 2;
+    }
+    this.view = { s, ox, oy, W, H };
     x.fillStyle = '#1a1612'; x.fillRect(0, 0, W, H);
     x.save(); x.translate(ox, oy); x.scale(s, s); x.drawImage(this.bg, 0, 0);
     // أسماء المناطق

@@ -3,15 +3,17 @@ import { WEAPONS } from './weapons.js';
 import { eyeHeight, PH } from './move.js';
 
 const DIFF = {
-  easy: { react: 0.65, turn: 3.2, err: 0.09, errDecay: 1.6, head: 0.1, fov: 0.55, burst: 3, nade: 0.15, strafe: 0.4 },
-  normal: { react: 0.38, turn: 5.5, err: 0.055, errDecay: 2.6, head: 0.3, fov: 0.45, burst: 5, nade: 0.35, strafe: 0.7 },
-  hard: { react: 0.22, turn: 9, err: 0.03, errDecay: 4.2, head: 0.55, fov: 0.35, burst: 8, nade: 0.55, strafe: 0.9 },
+  // أضعف من قبل: ردّ فعل أبطأ، أخطاء أكبر، مدى رؤية أقصر، ونادراً ما يصيب الرأس
+  easy: { react: 0.95, turn: 2.6, err: 0.14, errDecay: 1.1, head: 0.05, fov: 0.6, burst: 3, nade: 0.1, strafe: 0.35, sight: 45 },
+  normal: { react: 0.62, turn: 4, err: 0.095, errDecay: 1.7, head: 0.14, fov: 0.52, burst: 4, nade: 0.22, strafe: 0.6, sight: 65 },
+  hard: { react: 0.36, turn: 6.5, err: 0.05, errDecay: 3, head: 0.35, fov: 0.42, burst: 6, nade: 0.4, strafe: 0.85, sight: 95 },
 };
 const angTo = (a, b) => { let d = b - a; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; return d; };
 
 export class Bot {
   constructor(sim, p, diff = 'normal') { this.s = sim; this.p = p; this.D = DIFF[diff] || DIFF.normal; this.reset(); }
   reset() {
+    this.spawnT = this.s.t;
     this.path = []; this.goal = null; this.target = null; this.seenT = 0; this.lastSeen = null; this.lastSeenT = -99; this.react = 0;
     this.errX = 0; this.errY = 0; this.strafeT = 0; this.strafeDir = 1; this.senseT = Math.random() * 0.2; this.stuckT = 0; this.lastPos = this.p.pos.slice();
     this.plan = null; this.holdT = 0; this.flashed = 0; this.nadeCd = 3 + Math.random() * 6; this.crouchT = 0; this.wantAds = false; this.burstN = 0; this.pauseT = 0;
@@ -62,12 +64,12 @@ export class Bot {
       if (spot) return { kind: 'hold', pos: [spot[0], spot[1], spot[2]], until: s.t + 25 + Math.random() * 25 };
     }
     // اختيار مسار: غرب/وسط/شرق عبر نقطة وسيطة (تشمل المقبرة والحارة المهجورة وساحة الساعة)
-    const lanes = [[-37, 0, -2], [0, 0, -2], [29, 0, 0], [-25, 0, -2], [0, 0, 10], [24, 0, 12], [-49, 0, -4], [-79, 0, -20], [-72, 0, 10], [66, 0, -2], [58, 0, -24], [66, 0, -32.4], [-70, 0, 26], [70, 0, 26]];
+    const lanes = [[-37, 0, -2], [0, 0, -2], [29, 0, 0], [-25, 0, -2], [0, 0, 10], [24, 0, 12], [-49, 0, -4], [-79, 0, -20], [-72, 0, 10], [66, 0, -2], [60, 0, -22], [66, 0, -32.4], [-70, 0, 26], [70, 0, 26]];
     const via = lanes[Math.floor(Math.random() * lanes.length)];
     if (s.tdm) {
       // وضع الإحياء: صيد في أرجاء الخريطة — أحياناً نحو أقرب عدو (كأنه سمع صوته)
       let near = null, nd = 1e9; for (const q of s.players.values()) if (q.alive && q.team !== p.team) { const d = Math.hypot(q.pos[0] - p.pos[0], q.pos[2] - p.pos[2]); if (d < nd) { nd = d; near = q; } }
-      if (near && r < 0.45) return { kind: 'push', via: near.pos.slice(), pos: near.pos.slice(), stage: 1 };
+      if (near && r < 0.3 && s.phase === 'live' && s.phaseT < s.timeLimit - 25) return { kind: 'push', via: near.pos.slice(), pos: near.pos.slice(), stage: 1 };
       if (r < 0.62) return { kind: 'hold', pos: via.slice(), until: s.t + 6 + Math.random() * 8 };
       const to = lanes[Math.floor(Math.random() * lanes.length)];
       return { kind: 'push', via: via.slice(), pos: to.slice(), stage: 0 };
@@ -84,7 +86,7 @@ export class Bot {
       if (!q.alive || q.team === p.team) continue;
       const qh = [q.pos[0], q.pos[1] + eyeHeight(q) - 0.25, q.pos[2]];
       const dx = qh[0] - e[0], dy = qh[1] - e[1], dz = qh[2] - e[2], d = Math.hypot(dx, dy, dz);
-      if (d > (this.sniper ? 160 : 110)) continue;
+      if (d > (this.sniper ? this.D.sight * 1.7 : this.D.sight)) continue;
       const fx = -Math.sin(fyaw), fz = -Math.cos(fyaw), dot = (fx * dx + fz * dz) / Math.max(0.01, Math.hypot(dx, dz));
       const inFov = dot > this.D.fov - (q === this.target ? 0.6 : 0);
       const heard = d < 7 && Math.hypot(q.vel[0], q.vel[2]) > 3.5;
@@ -96,7 +98,7 @@ export class Bot {
       if (d < bd) { bd = d; best = q; }
     }
     if (best) {
-      if (best !== this.target) { this.target = best; this.react = this.D.react * (0.7 + Math.random() * 0.6) * (bd > 40 ? 1.2 : 1); this.err(bd > 30 ? 1.6 : 1.1); this.burstN = 0; }
+      if (best !== this.target) { this.target = best; this.react = this.D.react * (0.7 + Math.random() * 0.6) * (bd > 40 ? 1.35 : 1) + (s.t - (this.spawnT ?? -9) < 3 ? 0.6 : 0); this.err(bd > 30 ? 1.8 : 1.2); this.burstN = 0; }
       this.lastSeen = best.pos.slice(); this.lastSeenT = s.t;
     } else if (this.target && s.t - this.lastSeenT > 0.4) this.target = null;
   }
@@ -119,7 +121,9 @@ export class Bot {
       const tz = aimHead ? eyeHeight(q) + 0.03 : eyeHeight(q) - 0.42;
       const tx = q.pos[0] + q.vel[0] * 0.05, ty = q.pos[1] + tz, tzz = q.pos[2] + q.vel[2] * 0.05;
       const dx = tx - e[0], dy = ty - e[1], dz = tzz - e[2], hd = Math.hypot(dx, dz), dist = Math.hypot(hd, dy);
-      const wantYaw = Math.atan2(-dx, -dz) + this.errX, wantPitch = Math.atan2(dy, hd) + this.errY;
+      const far = 1 + Math.max(0, dist - 15) / 30, mv = Math.min(1, Math.hypot(q.vel[0], q.vel[2]) / 5);
+      const wobble = Math.sin(s.t * 3.1 + p.id) * D.err * 0.25 * far * (0.5 + mv);
+      const wantYaw = Math.atan2(-dx, -dz) + this.errX * far + wobble, wantPitch = Math.atan2(dy, hd) + this.errY * far;
       // تدوير سلس محدود السرعة
       const turn = D.turn * dt * (1 + Math.min(1.5, Math.abs(angTo(this.yaw, wantYaw)) * 0.8));
       const dyaw = angTo(this.yaw, wantYaw); this.yaw += Math.max(-turn, Math.min(turn, dyaw));
@@ -158,6 +162,9 @@ export class Bot {
       this.aimHead = Math.random() < D.head;
       // لا هدف: اتبع الخطة
       if (this.retreat && s.t > this.retreat.until) this.retreat = null;
+      // يعالج نفسه حين يكون بأمان
+      if (p.healT > 0) { cmd.yaw = this.yaw; cmd.pitch = this.pitch; cmd.crouch = true; return cmd; }
+      if (p.hp < p.maxHp * 0.62 && p.meds && (p.meds.b > 0 || p.meds.s > 0) && s.t - p.lastHurt > 2.5 && (!this.lastSeen || s.t - this.lastSeenT > 3)) { cmd.heal = p.hp < p.maxHp * 0.35 && p.meds.s > 0 ? 2 : (p.meds.b > 0 ? 1 : 2); cmd.crouch = true; return cmd; }
       if (!this.plan || this.planDone()) { this.plan = this.pickPlan(); this.path = []; }
       let goalPos = null;
       const recent = this.lastSeen && s.t - this.lastSeenT < 6;
@@ -176,11 +183,21 @@ export class Bot {
       // إعادة تلقيم في الأمان
       if (w && wd && wd.mag && w.mag < wd.mag * 0.5 && !recent) cmd.reload = true;
       // ملاحة
-      if (!this.path.length || !this.goal || Math.hypot(this.goal[0] - goalPos[0], this.goal[2] - goalPos[2]) > 2) { this.goal = goalPos.slice(); this.path = this.route(goalPos); }
-      const nxt = this.path[0];
+      const newGoal = !this.goal || Math.hypot(this.goal[0] - goalPos[0], this.goal[2] - goalPos[2]) > 2;
+      if (newGoal || (!this.path.length && s.t > (this.rtT || 0) && Math.hypot(goalPos[0] - p.pos[0], goalPos[2] - p.pos[2]) > 2.2)) {
+        this.goal = goalPos.slice(); this.path = this.route(goalPos); this.rtT = s.t + 0.6;
+        // هدف لا يمكن بلوغه: خطة جديدة بدل الوقوف بلا حراك
+        if (!this.path.length && !this.retreat && Math.hypot(goalPos[0] - p.pos[0], goalPos[2] - p.pos[2]) > 4) { this.plan = null; this.goal = null; }
+      }
+      let nxt = this.path[0];
+      // آخر عقدة بُلغت والهدف قريب ومرئي: نمشي إليه مباشرة
+      if (!nxt && Math.hypot(goalPos[0] - p.pos[0], goalPos[2] - p.pos[2]) > 1.2) {
+        if (Math.hypot(goalPos[0] - p.pos[0], goalPos[2] - p.pos[2]) < 9 && s.w.los(p.pos[0], p.pos[1] + 1, p.pos[2], goalPos[0], goalPos[1] + 1, goalPos[2]) && s.w.los(p.pos[0], p.pos[1] + 0.35, p.pos[2], goalPos[0], goalPos[1] + 0.35, goalPos[2])) nxt = goalPos;
+        else if (s.t > (this.rtT || 0) - 0.05 && !this.retreat && this.plan && !recent && !(this.heard && s.t - this.heardT < 4)) { this.plan = null; this.goal = null; }
+      }
       if (nxt) {
         const dx = nxt[0] - p.pos[0], dz = nxt[2] - p.pos[2], d = Math.hypot(dx, dz);
-        if (d < 0.9 && Math.abs(nxt[1] - p.pos[1]) < 1.2) { this.path.shift(); }
+        if (d < 0.9 && Math.abs(nxt[1] - p.pos[1]) < 1.2) { if (nxt !== goalPos) this.path.shift(); }
         else {
           const wantYaw = Math.atan2(-dx, -dz), turn = 6 * dt;
           this.yaw += Math.max(-turn, Math.min(turn, angTo(this.yaw, wantYaw)));
@@ -190,22 +207,24 @@ export class Bot {
           cmd.mz = (dx * fx + dz * fz) / d; cmd.mx = (dx * rx + dz * rz) / d;
           if (recent) cmd.walk = Math.random() < 0.5;
         }
-      } else if (this.plan.kind === 'hold') {
+      } else if (this.plan && this.plan.kind === 'hold') {
         // مراقبة: التفات بطيء نحو جهة العدو
         const es = s.w.spawns[1 - p.team][0], wantYaw = Math.atan2(-(es[0] - p.pos[0]), -(es[2] - p.pos[2])) + Math.sin(s.t * 0.4 + p.id) * 0.6;
         this.yaw += angTo(this.yaw, wantYaw) * Math.min(1, dt * 1.5);
         if (this.sniper) cmd.ads = Math.sin(s.t * 0.3 + p.id) > -0.2;
         cmd.crouch = this.sniper && Math.sin(s.t * 0.2 + p.id) > 0.6;
       }
-      if (this.plan.kind === 'push' && this.plan.stage === 0 && Math.hypot(p.pos[0] - this.plan.via[0], p.pos[2] - this.plan.via[2]) < 3) { this.plan.stage = 1; this.path = []; }
+      if (this.plan && this.plan.kind === 'push' && this.plan.stage === 0 && Math.hypot(p.pos[0] - this.plan.via[0], p.pos[2] - this.plan.via[2]) < 3) { this.plan.stage = 1; this.path = []; }
       // كشف التعلّق
       this.stuckT += dt;
       if (this.stuckT > 1.2) {
         const moved = Math.hypot(p.pos[0] - this.lastPos[0], p.pos[2] - this.lastPos[2]);
-        if (moved < 0.5 && (cmd.mz || cmd.mx)) { cmd.jump = true; this.path = []; if (Math.random() < 0.4) this.plan = null; }
+        if (moved < 0.5 && (cmd.mz || cmd.mx)) { cmd.jump = true; this.path = []; this.unstick = { t: 0.55, dir: Math.random() < 0.5 ? -1 : 1 }; if (Math.random() < 0.4) this.plan = null; }
         this.stuckT = 0; this.lastPos = p.pos.slice();
       }
     }
+    // خطوة جانبية قصيرة لفكّ التعلّق بحافة صندوق أو عمود
+    if (this.unstick && this.unstick.t > 0) { this.unstick.t -= dt; cmd.mx = this.unstick.dir; cmd.mz = -0.35; }
     if (this.flashed > 0) { cmd.mz = -0.5; cmd.fire = Math.random() < 0.05; }
     cmd.yaw = this.yaw; cmd.pitch = Math.max(-1.4, Math.min(1.4, this.pitch));
     return cmd;

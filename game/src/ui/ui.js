@@ -129,7 +129,23 @@ export const UI = {
     $('#eAgain').addEventListener('click', () => { Audio.play('ui'); if (this.game.sim && this.game.sim.online) { this.closeScreens(); this.hud(true); this.toast('المعركة التالية تبدأ بعد لحظات'); return; } this.start(); });
     $('#eMenu').addEventListener('click', () => { this.game.quit(); this.showMenu(); });
     $('#mapClose').addEventListener('click', () => this.closeMap());
-    $('#mapZoom').addEventListener('click', () => { const mv = this.game.mapView; mv.zoom = (mv.zoom || 1) > 1 ? 1 : 2.4; $('#mapZoom').textContent = mv.zoom > 1 ? '－' : '＋'; });
+    $('#mapZoom').addEventListener('click', () => { const mv = this.game.mapView; mv.zoom = (mv.zoom || 1) > 1 ? 1 : 2.4; mv.follow = true; $('#mapZoom').textContent = mv.zoom > 1 ? '－' : '＋'; });
+    // الخريطة الكبيرة: سحب بإصبع، تكبير بإصبعين (قرص)، نقرتان للتكبير، وعجلة الفأرة
+    {
+      const cv = $('#bigmap'), pts = new Map(); let pinch = null, lastTap = 0;
+      const mv = () => this.game.mapView, k = () => cv.width / Math.max(1, cv.clientWidth);
+      const setZoom = (z, fx, fy) => { const M = mv(), V = M.view; if (!V) return; const nz = Math.max(1, Math.min(4.5, z)); const mx = (fx - V.ox) / V.s, my = (fy - V.oy) / V.s; if (nz > 1.001) { const s2 = V.s / (M.zs || 1) * nz; M.cx = mx + (V.W / 2 - fx) / s2; M.cy = my + (V.H / 2 - fy) / s2; M.follow = false; } else M.follow = true; M.zoom = nz; M.zs = nz; $('#mapZoom').textContent = nz > 1 ? '－' : '＋'; };
+      cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX * k(), e.clientY * k()]); if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), z: mv().zoom || 1 }; } const now = performance.now(); if (pts.size === 1 && now - lastTap < 280) { const p = pts.get(e.pointerId); setZoom((mv().zoom || 1) > 1.4 ? 1 : 2.6, p[0], p[1]); } lastTap = now; });
+      cv.addEventListener('pointermove', e => {
+        if (!pts.has(e.pointerId)) return; const p0 = pts.get(e.pointerId), p = [e.clientX * k(), e.clientY * k()]; pts.set(e.pointerId, p);
+        const M = mv(), V = M.view; if (!V) return;
+        if (pts.size >= 2 && pinch) { const [a, b] = [...pts.values()]; const d = Math.hypot(a[0] - b[0], a[1] - b[1]); setZoom(pinch.z * d / Math.max(10, pinch.d), (a[0] + b[0]) / 2, (a[1] + b[1]) / 2); }
+        else if (pts.size === 1 && (M.zoom || 1) > 1.001) { if (M.follow !== false) { M.cx = (V.W / 2 - V.ox) / V.s; M.cy = (V.H / 2 - V.oy) / V.s; M.follow = false; } M.cx -= (p[0] - p0[0]) / V.s; M.cy -= (p[1] - p0[1]) / V.s; M.cx = Math.max(0, Math.min(M.SW, M.cx)); M.cy = Math.max(0, Math.min(M.SD, M.cy)); }
+      });
+      const up = e => { pts.delete(e.pointerId); if (pts.size < 2) pinch = null; };
+      cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+      cv.addEventListener('wheel', e => { e.preventDefault(); setZoom((mv().zoom || 1) * (e.deltaY < 0 ? 1.18 : 1 / 1.18), e.clientX * k(), e.clientY * k()); }, { passive: false });
+    }
     $('#nameIn').value = Settings.name;
     $('#nameIn').addEventListener('change', e => { setSetting('name', e.target.value.trim().slice(0, 16) || 'لاعب'); e.target.value = Settings.name; Social.emit && Social.emit('profile'); });
     // الأصدقاء
@@ -173,8 +189,8 @@ export const UI = {
   showMenu() { this.stack = []; this.hideAll(); $('#s-home').classList.add('on'); this.screen = 'home'; this.hud(false); this.game.menuView('menu'); this.buildHome(); },
   closeScreens() { this.hideAll(); this.screen = null; this.stack = []; this.game.menuWeaponId = null; },
   hud(on) { HUD.show(on); },
-  openMap() { if (!this.game.sim) return; this.mapOpen = true; this.hideAll(); $('#s-map').classList.add('on'); this.screen = 'map'; Input.reset(); },
-  closeMap() { this.mapOpen = false; $('#s-map').classList.remove('on'); this.screen = null; this.stack = []; },
+  openMap() { if (!this.game.sim) return; this.mapOpen = true; this.hideAll(); clearTimeout(this.mapCloseT); const el = $('#s-map'); el.classList.remove('closing'); el.classList.add('on'); this.screen = 'map'; Input.reset(); },
+  closeMap() { this.mapOpen = false; const el = $('#s-map'); el.classList.add('closing'); clearTimeout(this.mapCloseT); this.mapCloseT = setTimeout(() => { el.classList.remove('on', 'closing'); }, 170); this.screen = null; this.stack = []; },
   // ---------- الرئيسية: أوضاع اللعب ----------
   buildHome() {
     const S = Settings;
@@ -364,7 +380,8 @@ export const UI = {
       row('عرض الفريمات أعلى اليسار', tog('showFps')) +
       row('مجال الرؤية', rng('fov', 70, 110, 1)) +
       row('الطقس الافتراضي', chips('weather', WEATHER_OPTIONS.map(o => ({ id: o.id, label: o.label }))));
-    else h = row('الصوت العام', rng('volume', 0, 1, 0.05, 1)) + row('الأجواء والطقس', rng('music', 0, 1, 0.05, 1));
+    else h = row('الصوت العام', rng('volume', 0, 1, 0.05, 1)) + row('الموسيقى التراثية', rng('music', 0, 1, 0.05, 1))
+      + `<div class="note credits">الموسيقى التراثية مؤلّفة آلياً داخل اللعبة (مقامات بيات وحجاز بالعود والناي والإيقاع). نماذج «فانوس الشارع الخشبي» و«السمكة» من مستودع Khronos glTF-Sample-Assets برخصة CC0 (الملك العام).</div>`;
     el.innerHTML = h;
     el.querySelectorAll('.chips').forEach(c => c.addEventListener('click', e => { const b = e.target.closest('.chip'); if (!b) return; const v = b.dataset.v; setSetting(c.dataset.k, isNaN(+v) || v === '' ? v : +v); this.buildSettings(); HUD.layout(); }));
     el.querySelectorAll('select').forEach(s => s.addEventListener('change', () => { const v = s.value; setSetting(s.dataset.k, isNaN(+v) ? v : +v); }));

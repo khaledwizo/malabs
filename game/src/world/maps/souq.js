@@ -151,6 +151,17 @@ export function buildSouq(B) {
     B.geo(() => new THREE.ConeGeometry(0.16, 0.14, 6), T(x, y + 0.37, z), 'brass');
     B.glow(x, y + 0.18, z, 0.9);
   };
+  // عمود إنارة خشبي بذراع وفانوس معلّق (نموذج مرخّص CC0) — الذراع تتجه نحو أوسع فراغ
+  const streetLamp = (x, z, col = 0xffb060, it = 2.6, dist = 10, fl = 0, ry) => {
+    if (ry === undefined) {
+      let best = -1; ry = 0;
+      for (const a of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) { const dx = Math.cos(a), dz = -Math.sin(a), free = B.rayBuild(x + dx * 0.2, 2.9, z + dz * 0.2, dx, 0, dz, 4); if (free > best + 0.05) { best = free; ry = a; } }
+    }
+    B.col(x - 0.36, 0, z - 0.36, x + 0.36, 0.45, z + 0.36, MAT.stone); B.col(x - 0.13, 0.45, z - 0.13, x + 0.13, 3.8, z + 0.13, MAT.wood);
+    B.put('lantern', x, 0, z, ry, 1);
+    const lx = x + Math.cos(ry) * 1.53, lz = z - Math.sin(ry) * 1.53;
+    B.light(lx, 2.7, lz, col, it, dist, fl); B.glow(lx, 2.78, lz, 0.6, col, fl);
+  };
   // جدار مستقيم بمحاذاة المحاور
   const wallX = (x0, x1, z, y0, y1, t, mat, o) => B.box(x0, y0, z - t / 2, x1, y1, z + t / 2, mat, o);
   const wallZ = (z0, z1, x, y0, y1, t, mat, o) => B.box(x - t / 2, y0, z0, x + t / 2, y1, z1, mat, o);
@@ -182,23 +193,46 @@ export function buildSouq(B) {
     B.box(x - r * 1.25, y0, z - r * 1.25, x + r * 1.25, y0 + 0.3, z + r * 1.25, capMat || 'stone', { col: false });
     B.box(x - r * 1.3, y0 + h - 0.3, z - r * 1.3, x + r * 1.3, y0 + h, z + r * 1.3, capMat || 'stone', { col: false });
   };
+  // صندوق خشبي قابل للكسر بعد عدة طلقات
   const crate = (x, z, s = 1, y = 0, ry = 0) => {
+    B.prop('crate', 120 + s * 90); // يحتاج ضرباً كثيراً قبل أن يتحطّم
     B.box(x - s / 2, y, z - s / 2, x + s / 2, y + s, z + s / 2, null, { vis: false, cm: MAT.wood, flags: F.THIN });
-    if (!vis) return;
-    B.geo(() => new THREE.BoxGeometry(s, s, s), T(x, y + s / 2, z, ry), 'wood', { uvs: 1 });
-    for (const yy of [0.12, s - 0.12]) B.geo(() => new THREE.BoxGeometry(s + 0.02, 0.08, s + 0.02), T(x, y + yy, z, ry), 'woodDark', { uvs: 1 });
+    if (vis) {
+      B.geo(() => new THREE.BoxGeometry(s, s, s), T(x, y + s / 2, z, ry), 'wood', { uvs: 1 });
+      for (const yy of [0.12, s - 0.12]) B.geo(() => new THREE.BoxGeometry(s + 0.02, 0.08, s + 0.02), T(x, y + yy, z, ry), 'woodDark', { uvs: 1 });
+    }
+    B.end();
+  };
+  // جرّة/مزهرية فخارية قابلة للكسر
+  const vase = (x, z, h = 0.9, mat = 'clay', y = 0) => {
+    B.prop('vase', 45);
+    B.col(x - h * 0.22, y, z - h * 0.22, x + h * 0.22, y + h, z + h * 0.22, MAT.brick, F.THIN);
+    if (vis) { const pts = []; for (let i = 0; i <= 12; i++) { const t = i / 12; pts.push(new THREE.Vector2(h * (0.1 + Math.sin(t * Math.PI * 0.95) * 0.2 + (t > 0.88 ? 0.05 : 0)), t * h)); } B.geo(() => new THREE.LatheGeometry(pts, 14), T(x, y, z, R() * 3), mat); }
+    B.end();
+  };
+  // برميل خشبي قابل للكسر
+  const barrel = (x, z, y = 0) => {
+    B.prop('crate', 160);
+    B.col(x - 0.32, y, z - 0.32, x + 0.32, y + 0.95, z + 0.32, MAT.wood, F.THIN);
+    if (vis) { const pts = []; for (let i = 0; i <= 8; i++) { const t = i / 8; pts.push(new THREE.Vector2(0.27 + Math.sin(t * Math.PI) * 0.06, t * 0.95)); } B.geo(() => new THREE.LatheGeometry(pts, 14), T(x, y, z), 'woodDark'); for (const yy of [0.12, 0.83]) B.geo(() => new THREE.TorusGeometry(0.31, 0.015, 4, 16), T(x, y + yy, z, 0, 1, 1, 1, Math.PI / 2), 'iron'); }
+    B.end();
   };
   const sack = (x, z, col = 'spice1', y = 0) => {
+    B.prop('sack', 70);
     B.col(x - 0.32, y, z - 0.32, x + 0.32, y + 0.7, z + 0.32, MAT.cloth, F.THIN);
-    if (!vis) return;
-    B.geo(() => new THREE.CylinderGeometry(0.28, 0.33, 0.6, 10), T(x, y + 0.3, z), 'sack');
-    B.geo(() => new THREE.ConeGeometry(0.26, 0.22, 10), T(x, y + 0.7, z), col);
-    B.geo(() => new THREE.TorusGeometry(0.28, 0.04, 6, 12), T(x, y + 0.6, z, 0, 1, 1, 1, Math.PI / 2), 'sack');
+    if (vis) {
+      B.geo(() => new THREE.CylinderGeometry(0.28, 0.33, 0.6, 10), T(x, y + 0.3, z), 'sack');
+      B.geo(() => new THREE.ConeGeometry(0.26, 0.22, 10), T(x, y + 0.7, z), col);
+      B.geo(() => new THREE.TorusGeometry(0.28, 0.04, 6, 12), T(x, y + 0.6, z, 0, 1, 1, 1, Math.PI / 2), 'sack');
+    }
+    B.end();
   };
-  const pot = (x, y, z, r = 0.25, mat = 'copper') => {
-    if (!vis) return;
-    const pts = []; for (let i = 0; i <= 10; i++) { const t = i / 10; pts.push(new THREE.Vector2(r * (0.5 + Math.sin(t * Math.PI) * 0.6 + (t > 0.85 ? 0.2 : 0)), t * r * 2.2)); }
-    B.geo(() => new THREE.LatheGeometry(pts, 14), T(x, y, z), mat);
+  // أصيص/قدر: على الأرض يصبح «سندانة» قابلة للكسر
+  const pot = (x, y, z, r = 0.25, mat = 'copper', solid) => {
+    const brk = (solid ?? (y < 0.05 && r >= 0.12)) && !B.cur;
+    if (brk) { B.prop('vase', 70); B.col(x - r * 0.8, y, z - r * 0.8, x + r * 0.8, y + r * 2.2, z + r * 0.8, MAT.brick, F.THIN); }
+    if (vis) { const pts = []; for (let i = 0; i <= 10; i++) { const t = i / 10; pts.push(new THREE.Vector2(r * (0.5 + Math.sin(t * Math.PI) * 0.6 + (t > 0.85 ? 0.2 : 0)), t * r * 2.2)); } B.geo(() => new THREE.LatheGeometry(pts, 14), T(x, y, z), mat); }
+    if (brk) B.end();
   };
   const palm = (x, z, h = 7, lean = 0.15, ry = 0) => {
     B.col(x - 0.22, 0, z - 0.22, x + 0.22, h, z + 0.22, MAT.wood);
@@ -266,7 +300,7 @@ export function buildSouq(B) {
       // مشتل ريحانة: أصص ونباتات وزهور ونخلة صغيرة وسلال معلّقة
       B.box(x0, 0.25, z0, x1, 0.27, z1, 'mud', { col: false });
       for (let k = 0; k < 3; k++) B.box(Math.min(back - side * 0.25, back + side * 0.25), 0.9 + k * 0.65, z0 + 0.15, Math.max(back - side * 0.25, back + side * 0.25), 0.95 + k * 0.65, z1 - 0.15, 'wood', { col: false });
-      const plant = (x, y, z, sz) => { pot(x, y, z, sz * 0.55, 'clay'); B.geo(() => new THREE.IcosahedronGeometry(sz, 1), T(x, y + sz * 1.6, z, R() * 3, 1, 0.85, 1), pick(['leafGreen', 'leafDark'])); if (R() < 0.6) for (let f = 0; f < 4; f++) B.geo(() => new THREE.SphereGeometry(sz * 0.18, 6, 4), T(x + (R() - 0.5) * sz * 1.3, y + sz * (1.6 + R() * 0.7), z + (R() - 0.5) * sz * 1.3), pick(['flowerRed', 'flowerYellow', 'flowerPink', 'flowerWhite'])); };
+      const plant = (x, y, z, sz) => { const own = y < 0.05 && !B.cur; if (own) { B.prop('vase', 70); B.col(x - sz * 0.45, y, z - sz * 0.45, x + sz * 0.45, y + sz * 1.3, z + sz * 0.45, MAT.brick, F.THIN); } pot(x, y, z, sz * 0.55, 'clay', false); B.geo(() => new THREE.IcosahedronGeometry(sz, 1), T(x, y + sz * 1.6, z, R() * 3, 1, 0.85, 1), pick(['leafGreen', 'leafDark'])); if (R() < 0.6) for (let f = 0; f < 4; f++) B.geo(() => new THREE.SphereGeometry(sz * 0.18, 6, 4), T(x + (R() - 0.5) * sz * 1.3, y + sz * (1.6 + R() * 0.7), z + (R() - 0.5) * sz * 1.3), pick(['flowerRed', 'flowerYellow', 'flowerPink', 'flowerWhite'])); if (own) B.end(); };
       for (let k = 0; k < 3; k++) for (let j = 0; j < 4; j++) plant(back, 0.95 + k * 0.65, z0 + 0.4 + j * (z1 - z0 - 0.8) / 3, 0.13 + R() * 0.05);
       for (let j = 0; j < 3; j++) plant(cx + side * 0.2, 0.27, z0 + 0.5 + j * (z1 - z0 - 1) / 2, 0.24 + R() * 0.08);
       // نخلة صغيرة في أصيص كبير على باب المشتل وأصص خارج الدكان
@@ -275,6 +309,7 @@ export function buildSouq(B) {
       for (let j = 0; j < 3; j++) { const z = z0 + 0.5 + j * (z1 - z0 - 1) / 2; B.box(cx - 0.01, 2.5, z - 0.01, cx + 0.01, 3.2, z + 0.01, 'iron', { col: false }); B.geo(() => new THREE.SphereGeometry(0.2, 8, 6, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), T(cx, 2.5, z), 'clay'); B.geo(() => new THREE.IcosahedronGeometry(0.24, 1), T(cx, 2.42, z, 0, 1, 1.3, 1), 'leafGreen'); }
       B.light(cx, 2.8, mid, 0xd8ffb0, 2.2, 7);
       signs.push({ text: 'مشتل ريحانة', x: xFace - side * 0.03, y: 3.98, z: mid, ry: side > 0 ? -Math.PI / 2 : Math.PI / 2, w: Math.min(2.6, z1 - z0 - 0.3), opt: { bg: '#1f5a2e', border: '#c8f5a0', fg: '#f4ffe8' } });
+      B.npc({ x: xFace + side * 1.05, y: 0.25, z: mid + 0.35, yaw: side * Math.PI / 2, pose: 'stand', look: 'nursery' });
       return;
     }
     // لوح عرض خشبي على الجدار الخلفي
@@ -303,6 +338,8 @@ export function buildSouq(B) {
       counter(); for (let j = 0; j < 3; j++) B.box(xFace + side * 0.4 - 0.15, 1.1, z0 + 0.5 + j * 0.6 - 0.02, xFace + side * 0.4 + 0.15, 1.13, z0 + 0.5 + j * 0.6 + 0.02, 'metal', { col: false });
     }
     lantern(cx, 2.6, mid, 0.5);
+    // البائع جالس خلف بسطته
+    B.npc({ x: xFace + side * 1.12, y: 0.25, z: mid + (R() - 0.5) * 0.5, yaw: side * Math.PI / 2, pose: R() < 0.72 ? 'sit' : 'stand', look: 'vendor' });
     signs.push({ text: SHOP_SIGN[kind], x: xFace - side * 0.03, y: 3.98, z: mid, ry: side > 0 ? -Math.PI / 2 : Math.PI / 2, w: Math.min(2.6, z1 - z0 - 0.3), opt: { bg: '#2a2320', border: '#d9b56a' } });
   };
   const sackVis = (x, z, col, y) => { if (!vis) return; B.geo(() => new THREE.CylinderGeometry(0.28, 0.33, 0.6, 10), T(x, y + 0.3, z), 'sack'); B.geo(() => new THREE.ConeGeometry(0.26, 0.22, 10), T(x, y + 0.7, z), col); };
@@ -432,7 +469,7 @@ export function buildSouq(B) {
   }
   // أشجار نخيل وفوانيس في الصحن
   palm(-7.5, -31, 8.5, 0.12, 0.8); palm(7.5, -31, 8, 0.1, 2.2); palm(-7.5, -23.5, 7.5, 0.14, -0.6); palm(7.5, -23.5, 8.2, 0.12, 3.5);
-  for (const [x, z] of [[-4, -22.5], [4, -22.5]]) { B.boxB(x, 0, z, 0.25, 3.2, 0.25, 'iron', {}); lantern(x, 3.2, z); B.light(x, 3.3, z, 0xffb060, 2.5, 9); }
+  for (const [x, z] of [[-4, -22.5], [4, -22.5]]) streetLamp(x, z, 0xffb060, 2.5, 9);
   // صناديق وأكياس كغطاء
   crate(-11, -21.4, 1.1); crate(-9.8, -21.5, 0.9); crate(11.2, -32.6, 1.1); sack(9.8, -33, 'spice2');
   for (let k = 0; k < 4; k++) B.spawn(1, -4.5 + k * 3, 0, -30.5, Math.PI);
@@ -551,7 +588,7 @@ export function buildSouq(B) {
     // مقهى صغير على الساحة: مقاعد وطاولات
     bench(33, -4.6, 3, 'x'); bench(35.3, 0, 3, 'z'); table(33, -3.4); table(34, 2.5);
     crate(23, -5, 1); crate(23.4, -4, 0.8); sack(35.2, 5, 'spice2');
-    for (const [x, z] of [[27, -5.5], [31, 5.5]]) { B.boxB(x, 0, z, 0.2, 3.4, 0.2, 'iron', {}); lantern(x, 3.4, z); B.light(x, 3.4, z, 0xffb060, 2.8, 10); }
+    for (const [x, z] of [[27, -5.5], [31, 5.5]]) streetLamp(x, z, 0xffb060, 2.8, 10);
     // ساباط: غرفة معلّقة تعبر ممر السوق-الساحة
     B.box(10, 3.6, -2.2, 14, 7.5, 2.2, 'plasterOchre');
     if (vis) for (const s of [-1, 1]) { const f = frame(s > 0 ? 's' : 'n', 10, -2.2, 14, 2.2); shanasheel(f, 0.6, 2.8, 3.9, 2.8, 0.7, 'lattice'); }
@@ -568,8 +605,8 @@ export function buildSouq(B) {
       }
     }
     // نوافذ وأغطية في الأزقة: صناديق وبراميل غطاء
-    crate(31, -15, 1); crate(33, -10.5, 0.9); sack(31.2, -18.8, 'spice3'); crate(24.8, 12, 1); crate(23, 15.5, 0.8); sack(25, 9.2, 'spice1');
-    crate(17, -22.6, 1); crate(18, -21.3, 0.8); crate(-20, -22.6, 1.1); sack(-24, -21, 'spice2');
+    crate(31, -15, 1); crate(33, -10.5, 0.9); sack(31.2, -18.8, 'spice3'); crate(25.35, 12, 1); crate(22.65, 15.5, 0.8); sack(25, 9.2, 'spice1');
+    crate(17, -23.4, 1); crate(18.4, -20.5, 0.8); crate(-20, -23.35, 1.1); sack(-24, -21, 'spice2');
     crate(-38, -6, 1); crate(-36, 7, 1.1); crate(-38.6, 12, 0.9); sack(-35, -14, 'spice1');
     crate(-8, -0.8, 0.9); crate(18, 0.9, 1);
   }
@@ -612,7 +649,7 @@ export function buildSouq(B) {
     crate(18, 22, 1.1); crate(19.2, 22.4, 0.9); crate(30, 25, 1.2); crate(-30, 24, 1.2); crate(-31, 25.1, 0.8); crate(-24, 21, 1);
     B.boxB(12, 0, 26, 2.4, 1.1, 1, 'woodDark', {}); // عربة باعة
     if (vis) { for (let k = 0; k < 5; k++) pot(11 + k * 0.5, 1.1, 26, 0.12, k % 2 ? 'copper' : 'brass'); }
-    for (const [x, z] of [[-26, 27], [-6, 31.6], [10, 31.6], [26, 27]]) { B.boxB(x, 0, z, 0.22, 3.6, 0.22, 'iron', {}); lantern(x, 3.6, z); B.light(x, 3.6, z, 0xffb060, 2.6, 10); }
+    for (const [x, z] of [[-26, 27], [-6, 31.6], [10, 31.6], [26, 27]]) streetLamp(x, z, 0xffb060, 2.6, 10);
     for (let k = 0; k < 4; k++) B.spawn(0, -4.5 + k * 3, 0, 28.5, 0);
   }
 
@@ -622,7 +659,7 @@ export function buildSouq(B) {
   // ================= عقد الملاحة للبوتات =================
   const n = (x, z, y = 0, tag) => B.node(x, y, z, tag);
   // نقاط الشريعة والصحن
-  for (let x = -40; x <= 40; x += 8) { n(x, 22); n(x, 28.5); }
+  for (let x = -40; x <= 40; x += 8) { if (x !== -8) n(x, 22); n(x, 28.5); n(x, 31.2); }
   for (let x = -12; x <= 12; x += 6) { n(x, -31); n(x, -25); n(x, -21.5); }
   n(-12.2, -28); n(12.2, -28); n(-12.2, -23); n(12.2, -23);
   // السوق
@@ -649,7 +686,7 @@ export function buildSouq(B) {
   // ممرّات الحارة المهجورة وباب الساعة
   n(-43, -4); n(-43, 10); n(-49, -4); n(-49, 10); n(40, 0); n(45, 0);
   // المناطق الجديدة: الحارة المهجورة والمقبرة غرباً، ساحة الساعة شرقاً، امتداد الشريعة
-  buildDistricts(B, { T, R, pick, vis, block, frame, facade, lantern, lanternWall, crate, sack, pot, palm, column, archWall, wallX, wallZ, floor, signs, gunProp, boat, n, MAT, F, bench, table, fbox, palmFar, door, shanasheel });
+  buildDistricts(B, { T, R, pick, vis, block, frame, facade, lantern, lanternWall, crate, sack, pot, vase, barrel, palm, column, archWall, wallX, wallZ, floor, signs, gunProp, boat, n, MAT, F, bench, table, fbox, palmFar, door, shanasheel, streetLamp });
   return SOUQ_INFO;
 
   function boat(x, z, ry) {

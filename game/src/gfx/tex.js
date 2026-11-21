@@ -396,3 +396,35 @@ export function face(S, o) {
 }
 
 export { toTex, Canvas };
+
+// أطلس تفاصيل الأرض (4×4): تشققات، بقع، زيت، أوراق وقمامة، أوراق شجر، رمل، فتحة تصريف، غطاء بالوعة، آثار إطارات، فوارغ رصاص...
+export function decalAtlas(S = 512) {
+  const c = document.createElement('canvas'); c.width = c.height = S; const x = c.getContext('2d'), T = S / 4;
+  const R = (() => { let a = 99; return () => { a = (a * 16807) % 2147483647; return a / 2147483647; }; })();
+  const tile = (i, f) => { x.save(); x.translate((i % 4) * T, Math.floor(i / 4) * T); x.beginPath(); x.rect(0, 0, T, T); x.clip(); f(T); x.restore(); };
+  const crack = (t, n, w) => { x.strokeStyle = 'rgba(20,14,10,0.75)'; x.lineCap = 'round'; for (let k = 0; k < n; k++) { let px = t * (0.2 + R() * 0.6), py = t * (0.2 + R() * 0.6), a = R() * 6.28; x.lineWidth = w; x.beginPath(); x.moveTo(px, py); for (let s = 0; s < 9; s++) { a += (R() - 0.5) * 1.1; px += Math.cos(a) * t * 0.07; py += Math.sin(a) * t * 0.07; x.lineTo(px, py); x.lineWidth = Math.max(0.6, w * (1 - s / 10)); } x.stroke(); } };
+  const blob = (t, col, n, r) => { for (let k = 0; k < n; k++) { const gx = t * (0.3 + R() * 0.4), gy = t * (0.3 + R() * 0.4), rr = t * r * (0.5 + R() * 0.6), g = x.createRadialGradient(gx, gy, 0, gx, gy, rr); g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect(0, 0, t, t); } };
+  tile(0, t => crack(t, 3, 2.2));
+  tile(1, t => crack(t, 6, 1.4));
+  tile(2, t => blob(t, 'rgba(30,22,14,0.55)', 5, 0.28));
+  tile(3, t => { blob(t, 'rgba(8,8,10,0.75)', 3, 0.22); blob(t, 'rgba(60,40,90,0.15)', 2, 0.15); });
+  tile(4, t => { for (let k = 0; k < 7; k++) { x.save(); x.translate(t * (0.15 + R() * 0.7), t * (0.15 + R() * 0.7)); x.rotate(R() * 6.28); x.fillStyle = ['#e8e2d2', '#d9cba8', '#b8c4cc', '#c43a2c'][Math.floor(R() * 4)]; x.globalAlpha = 0.85; x.fillRect(-t * 0.06, -t * 0.04, t * (0.08 + R() * 0.08), t * (0.05 + R() * 0.05)); x.restore(); } });
+  tile(5, t => { for (let k = 0; k < 16; k++) { x.save(); x.translate(t * (0.1 + R() * 0.8), t * (0.1 + R() * 0.8)); x.rotate(R() * 6.28); x.fillStyle = ['#7a5a26', '#9a6a2a', '#5a4a22', '#8a7a3a'][Math.floor(R() * 4)]; x.globalAlpha = 0.9; x.beginPath(); x.ellipse(0, 0, t * 0.05, t * 0.022, 0, 0, 6.28); x.fill(); x.restore(); } });
+  tile(6, t => { blob(t, 'rgba(196,170,120,0.55)', 6, 0.3); for (let k = 0; k < 300; k++) { x.fillStyle = `rgba(${150 + R() * 60},${130 + R() * 50},${90 + R() * 40},0.6)`; x.fillRect(t * (0.15 + R() * 0.7), t * (0.15 + R() * 0.7), 1.5, 1.5); } });
+  tile(7, t => { x.fillStyle = '#2a2826'; x.fillRect(t * 0.18, t * 0.3, t * 0.64, t * 0.4); x.fillStyle = '#0c0b0a'; for (let k = 0; k < 7; k++) x.fillRect(t * (0.22 + k * 0.083), t * 0.34, t * 0.045, t * 0.32); });
+  tile(8, t => { const cx = t / 2, r = t * 0.42; x.fillStyle = '#34312d'; x.beginPath(); x.arc(cx, cx, r, 0, 6.28); x.fill(); x.strokeStyle = '#22201d'; x.lineWidth = 3; for (let k = -3; k <= 3; k++) { x.beginPath(); x.moveTo(cx - r, cx + k * r * 0.25); x.lineTo(cx + r, cx + k * r * 0.25); x.stroke(); } x.strokeStyle = '#4a4640'; x.lineWidth = 4; x.beginPath(); x.arc(cx, cx, r, 0, 6.28); x.stroke(); });
+  tile(9, t => { x.strokeStyle = 'rgba(14,12,10,0.45)'; for (const o of [0.36, 0.64]) { x.lineWidth = t * 0.09; x.beginPath(); x.moveTo(t * o, 0); x.bezierCurveTo(t * (o + 0.1), t * 0.4, t * (o - 0.1), t * 0.6, t * o, t); x.stroke(); } });
+  tile(10, t => { for (let k = 0; k < 9; k++) { x.save(); x.translate(t * (0.2 + R() * 0.6), t * (0.2 + R() * 0.6)); x.rotate(R() * 6.28); x.fillStyle = '#c9a043'; x.fillRect(-4, -1.6, 8, 3.2); x.fillStyle = '#8a6a22'; x.fillRect(3, -1.6, 1.5, 3.2); x.restore(); } });
+  tile(11, t => { blob(t, 'rgba(90,0,0,0.6)', 4, 0.22); for (let k = 0; k < 18; k++) { x.fillStyle = 'rgba(110,0,0,0.7)'; x.beginPath(); x.arc(t * (0.2 + R() * 0.6), t * (0.2 + R() * 0.6), 1 + R() * 3, 0, 6.28); x.fill(); } });
+  tile(12, t => { for (let k = 0; k < 5; k++) { const g = x.createRadialGradient(t * (0.3 + R() * 0.4), t * (0.3 + R() * 0.4), 0, t / 2, t / 2, t * 0.45); g.addColorStop(0, 'rgba(70,90,40,0.5)'); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect(0, 0, t, t); } for (let k = 0; k < 60; k++) { x.strokeStyle = `rgba(${60 + R() * 40},${100 + R() * 50},${30 + R() * 20},0.9)`; x.lineWidth = 1.2; const gx = t * (0.25 + R() * 0.5), gy = t * (0.35 + R() * 0.4); x.beginPath(); x.moveTo(gx, gy); x.lineTo(gx + (R() - 0.5) * 8, gy - 6 - R() * 10); x.stroke(); } });
+  tile(13, t => { x.fillStyle = 'rgba(20,20,22,0.35)'; for (let k = 0; k < 4; k++) { x.save(); x.translate(t * (0.2 + R() * 0.6), t * (0.2 + R() * 0.6)); x.rotate(R() * 6.28); x.fillRect(-t * 0.18, -t * 0.012, t * 0.36, t * 0.024); x.restore(); } crack(t, 2, 1); });
+  tile(14, t => { blob(t, 'rgba(255,255,255,0.08)', 3, 0.3); crack(t, 1, 3); });
+  tile(15, t => { x.fillStyle = 'rgba(40,30,20,0.4)'; for (let k = 0; k < 40; k++) { x.beginPath(); x.arc(t * (0.1 + R() * 0.8), t * (0.1 + R() * 0.8), 1 + R() * 4, 0, 6.28); x.fill(); } });
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4; return tex;
+}
+// قناع بقعة ماء (برك المطر)
+export function puddleTex(S = 128) {
+  const c = document.createElement('canvas'); c.width = c.height = S; const x = c.getContext('2d');
+  for (let k = 0; k < 7; k++) { const gx = S * (0.3 + Math.random() * 0.4), gy = S * (0.3 + Math.random() * 0.4), r = S * (0.18 + Math.random() * 0.18), g = x.createRadialGradient(gx, gy, r * 0.5, gx, gy, r); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, S, S); }
+  const t = new THREE.CanvasTexture(c); return t;
+}

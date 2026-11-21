@@ -135,7 +135,12 @@ h5{margin:10px 0 6px;font:700 13px var(--fb);color:#cdbf9f}
 .mvp{color:#d9cdae;font-size:14px;margin-bottom:8px}.mvp b{color:#ffe2a6}
 .t0{color:var(--t0)}.t1{color:var(--t1)}
 /* ===== الخريطة الكبيرة ===== */
-#s-map{background:rgba(5,6,8,.82);padding:0}
+#s-map{background:rgba(5,6,8,.82);padding:0;touch-action:none}
+#s-map.on{animation:mapIn .24s cubic-bezier(.2,.85,.25,1)}
+#s-map.closing{animation:mapOut .17s ease-in forwards;pointer-events:none}
+@keyframes mapIn{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
+@keyframes mapOut{from{opacity:1;transform:none}to{opacity:0;transform:scale(.96)}}
+#bigmap{touch-action:none;cursor:grab}
 .mapwrap{position:relative;width:100%;height:100%}
 #bigmap{position:absolute;inset:0;width:100%;height:100%}
 #mapZoom{position:absolute;top:calc(var(--sat) + 12px);left:calc(var(--sal) + 70px);font-size:26px;font-weight:800}
@@ -294,3 +299,62 @@ html:not(.touch) .hb,html:not(.touch) #mini{cursor:pointer}
 
 .srvjoin{margin-top:10px;font-size:13px;color:var(--mut,#b9b0a0)}.srvjoin summary{cursor:pointer;padding:6px 0}.srvjoin .addf{margin-top:6px}
 .pm.vs{min-width:92px}
+
+/* ===== واجهة اللعب v4 (على طريقة ببجي موبايل): أزرار شفافة صغيرة على الأطراف، الوسط والجهة اليمنى للنظر ===== */
+#topbar{transform:translateX(-50%) scale(var(--hs,1));transform-origin:top center;gap:2px}
+.tscore{background:rgba(0,0,0,.32);border-color:rgba(255,255,255,.08)}
+.tscore span{padding:2px 8px;font-size:11px}.tscore b{font-size:17px}
+#timer{font-size:14px;padding:2px 9px;min-width:52px}
+#phase{display:none}
+#compass{height:18px;width:min(240px,32vw)}
+#tl{transform:scale(var(--hs,1));transform-origin:top left}
+.hb{width:34px;height:30px;background:rgba(0,0,0,.3);border-color:rgba(255,255,255,.1)}
+#feed{top:calc(var(--sat) + 44px * var(--hs,1));transform:scale(var(--hs,1));transform-origin:top left}
+.kf{background:rgba(0,0,0,.35);font-size:11px;padding:2px 8px}
+#mini{width:calc(112px * var(--hs,1));height:calc(112px * var(--hs,1));border-radius:50%;border:2px solid rgba(255,255,255,.3);transition:transform .15s}
+#mini .mlab{display:none}
+#mini:active{transform:scale(.94)}
+#bottom{transform:translateX(-50%) scale(var(--hs,1));transform-origin:bottom center;width:min(360px,40vw);gap:3px}
+#ammo b{font-size:22px}#ammo span{font-size:12px}
+#slots button{min-width:56px;padding:2px 7px 3px;background:rgba(0,0,0,.32);border-color:rgba(255,255,255,.12);font-size:10.5px}
+#vitals .bar{height:7px}
+.tb{background:rgba(0,0,0,.22);border:1.5px solid rgba(255,255,255,.38);color:rgba(255,255,255,.9);backdrop-filter:none;box-shadow:none;width:calc(52px * var(--ts));height:calc(52px * var(--ts))}
+.tb svg{width:48%;height:48%}
+.tb.sm{width:calc(44px * var(--ts));height:calc(44px * var(--ts))}
+.tb.on{background:rgba(255,216,137,.28);border-color:rgba(255,216,137,.9)}
+.tb.fire{width:calc(80px * var(--ts));height:calc(80px * var(--ts));background:rgba(0,0,0,.18);border:2px solid rgba(255,255,255,.45)}
+.tb.fire svg{width:44%;height:44%}
+.tb.fire.on{background:rgba(255,90,60,.35);border-color:rgba(255,160,140,.9)}
+.tb.fire.l{width:calc(58px * var(--ts));height:calc(58px * var(--ts))}
+#bFire{right:calc(var(--sar) + 104px * var(--ts));bottom:calc(var(--sab) + 92px * var(--ts))}
+#bAds{right:calc(var(--sar) + 30px * var(--ts));bottom:calc(var(--sab) + 168px * var(--ts))}
+#bJump{right:calc(var(--sar) + 22px * var(--ts));bottom:calc(var(--sab) + 30px * var(--ts))}
+#bCrouch{right:calc(var(--sar) + 88px * var(--ts));bottom:calc(var(--sab) + 14px * var(--ts));width:calc(48px * var(--ts));height:calc(48px * var(--ts))}
+#bReload{right:calc(var(--sar) + 196px * var(--ts));bottom:calc(var(--sab) + 18px * var(--ts));width:calc(44px * var(--ts));height:calc(44px * var(--ts))}
+#bNade{right:calc(var(--sar) + 200px * var(--ts));bottom:calc(var(--sab) + 82px * var(--ts))}
+/* الاستراق يساراً فوق عصا الحركة (كما في ببجي) */
+#bLeanL{left:calc(var(--sal) + 28px * var(--ts));right:auto;bottom:calc(var(--sab) + 232px * var(--ts))}
+#bLeanR{left:calc(var(--sal) + 84px * var(--ts));right:auto;bottom:calc(var(--sab) + 232px * var(--ts))}
+#bFireL{left:calc(var(--sal) + 150px * var(--ts));bottom:calc(var(--sab) + 214px * var(--ts))}
+#stick{width:calc(118px * var(--ts));height:calc(118px * var(--ts));left:calc(var(--sal) + 74px * var(--ts));bottom:calc(var(--sab) + 36px * var(--ts));opacity:.4}
+#knob{width:calc(50px * var(--ts));height:calc(50px * var(--ts));margin:calc(-25px * var(--ts)) 0 0 calc(-25px * var(--ts));background:rgba(255,255,255,.35)}
+/* العلاج أسفل الوسط يسار الأسلحة */
+.tb.med{width:calc(40px * var(--hs,1));height:calc(40px * var(--hs,1));bottom:calc(var(--sab) + 84px * var(--hs,1))}
+.tb.med svg{width:64%;height:64%}
+.tb.med span{position:absolute;top:-4px;right:-4px;font:800 10.5px var(--fb);background:#2e8b57;color:#fff;border-radius:8px;padding:0 5px;min-width:16px;text-align:center}
+#bBand{left:calc(50% - 150px * var(--hs,1))}#bSyr{left:calc(50% - 104px * var(--hs,1))}
+.tb.med.dis{opacity:.28}
+/* تكبير المنظار */
+.tb.zm{display:none;width:calc(42px * var(--ts));height:calc(42px * var(--ts));font:800 22px var(--fb);right:calc(var(--sar) + 34px * var(--ts))}
+.tb.zm.show{display:grid}
+#bZoomIn{bottom:calc(var(--sab) + 290px * var(--ts))}#bZoomOut{bottom:calc(var(--sab) + 238px * var(--ts))}
+#bZoomOut small{position:absolute;left:-34px;font:700 12px var(--fb);color:#fff;text-shadow:0 1px 3px #000}
+/* دائرة تقدّم العلاج */
+#healov{left:50%;top:58%;transform:translate(-50%,-50%);width:74px;height:74px;display:none;place-items:center}
+#healov.on{display:grid}
+#healov svg{position:absolute;inset:0;transform:rotate(-90deg)}
+#healov .bg{fill:rgba(0,0,0,.35);stroke:rgba(255,255,255,.18);stroke-width:5}
+#healov .fg{fill:none;stroke:#6dff9e;stroke-width:5;stroke-dasharray:170;stroke-linecap:round}
+#healov b{position:relative;font:700 11px var(--fb);color:#fff;text-shadow:0 1px 3px #000}
+/* الشاشات الصغيرة جداً */
+@media (max-height:340px){#feed{display:none}#topbar #compass{display:none}}

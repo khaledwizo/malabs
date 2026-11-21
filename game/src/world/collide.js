@@ -167,6 +167,9 @@ export class World {
     for (let a = 0; a < 3; a++) { const d = a === 0 ? dx : a === 1 ? dy : dz, p = a === 0 ? x : a === 1 ? y : z; if (Math.abs(d) < 1e-9) continue; const t = ((d > 0 ? b[o + 3 + a] : b[o + a]) - p) / d; if (t < tmax) tmax = t; }
     return Math.max(0, tmax);
   }
+  // إزالة صندوق مؤقتاً (جسم تحطّم) وإعادته عند بداية مباراة جديدة
+  disable(i) { const o = i * 6; this.bf[o + 1] = -1000; this.bf[o + 4] = -999.5; }
+  restore(i) { const o = i * 6; this.bf[o + 1] = this.b[o + 1]; this.bf[o + 4] = this.b[o + 4]; }
   los(ax, ay, az, bx, by, bz) {
     const dx = bx - ax, dy = by - ay, dz = bz - az, L = Math.hypot(dx, dy, dz);
     if (L < 1e-6) return true;

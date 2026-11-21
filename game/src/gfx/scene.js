@@ -1,5 +1,6 @@
 // المشهد: سماء الغروب، الشمس والظلال، الماء، توهّج الفوانيس، ولافتات الخط العربي
 import * as THREE from 'three';
+import { modelParts, emissiveMats } from './models.js';
 import { Batch, boxInto } from './geo.js';
 import { makeMaterials, signMat } from './mats.js';
 
@@ -92,15 +93,39 @@ function glowTexture() {
 // يحوّل نتائج الباني إلى شبكات three
 export function buildWorldMeshes(B, kit, info) {
   const group = new THREE.Group(), Q = kit.Q;
-  for (const [mat, bt] of B.batches) {
+  const props = new Map(); // id → [[mesh, s, e]]
+  for (const [key, bt] of B.batches) {
     if (!bt.count) continue;
+    const mat = key.split('#')[0];
     const m = kit.mats[mat]; if (!m) { console.warn('no mat', mat); continue; }
     const mesh = new THREE.Mesh(bt.build(), m.mat);
     mesh.castShadow = Q.shadow > 0 && mat !== 'glow' && mat !== 'glass';
     mesh.receiveShadow = Q.shadow > 0;
     mesh.matrixAutoUpdate = false; mesh.updateMatrix();
     group.add(mesh);
+    for (const [id, s0, e0] of (B.dyn.get(key) || [])) { let L = props.get(id); if (!L) { L = []; props.set(id, L); } L.push([mesh, s0, e0]); }
   }
+  // إخفاء/إعادة جسم متحطّم: نطوي رؤوسه داخل الأرض ونحفظ الأصل لإعادته
+  const saved = new Map();
+  group.userData.setProp = (id, on) => {
+    for (const [mesh, s0, e0] of (props.get(id) || [])) {
+      const P = mesh.geometry.attributes.position, A = P.array, k = id + ':' + mesh.id;
+      if (!on) { if (saved.has(k)) continue; saved.set(k, A.slice(s0 * 3, e0 * 3)); for (let i = s0; i < e0; i++) { A[i * 3 + 1] = -60; } }
+      else { const S = saved.get(k); if (!S) continue; A.set(S, s0 * 3); saved.delete(k); }
+      P.addUpdateRange(s0 * 3, (e0 - s0) * 3); P.needsUpdate = true;
+    }
+  };
+  // النماذج المرخّصة المكرّرة (فوانيس خشبية، أسماك...) كـ InstancedMesh
+  const dummy = new THREE.Object3D();
+  for (const [proto, L] of B.inst) {
+    for (const { geo, mat } of modelParts(proto, kit.Q.aniso || 4)) {
+      const im = new THREE.InstancedMesh(geo, mat, L.length);
+      L.forEach(([x, y, z, ry, s, sy], i) => { dummy.position.set(x, y, z); dummy.rotation.set(0, ry, 0); dummy.scale.set(s, sy, s); dummy.updateMatrix(); im.setMatrixAt(i, dummy.matrix); });
+      im.castShadow = Q.shadow > 0; im.receiveShadow = Q.shadow > 0; im.computeBoundingSphere(); group.add(im);
+    }
+  }
+  // توهّج زجاج الفوانيس يتبع شدّة إنارة الشوارع (خافت نهاراً، ساطع ليلاً)
+  group.userData.setLampGlow = k => { for (const m of emissiveMats) m.emissiveIntensity = 0.25 + Math.min(2.2, k) * 0.9; };
   // الماء
   const wm = waterMaterial(info), waters = [];
   for (const w of B.water) {

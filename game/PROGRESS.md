@@ -52,3 +52,31 @@ STAGE 3 (DONE, Nov 2026) — overhaul requested by the user
 - Bots: safe grenade throws (no self-kills), hear gunshots, retreat to cover when hurt (tdm), map-wide hunting, no friendly fire.
 - Characters: coat tails (sway with legs/run), hood/cape variants, broad shoulders, bracers, gloves, breathing, lean, hit flinch,
   2-stage death. Tests: test/party.mjs (2 players friend→invite→host start), test/dedicated.mjs, test/mapshot.mjs (free cam).
+
+STAGE 4 (DONE, Nov 2026) — «النقلة النوعية» after user play-test feedback
+- Interactive world: Builder.prop(kind,hp)…end() → breakable crates/barrels (120–210hp), clay vases (45), floor pots «سنادين» (70),
+  sacks, tomb headstones (80–140), wooden road barricades (220). Geometry kept in mat+'#d' batches; scene setProp folds verts to y=-60.
+  sim.props/npcs state, events break/reset/npcHit/npcDie; client mini-sim mirrors them; game.js debris FX + break sounds.
+- People (game/civilians.js, Builder.npc): seated/standing vendors in every shop, stall sellers, tea seller + customers, elders on
+  benches (stool:false, y=0.09), fisherman, shrine visitors reading Al-Fatiha (pose 'pray', kill:false — out of respect).
+  Killable vendors fall and stay dead with a small blood pool until match end (resetWorld only at sim.start).
+- Landmarks: spiral Malwiya + Great-Mosque wall on the far bank (custom helix BufferGeometry), concrete T-walls, sandbags, barricades.
+- Sculpted cars (extruded side profile, wheel arches, glass, chrome bumpers, lights; Baghdad orange taxi; burnt variant).
+- LICENSED MODELS: tools/convert_models.py packs glTF (Khronos glTF-Sample-Assets) into src/gfx/modeldata.js (Int16 pos, Int8 normals,
+  small JPEG textures). Used: Lantern (CC0, wooden street lamp, InstancedMesh via B.put + streetLamp() arm auto-faces open space,
+  emissive follows weather lamps) and BarramundiFish (CC0). Credits note in settings › sound tab. Heavier assets (teacup 28k tris,
+  traffic cone 17k) rejected for mobile.
+- Floor detail: 4×4 decal atlas (cracks, stains, oil, litter, leaves, manholes, grates, tire marks, casings, blood) + puddles that
+  appear when wet. Weather blends & changes during a match (schedule(seed)/tick(matchT)); horror night brightened.
+- Audio: soft realistic footsteps, procedural rain loop (muffled under roofs), original procedural Arabic/Abbasid music (Bayati/Hijaz,
+  oud pluck, ney, darbuka, riq) — no copyrighted recordings. Heal/break/body-fall sounds.
+- Gameplay: MAX_HP 150, meds (5 bandages +30 / 2 syringes +75, cancel on fire/jump/swap), regen to 50%; real weapon names
+  (AKM rifle, M416, SCAR-L, Groza, Vector, UMP45, S1897, S12K, M249, SKS, Mini 14, AWM, Kar98k, Glock 17, Desert Eagle, Glock 18C,
+  R1895); snipers ship with x6 (zoom 3–6 adjustable, x8 4–8). Bots weaker/smarter (react delay, aim wobble, heal, cover, no early
+  swarm: first kills ~25s). TDM start: teams spawn at opposite ends (w.tdmStart); respawns far from enemies.
+- Nav/glitch sweep: nav links need 3 parallel body-width rays (±0.34) at 0.35/0.7/1.0 m, ground under elevated links, and must not
+  cross NPCs; bots re-plan on unreachable goals, walk straight to visible goal, side-step when snagged. test/navwalk.mjs walks every
+  link with the real player mover (1/1822 fail, cemetery tomb edge); test/botstuck.mjs reports idle bots.
+- UI: PUBG-like HUD v4 (scaled for all screens), meds buttons, zoom ± for variable scopes; big map opens/closes with animation and
+  supports drag, pinch zoom, double-tap and mouse wheel.
+- Server/test builds use NULL_GFX so layout & RNG match the client exactly.

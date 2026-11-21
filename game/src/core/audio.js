@@ -1,5 +1,6 @@
 // أصوات إجرائية بالكامل (WebAudio): طلقات، خطوات حسب الأرضية، انفجارات، رعد ومطر وأجواء رعب — مع موضع ثلاثي الأبعاد
 import { Settings } from './settings.js';
+import { composeArabic } from './music.js';
 
 export const Audio = {
   ctx: null, master: null, sfx: null, amb: null, noise: null, listener: null, live: 0, steps: null, ambKind: '', ambNodes: [],
@@ -10,7 +11,8 @@ export const Audio = {
     this.master = c.createGain(); this.master.gain.value = Settings.volume; this.master.connect(c.destination);
     const comp = c.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 6; comp.connect(this.master);
     this.sfx = c.createGain(); this.sfx.connect(comp);
-    this.amb = c.createGain(); this.amb.gain.value = 0.5 * Settings.music; this.amb.connect(this.master);
+    this.amb = c.createGain(); this.amb.gain.value = 0.55; this.amb.connect(this.master);
+    this.mus = c.createGain(); this.mus.gain.value = 0; this.mus.connect(this.master);
     const len = c.sampleRate * 2, b = c.createBuffer(1, len, c.sampleRate), d = b.getChannelData(0);
     for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
     this.noise = b;
@@ -19,10 +21,50 @@ export const Audio = {
     this.brown = bb;
     this.listener = c.listener;
     this.buildSteps();
+    this.buildRain();
     this.setAmbience(this.wantAmb || 'day');
+    setTimeout(() => this.startMusic(), 400);
   },
   setVolume(v) { if (this.master) this.master.gain.value = v; },
-  setMusic(v) { if (this.amb) this.amb.gain.value = 0.5 * v; },
+  // الموسيقى: أعلى في القوائم، خافتة أثناء القتال
+  setMusic(v) { this.musV = v; this.applyMusic(); },
+  musicMode(m) { this.musM = m; this.applyMusic(); },
+  applyMusic() { if (!this.mus) return; const v = (this.musV ?? Settings.music) * (this.musM === 'game' ? 0.22 : 0.6); this.mus.gain.setTargetAtTime(v, this.ctx.currentTime, 0.8); },
+  startMusic() {
+    if (this.musSrc || !this.ctx) return;
+    try {
+      const m = composeArabic(11), c = this.ctx, b = c.createBuffer(2, m.L.length, m.sr);
+      b.copyToChannel(m.L, 0); b.copyToChannel(m.R, 1);
+      // صدى قاعة (رجع صوتي مولّد)
+      const ir = c.createBuffer(2, Math.floor(c.sampleRate * 2.2), c.sampleRate);
+      for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 3.2) * 0.35; }
+      const conv = c.createConvolver(); conv.buffer = ir; const wet = c.createGain(); wet.gain.value = 0.32; conv.connect(wet); wet.connect(this.mus);
+      const s = c.createBufferSource(); s.buffer = b; s.loop = true; s.connect(this.mus); s.connect(conv); s.start();
+      this.musSrc = s; this.applyMusic();
+    } catch (e) { console.warn('music', e); }
+  },
+  // حلقة مطر واقعية: هسيس وردي + آلاف القطرات الصغيرة + هدير منخفض
+  buildRain() {
+    const c = this.ctx, sr = 22050, n = sr * 6, L = new Float32Array(n), R = new Float32Array(n);
+    let b0 = 0, b1 = 0, b2 = 0, br = 0;
+    for (let i = 0; i < n; i++) {
+      const w = Math.random() * 2 - 1;
+      b0 = 0.99765 * b0 + w * 0.099; b1 = 0.963 * b1 + w * 0.2965; b2 = 0.57 * b2 + w * 1.0526;
+      const pink = (b0 + b1 + b2 + w * 0.1848) * 0.11; br = (br + 0.02 * w) / 1.02;
+      L[i] = pink * 0.55 + br * 1.6; R[i] = pink * 0.55 + br * 1.6;
+    }
+    for (let k = 0; k < 2600; k++) {
+      const t0 = Math.floor(Math.random() * (n - 400)), f = 1800 + Math.random() * 5200, a = 0.04 + Math.random() * 0.12, tau = 0.0008 + Math.random() * 0.0025, pan = Math.random();
+      const len = Math.floor(tau * 6 * sr);
+      for (let j = 0; j < len; j++) { const t = j / sr, v = Math.sin(2 * Math.PI * f * t) * Math.exp(-t / tau) * a; L[t0 + j] += v * (1 - pan); R[t0 + j] += v * pan; }
+    }
+    const xf = sr; for (let i = 0; i < xf; i++) { const k = i / xf; L[i] = L[i] * k + L[n - xf + i] * (1 - k); R[i] = R[i] * k + R[n - xf + i] * (1 - k); }
+    const buf = c.createBuffer(2, n - xf, sr); buf.copyToChannel(L.subarray(0, n - xf), 0); buf.copyToChannel(R.subarray(0, n - xf), 1);
+    this.rainBuf = buf;
+  },
+  // تحت سقف: صوت المطر مكتوم
+  setRainCover(k) { if (this.rainNode) this.rainNode.f.frequency.setTargetAtTime(k > 0.5 ? 750 : 9000, this.ctx.currentTime, 0.25); },
+  setRainLevel(v) { if (this.rainNode) this.rainNode.g.gain.setTargetAtTime(v, this.ctx.currentTime, 1.5); },
   setListener(x, y, z, fx, fy, fz) {
     const L = this.listener; if (!L) return;
     if (L.positionX) { L.positionX.value = x; L.positionY.value = y; L.positionZ.value = z; L.forwardX.value = fx; L.forwardY.value = fy; L.forwardZ.value = fz; L.upX.value = 0; L.upY.value = 1; L.upZ.value = 0; }
@@ -69,12 +111,14 @@ export const Audio = {
         const nz = (dur, f0, f1, q, type, vol, att = 0.003, at = t) => this.nz(dest, at, dur, f0, f1, q, type, vol, att, N);
         const os = (dur, f0, f1, type, vol, at = t) => this.osc(dest, at, dur, f0, f1, type, vol);
         const j = 0.85 + Math.random() * 0.3;
-        if (k === 'stone') { nz(0.08 * j, 2600 * j, 1400, 1.5, 'bandpass', 0.9); os(0.07, 110 * j, 60, 'sine', 0.7); nz(0.05, 5000, 3000, 1, 'highpass', 0.15, 0.002, t + 0.01); }
-        else if (k === 'wood') { nz(0.12 * j, 520 * j, 300, 5, 'bandpass', 1.0); nz(0.08, 420 * j, 260, 6, 'bandpass', 0.45, 0.003, t + 0.016); os(0.09, 140 * j, 80, 'triangle', 0.4); }
-        else if (k === 'sand') { for (let g = 0; g < 26; g++) nz(0.004 + Math.random() * 0.005, 4800, 2600, 0.7, 'lowpass', 0.35 + Math.random() * 0.4, 0.001, t + Math.random() * 0.15); os(0.06, 90, 50, 'sine', 0.35); }
-        else if (k === 'wet') { nz(0.07 * j, 2200 * j, 1200, 1.3, 'bandpass', 0.7); nz(0.16, 4200, 3000, 0.8, 'highpass', 0.45, 0.004, t + 0.01); os(0.045, 620 * j, 190, 'sine', 0.45, t + 0.02); os(0.07, 95, 55, 'sine', 0.5); }
-        else if (k === 'metal') { nz(0.06, 3400 * j, 2000, 3, 'bandpass', 0.7); os(0.22, 1900 * j, 1800, 'sine', 0.12); os(0.18, 2700 * j, 2600, 'sine', 0.08); }
-        else { nz(0.1, 700 * j, 300, 0.8, 'lowpass', 0.6); }
+        // خطوات ناعمة: كعب ثم مقدّمة القدم، ترددات منخفضة بلا طقطقة حادة
+        const heel = t, toe = t + 0.045 + Math.random() * 0.02;
+        if (k === 'stone') { nz(0.09 * j, 520 * j, 160, 0.7, 'lowpass', 0.75, 0.006, heel); nz(0.06, 1300 * j, 700, 0.6, 'bandpass', 0.16, 0.008, heel + 0.004); nz(0.07, 420 * j, 150, 0.7, 'lowpass', 0.45, 0.006, toe); nz(0.05, 2400, 1500, 0.5, 'bandpass', 0.05, 0.01, toe); }
+        else if (k === 'wood') { nz(0.11 * j, 380 * j, 180, 1.6, 'bandpass', 0.8, 0.006, heel); nz(0.08, 300 * j, 150, 1.6, 'bandpass', 0.45, 0.006, toe); if (Math.random() < 0.4) os(0.12, 190 * j, 170, 'sine', 0.06, toe + 0.03); }
+        else if (k === 'sand') { for (let g = 0; g < 18; g++) nz(0.006 + Math.random() * 0.008, 2600, 1400, 0.6, 'lowpass', 0.12 + Math.random() * 0.14, 0.002, heel + Math.random() * 0.13); nz(0.08, 380, 140, 0.7, 'lowpass', 0.5, 0.008, heel); }
+        else if (k === 'wet') { nz(0.08 * j, 460 * j, 150, 0.7, 'lowpass', 0.6, 0.006, heel); nz(0.18, 2200, 1200, 0.6, 'bandpass', 0.16, 0.025, heel + 0.01); nz(0.12, 1600, 900, 0.6, 'bandpass', 0.1, 0.02, toe); }
+        else if (k === 'metal') { nz(0.07, 700 * j, 300, 1, 'bandpass', 0.6, 0.005, heel); os(0.16, 1400 * j, 1350, 'sine', 0.04, heel); nz(0.05, 600, 260, 1, 'bandpass', 0.35, 0.005, toe); }
+        else { nz(0.1, 380 * j, 140, 0.7, 'lowpass', 0.45, 0.01, heel); }
         oc.startRendering().then(b => this.steps[k].push(b)).catch(() => { });
       }
     }
@@ -86,9 +130,9 @@ export const Audio = {
     const k = surf === 'wet' ? 'wet' : (map[surf] || 'stone'), L = this.steps[k]; if (!L || !L.length) return;
     const c = this.ctx, s = c.createBufferSource(); s.buffer = L[Math.floor(Math.random() * L.length)];
     s.playbackRate.value = (run ? 1.05 : 0.95) * (0.92 + Math.random() * 0.16);
-    const vol = (pos ? 1.0 : 0.32) * (run ? 1.0 : 0.55) * (crouch ? 0.35 : 1) * (0.85 + Math.random() * 0.3);
-    const o = this.out(pos, vol, pos ? 3 : 1, 45); s.connect(o); s.start();
-    if (run && Math.random() < 0.35) this.nz(o, c.currentTime, 0.12, 1800, 900, 0.6, 'bandpass', 0.12, 0.02); // حفيف الملابس
+    const vol = (pos ? 0.6 : 0.17) * (run ? 1.0 : 0.6) * (crouch ? 0.35 : 1) * (0.85 + Math.random() * 0.3);
+    const o = this.out(pos, vol, pos ? 2.5 : 1, 28); s.connect(o); s.start();
+    if (run && Math.random() < 0.25) this.nz(o, c.currentTime, 0.14, 1400, 800, 0.5, 'bandpass', 0.05, 0.03); // حفيف الملابس
   },
   // ---------- الأجواء حسب الطقس ----------
   setAmbience(kind) {
@@ -97,7 +141,7 @@ export const Audio = {
     this.ambKind = kind;
     const c = this.ctx, t = c.currentTime;
     for (const n of this.ambNodes) { try { n.g.gain.setTargetAtTime(0.0001, t, 0.6); setTimeout(() => { try { n.s.stop(); } catch (e) { } }, 3000); } catch (e) { } }
-    this.ambNodes = [];
+    this.ambNodes = []; this.rainNode = null;
     clearTimeout(this.ambTimer);
     const loop = (buf, type, f, q, vol, rate = 1) => {
       const s = c.createBufferSource(); s.buffer = buf; s.loop = true; s.playbackRate.value = rate;
@@ -110,17 +154,17 @@ export const Audio = {
       const chirp = () => { if (this.ambKind !== kind) return; const t = c.currentTime; if (Math.random() < 0.7) for (let k = 0; k < 2 + Math.random() * 3; k++) this.osc(this.amb, t + k * 0.12, 0.08, 2600 + Math.random() * 1500, 3400 + Math.random() * 1200, 'sine', 0.05); this.ambTimer = setTimeout(chirp, 3000 + Math.random() * 7000); };
       this.ambTimer = setTimeout(chirp, 2000);
     } else if (kind === 'storm') {
-      this.rain = loop(this.noise, 'bandpass', 2600, 0.35, 0.55, 0.7);
-      loop(this.noise, 'highpass', 6000, 0.5, 0.12, 1.3);
-      const wind = loop(this.brown, 'bandpass', 380, 0.9, 0.45);
+      this.rainNode = loop(this.rainBuf || this.noise, 'lowpass', 9000, 0.5, 0.9);
+      const wind = loop(this.brown, 'bandpass', 380, 0.9, 0.3);
       const gust = () => { if (this.ambKind !== kind) return; const t = c.currentTime; wind.f.frequency.setTargetAtTime(250 + Math.random() * 500, t, 1.5); wind.g.gain.setTargetAtTime(0.25 + Math.random() * 0.5, t, 1.2); this.ambTimer = setTimeout(gust, 2000 + Math.random() * 3000); };
       gust();
     } else if (kind === 'horror') {
-      loop(this.brown, 'lowpass', 220, 0.7, 0.5);
+      loop(this.brown, 'lowpass', 220, 0.7, 0.4);
+      this.rainNode = loop(this.rainBuf || this.noise, 'lowpass', 9000, 0.5, 0.3);
       const howl = loop(this.noise, 'bandpass', 600, 8, 0.07, 0.5);
       // طنين منخفض مزعج
       const drone = (f, v) => { const o = c.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 180; const g = c.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.setTargetAtTime(v, t, 3); o.connect(lp); lp.connect(g); g.connect(this.amb); o.start(); this.ambNodes.push({ s: o, g }); };
-      drone(41, 0.05); drone(43.3, 0.04); drone(61.7, 0.02);
+      drone(41, 0.03); drone(43.3, 0.025);
       const ev = () => {
         if (this.ambKind !== kind) return; const t = c.currentTime, r = Math.random();
         howl.f.frequency.setTargetAtTime(400 + Math.random() * 900, t, 2);
@@ -169,6 +213,15 @@ const SOUNDS = {
   land: (A, pos, t) => { const o = A.out(pos, 0.6, 2, 40); A.nz(o, t, 0.12, 500, 80, 0.7, 'lowpass', 1); },
   impact: (A, pos, t, o) => { const out = A.out(pos, 0.35, 2, 40); const m = o.mat; if (m === 3) A.osc(out, t, 0.12, 3000 + Math.random() * 1500, 1500, 'sine', 0.35); A.nz(out, t, 0.06, m === 2 ? 1400 : 2600, 500, 1, 'bandpass', 0.9); },
   flesh: (A, pos, t) => { const o = A.out(pos, 0.7, 2, 40); A.nz(o, t, 0.09, 900, 260, 1, 'lowpass', 1); A.nz(o, t + 0.01, 0.06, 2400, 900, 2, 'bandpass', 0.3); },
+  // تحطّم الأشياء: خشب يتشظّى، فخّار يتكسّر، حجر يتفتّت
+  breakWood: (A, pos, t) => { const o = A.out(pos, 0.9, 3, 60); A.nz(o, t, 0.16, 1400, 300, 1.2, 'bandpass', 1, 0.002); for (let k = 0; k < 6; k++) A.nz(o, t + 0.03 + k * 0.035 + Math.random() * 0.02, 0.05, 2200 + Math.random() * 1500, 700, 4, 'bandpass', 0.45 - k * 0.05, 0.002); A.nz(o, t + 0.2, 0.25, 500, 120, 0.8, 'lowpass', 0.5, 0.01); },
+  breakClay: (A, pos, t) => { const o = A.out(pos, 0.8, 3, 50); A.nz(o, t, 0.06, 3200, 1600, 2.5, 'bandpass', 1, 0.001); for (let k = 0; k < 9; k++) A.nz(o, t + 0.05 + k * 0.03 + Math.random() * 0.03, 0.035, 3500 + Math.random() * 2500, 1800, 6, 'bandpass', 0.4 - k * 0.03, 0.001); },
+  breakStone: (A, pos, t) => { const o = A.out(pos, 0.9, 3, 60); A.nz(o, t, 0.22, 900, 140, 0.9, 'lowpass', 1, 0.002); for (let k = 0; k < 5; k++) A.nz(o, t + 0.08 + k * 0.06, 0.06, 1600 + Math.random() * 800, 500, 3, 'bandpass', 0.35, 0.002); },
+  bodyFall: (A, pos, t) => { const o = A.out(pos, 0.7, 2, 35); A.nz(o, t, 0.18, 420, 70, 0.7, 'lowpass', 1, 0.004); A.nz(o, t + 0.16, 0.1, 300, 60, 0.7, 'lowpass', 0.4, 0.004); },
+  // العلاج: تمزيق الضمادة ولفّها، أو نقرة الإبرة وهسيسها
+  bandage: (A, pos, t, o, self) => { const out = A.out(pos, self ? 0.32 : 0.5, 1.5, 18); for (let k = 0; k < 3; k++) A.nz(out, t + k * 0.55, 0.32, 3800, 1600, 1.2, 'bandpass', 0.55, 0.03); for (let k = 0; k < 4; k++) A.nz(out, t + 1.5 + k * 0.18, 0.12, 1800, 900, 1, 'bandpass', 0.22, 0.02); },
+  syringe: (A, pos, t, o, self) => { const out = A.out(pos, self ? 0.32 : 0.5, 1.5, 18); A.nz(out, t, 0.04, 4200, 3000, 3, 'bandpass', 0.6, 0.001); A.osc(out, t + 0.6, 0.05, 2400, 2100, 'square', 0.08); A.nz(out, t + 0.9, 1.6, 6000, 4000, 1.5, 'highpass', 0.12, 0.2); },
+  healed: (A, pos, t) => { const o = A.out(null, 0.28); A.osc(o, t, 0.25, 660, 660, 'sine', 0.35, 0.02); A.osc(o, t + 0.1, 0.35, 990, 990, 'sine', 0.25, 0.02); },
   whizz: (A, pos, t) => { const o = A.out(pos, 0.45, 1, 20); A.nz(o, t, 0.15, 5000, 1500, 3, 'bandpass', 0.7, 0.03); },
   hitmark: (A, pos, t) => { const o = A.out(null, 0.35); A.osc(o, t, 0.05, 1900, 1700, 'sine', 0.5); },
   headshot: (A, pos, t) => { const o = A.out(null, 0.45); A.osc(o, t, 0.12, 2600, 2400, 'sine', 0.6); A.osc(o, t + 0.04, 0.1, 3900, 3800, 'sine', 0.3); },

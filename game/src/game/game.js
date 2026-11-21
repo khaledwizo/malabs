@@ -18,6 +18,7 @@ import { F } from '../world/collide.js';
 import { NetSim } from '../net/client.js';
 import { GameServer } from '../net/server.js';
 import { Social } from '../net/social.js';
+import { Civilian } from './civilians.js';
 
 const STEP = 1 / 60;
 const BOT_NAMES = ['يوسف', 'حيدر', 'زيد', 'عمر', 'مصطفى', 'ليث', 'أنمار', 'كرار', 'بلال', 'طارق', 'سجّاد', 'مرتضى', 'حسين', 'رعد', 'وسام', 'ياسر', 'نوفل', 'عمّار', 'قاسم', 'سلمان'];
@@ -35,6 +36,8 @@ export class Game {
     this.menuMode = 'menu'; this.menuChar = 'khaled'; this.menuT = 0; this.lineup = []; this.lastSlot = 0; this.scoped = false; this.roll = 0;
     this.mapView = new MapView(this.world, this.info);
     this.buildLineup();
+    // أهل السوق
+    this.civs = (this.world.npcs || []).map(n => { const c = new Civilian(n); this.scene.add(c.root); return c; });
   }
   // ---------- القوائم: كاميرا سينمائية وعرض الشخصيات ----------
   buildLineup() {
@@ -62,7 +65,7 @@ export class Game {
   }
   // ---------- بدء المباراة ----------
   startMatch(o) {
-    this.quit(true);
+    this.quit(true); this.wxSeed = 0;
     Social.presence('game');
     const sim = this.sim = new Sim(this.world, { mode: o.mode, roundsToWin: o.roundsToWin, timeLimit: o.timeLimit, difficulty: o.difficulty, seed: Date.now() & 0xffff });
     const me = sim.addPlayer({ name: o.name, team: o.team, char: o.char, loadout: o.loadout });
@@ -79,7 +82,10 @@ export class Game {
     for (const m of this.lineup) m.root.visible = false;
     this.vm.setChar(me ? me.char : Settings.char);
     Input.enabled = true; Input.clearToggles(); if (!Input.isTouch) Input.requestLock();
-    if (this.weather) this.weather.set(weather || Settings.weather);
+    if (this.weather) { this.weather.set(weather || Settings.weather); this.weather.schedule(this.wxSeed || (Date.now() & 0xffff)); }
+    this.matchT = 0;
+    this.syncWorld(true);
+    Audio.musicMode('game');
     Audio.play('roundStart');
   }
   // ---------- اللعب أونلاين ----------
@@ -103,6 +109,7 @@ export class Game {
   }
   startOnline(ns, weather) {
     this.quit(true, true);
+    this.wxSeed = [...String(ns.room || '')].reduce((a, c) => (a * 31 + c.charCodeAt(0)) & 0xffff, 7);
     Social.presence('game');
     ns.onlost = why => { this.quit(); UI.showMenu(); UI.toast2(why || 'انقطع الاتصال بالمعركة'); };
     this.sim = ns; this.me = ns.me;
@@ -118,10 +125,14 @@ export class Game {
     UI.mapOpen = false;
     if (!keep) for (const m of this.lineup) m.root.visible = true;
     if (this.weather && !keep) this.weather.set('menu');
+    if (!keep) Audio.musicMode('menu');
   }
   pause() { if (!this.sim || this.paused) return; this.paused = true; Input.exitLock(); Input.reset(); UI.open('pause'); }
   resume() { this.paused = false; UI.closeScreens(); UI.hud(true); if (!Input.isTouch) Input.requestLock(); }
   queueSlot(s) { this.queued.slot = s; }
+  queueHeal(k) { this.queued.heal = k; }
+  // تكبير المنظار المتغيّر (×6: 3–6، ×8: 4–8) — يُحفظ لكل منظار
+  zoomStep(d) { const me = this.mp; if (!me || me.slot !== 1) return; const sc = me.scope, Z = SCOPES[sc] && SCOPES[sc].zoom; if (!Z) return; this.varZoom = this.varZoom || {}; const cur = this.varZoom[sc] ?? Z[1]; this.varZoom[sc] = Math.max(Z[0], Math.min(Z[1], cur + d)); Audio.play('ui'); }
   setMyLoadout(L) { if (this.sim) this.sim.setLoadout(this.me, L); }
   setMyChar(c) { if (this.sim) { this.sim.setChar(this.me, c); this.vm.setChar(c); } }
   get mp() { return this.sim && this.sim.players.get(this.me); }
@@ -161,6 +172,9 @@ export class Game {
       if (!idle) for (let s = 1; s <= 4; s++) if (Input.take('slot' + s)) cmd.slot = s;
       if (!idle && Input.take('grenade')) cmd.slot = me && me.slot === 4 ? (me.prevSlot || 1) : 4;
       if (this.queued.slot) { cmd.slot = this.queued.slot === (me && me.slot) && me.slot === 4 ? me.prevSlot : this.queued.slot; }
+      if (!idle && Input.take('heal1')) this.queued.heal = 1;
+      if (!idle && Input.take('heal2')) this.queued.heal = 2;
+      cmd.heal = this.queued.heal || 0;
       if (Input.take('inspect')) this.vm.inspect();
       this.queued = {};
       this.acc += dt;
@@ -169,17 +183,19 @@ export class Game {
         for (const p of sim.players.values()) this.prev.set(p.id, [p.pos[0], p.pos[1], p.pos[2], p.crouch, p.lean || 0]);
         if (me) sim.input(this.me, cmd);
         sim.step(STEP); this.handleEvents();
-        cmd.reload = false; cmd.swap = false; cmd.slot = 0;
+        cmd.reload = false; cmd.swap = false; cmd.slot = 0; cmd.heal = 0;
         this.acc -= STEP; steps++;
       }
       if (steps >= 5) this.acc = 0;
     }
+    if (this.weather && sim.phase !== 'wait') { this.matchT = (this.matchT || 0) + dt; this.weather.tick(this.matchT); }
     this.render(dt);
     Input.endFrame();
   }
   magOf(me) {
     if (!me || !me.alive || me.slot > 2) return 1;
     const sc = me.slot === 1 ? (me.scope || 'iron') : 'iron';
+    if (this.varZoom && this.varZoom[sc] !== undefined) return this.varZoom[sc];
     return SCOPES[sc] ? SCOPES[sc].mag : 1.15;
   }
   zoomNow() { const me = this.mp; return 1 + (this.magOf(me) - 1) * (me ? ease(me.adsT) : 0); }
@@ -275,6 +291,18 @@ export class Game {
         case 'knife': if (e.id === this.me) this.vm.slash(); Audio.play(e.hit ? 'knifeHit' : 'knife', e.id === this.me ? null : this.posOf(e.id)); break;
         case 'throw': if (e.id === this.me) this.vm.throwNade(); Audio.play('pin', e.id === this.me ? null : this.posOf(e.id)); break;
         case 'bounce': Audio.play('bounce', e.p); break;
+        case 'break': {
+          const set = this.meshes && this.meshes.userData.setProp; if (set) set(e.id, false);
+          const P = this.world.props[e.id]; if (!P || e.silent) break;
+          const at = P.c || e.p, kind = P.kind; this.fx.debris(at, kind);
+          Audio.play(kind === 'vase' ? 'breakClay' : kind === 'tomb' ? 'breakStone' : kind === 'sack' ? 'flesh' : 'breakWood', at);
+          break;
+        }
+        case 'reset': this.resetWorldVis(); break;
+        case 'npcHit': { const c = this.civs && this.civs[e.id]; if (c && e.p) { const d = me ? [e.p[0] - me.pos[0], 0, e.p[2] - me.pos[2]] : [0, 0, 1]; this.fx.blood(e.p, d, 25, false, this.world); Audio.play('flesh', e.p); } break; }
+        case 'npcDie': { const c = this.civs && this.civs[e.id]; if (!c) break; c.die(e.d); if (!e.silent) { setTimeout(() => { this.fx.bloodPool([c.n.x, c.n.y, c.n.z], this.world, 0.55 + Math.random() * 0.25); Audio.play('bodyFall', [c.n.x, 0.3, c.n.z]); }, 650); if (e.k === this.me) UI.toast('قتلت أحد أهل السوق!'); } break; }
+        case 'heal': if (e.id === this.me) this.vm.healT = e.k === 2 ? 4 : 2.4; Audio.play(e.k === 2 ? 'syringe' : 'bandage', e.id === this.me ? null : this.posOf(e.id)); break;
+        case 'healed': if (e.id === this.me) { Audio.play('healed'); this.vm.healT = 0; } break;
         case 'boom': {
           this.fx.explosion(e.p, e.kind);
           if (e.kind === 'frag') { Audio.play('boom', e.p); const d = me ? Math.hypot(me.pos[0] - e.p[0], me.pos[2] - e.p[2]) : 99; this.shake += Math.max(0, 1.6 - d / 12); if (d < 14 && Settings.haptics) this.buzz(60); }
@@ -452,7 +480,26 @@ export class Game {
       r.autoClear = true;
     }
   }
-  updateWorldAnim(dt) { if (this.onAnim) this.onAnim(dt, this.t); }
+  updateWorldAnim(dt) { if (this.onAnim) this.onAnim(dt, this.t); this.updateCivs(dt); }
+  // أهل السوق: تحريك القريبين فقط، وإخفاء البعيدين، وظلال للقريبين جداً
+  updateCivs(dt) {
+    const cam = this.camera.position;
+    for (const c of this.civs || []) {
+      const d = Math.hypot(c.n.x - cam.x, c.n.z - cam.z), vis = d < 48;
+      if (c.root.visible !== vis) c.root.visible = vis;
+      if (!vis) continue;
+      const sh = d < 16; if (c.sh !== sh) { c.sh = sh; c.root.traverse(o => { if (o.isMesh) o.castShadow = sh; }); }
+      if (d < 30 || !c.alive) c.update(dt, cam);
+    }
+  }
+  // مطابقة الأجسام المكسورة وأهل السوق مع حالة المحاكاة (بداية مباراة أو دخول متأخر)
+  syncWorld(instant) {
+    const sim = this.sim, set = this.meshes && this.meshes.userData.setProp; if (!sim) return;
+    const P = sim.props || [], N = sim.npcs || [];
+    (this.world.props || []).forEach((p, i) => { const on = !P[i] || P[i].alive !== false; if (set) set(i, on); });
+    (this.civs || []).forEach((c, i) => { const alive = !N[i] || N[i].alive !== false; if (alive && !c.alive) c.revive(); else if (!alive && c.alive) { c.die(null); if (instant) { c.dead = 0.999; c.update(0.01, this.camera.position); } } });
+  }
+  resetWorldVis() { const set = this.meshes && this.meshes.userData.setProp; (this.world.props || []).forEach((p, i) => set && set(i, true)); for (const c of this.civs || []) if (!c.alive) c.revive(); }
   spectate(dt) {
     const sim = this.sim, cam = this.camera, me = this.mp;
     const sp = this.spec || (this.spec = { id: -1, t: 0, pos: me ? me.pos.slice() : [0, 0, 0] });

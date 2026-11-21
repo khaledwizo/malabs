@@ -20,6 +20,8 @@ const I = {
   shield: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5z"/></svg>',
   helmet: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 15a9 9 0 0 1 18 0v2H3z"/><rect x="2" y="17" width="20" height="3" rx="1"/></svg>',
   kit: '<svg viewBox="0 0 48 48" fill="currentColor"><path d="M10 16h28l2 22H8z"/><path d="M18 16v-5h12v5" fill="none" stroke="currentColor" stroke-width="3"/></svg>',
+  band: '<svg viewBox="0 0 48 48"><rect x="6" y="17" width="36" height="14" rx="7" transform="rotate(-35 24 24)" fill="#f1e2c6"/><rect x="17" y="18.5" width="14" height="11" rx="2" transform="rotate(-35 24 24)" fill="#d9b58a"/><g fill="#b08f66" transform="rotate(-35 24 24)"><circle cx="21" cy="22" r="1"/><circle cx="27" cy="22" r="1"/><circle cx="21" cy="26" r="1"/><circle cx="27" cy="26" r="1"/></g></svg>',
+  syr: '<svg viewBox="0 0 48 48" fill="none" stroke-linecap="round"><g transform="rotate(45 24 24)"><rect x="18" y="10" width="12" height="22" rx="2" fill="#bfe8ff" stroke="#e8f6ff" stroke-width="2"/><rect x="18" y="20" width="12" height="12" fill="#ff5a6a"/><path d="M24 32v10" stroke="#e8f6ff" stroke-width="2.5"/><path d="M15 9h18M24 4v6" stroke="#e8f6ff" stroke-width="3"/></g></svg>',
 };
 
 export const HUD_HTML = `
@@ -43,6 +45,7 @@ export const HUD_HTML = `
   <div id="respawn"><b>ستعود بعد <span id="rsT">4</span></b><small id="rsBy"></small><div class="hint">بدّل عتادك الآن — يُطبّق عند عودتك</div><button id="rsLoad" class="btn sm">العتاد</button></div>
   <div id="warm"><b id="warmT">5</b><small>استعد… المعركة تبدأ</small><button id="warmLoad" class="btn sm">العتاد</button></div>
   <div id="spec"></div>
+  <div id="healov"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="27" class="bg"/><circle cx="32" cy="32" r="27" class="fg" id="healArc"/></svg><b id="healTx">ضمادة</b></div>
   <div id="bottom">
     <div id="ammo"><b id="magV">30</b><span id="resV">90</span><small id="wName"></small></div>
     <div id="slots"></div>
@@ -60,6 +63,10 @@ export const HUD_HTML = `
     <div class="tb sm" id="bNade">${I.nade}<span id="nadeN"></span></div>
     <div class="tb sm" id="bLeanL">${I.leanL}</div>
     <div class="tb sm" id="bLeanR">${I.leanR}</div>
+    <div class="tb med" id="bBand">${I.band}<span id="bandN">5</span></div>
+    <div class="tb med" id="bSyr">${I.syr}<span id="syrN">2</span></div>
+    <div class="tb zm" id="bZoomIn">＋</div>
+    <div class="tb zm" id="bZoomOut">－<small id="zoomV"></small></div>
   </div>
 </div>`;
 
@@ -86,6 +93,10 @@ export const HUD = {
       C('bNade', { action: 'grenade' }),
       C('bLeanL', { action: 'leanL', toggle: true, excl: 'leanR' }),
       C('bLeanR', { action: 'leanR', toggle: true, excl: 'leanL' }),
+      C('bBand', { action: 'heal1' }),
+      C('bSyr', { action: 'heal2' }),
+      C('bZoomIn', { round: true, tap: () => game.zoomStep(1) }),
+      C('bZoomOut', { round: true, tap: () => game.zoomStep(-1) }),
     ];
     this.controls = controls;
     Input.bindTouch($('touch'), controls, $('stick'), $('knob'));
@@ -99,7 +110,10 @@ export const HUD = {
   layout() {
     const d = document.documentElement;
     d.classList.toggle('touch', Input.isTouch);
-    d.style.setProperty('--ts', Settings.touchSize || 1);
+    // حجم الأزرار يتناسب مع الشاشة (هواتف صغيرة حتى الأجهزة اللوحية) × اختيار اللاعب
+    const W = innerWidth, H = innerHeight, k = Math.max(0.78, Math.min(1.65, Math.min(H / 400, W / 820)));
+    d.style.setProperty('--ts', (Settings.touchSize || 1) * k);
+    d.style.setProperty('--hs', k);
     d.style.setProperty('--ha', Settings.hudAlpha ?? 0.9);
     $('bFireL').style.display = Settings.leftFire ? '' : 'none';
   },
@@ -139,10 +153,21 @@ export const HUD = {
     if (rs) $('rsT').textContent = Math.max(1, Math.ceil(me.respawnT));
     $('protov').classList.toggle('on', me.alive && me.spawnProt > 0);
     // الحياة والدروع
-    const hp = Math.max(0, Math.ceil(me.hp));
-    $('hpV').textContent = hp; $('hpBar').style.width = hp + '%';
-    this.ghost = Math.max(hp, (this.ghost ?? 100) - dt * 30); $('hpGhost').style.width = this.ghost + '%';
-    $('vitals').className = hp <= 25 ? 'crit' : hp <= 55 ? 'mid' : '';
+    const hp = Math.max(0, Math.ceil(me.hp)), mx = me.maxHp || 150, pc = hp / mx * 100;
+    $('hpV').textContent = hp; $('hpBar').style.width = pc + '%';
+    this.ghost = Math.max(pc, (this.ghost ?? 100) - dt * 30); $('hpGhost').style.width = this.ghost + '%';
+    $('vitals').className = pc <= 25 ? 'crit' : pc <= 55 ? 'mid' : '';
+    // العلاج
+    const md = me.meds || { b: 0, s: 0 };
+    $('bandN').textContent = md.b; $('syrN').textContent = md.s;
+    $('bBand').classList.toggle('dis', !md.b || hp >= mx); $('bSyr').classList.toggle('dis', !md.s || hp >= mx);
+    const healing = me.alive && me.healT > 0;
+    $('healov').classList.toggle('on', healing);
+    if (healing) { const tot = me.healK === 2 ? 4 : 2.4, k = 1 - me.healT / tot; $('healArc').style.strokeDashoffset = (170 * (1 - k)).toFixed(1); $('healTx').textContent = (me.healK === 2 ? 'إبرة' : 'ضمادة') + ' ' + me.healT.toFixed(1); }
+    // تكبير المنظار المتغيّر
+    const zs = me.slot === 1 && me.scope && SCOPES[me.scope] && SCOPES[me.scope].zoom && g.scoped;
+    $('bZoomIn').classList.toggle('show', !!zs); $('bZoomOut').classList.toggle('show', !!zs);
+    if (zs) $('zoomV').textContent = '×' + g.magOf(me);
     $('arI').style.opacity = me.armor > 0 ? 0.35 + me.armor / 160 : 0.12; $('hlI').style.opacity = me.helmet > 0 ? 0.35 + me.helmet / 160 : 0.12;
     // السلاح والذخيرة
     const w = me.slot <= 3 ? me.inv[me.slot] : null, wd = w ? (w.wd || WEAPONS[w.id]) : null;
@@ -170,7 +195,7 @@ export const HUD = {
     // الوميض والألم
     g.flashA = Math.max(0, g.flashA - dt * 0.45); g.hurtA = Math.max(0, g.hurtA - dt * 1.2);
     $('flashov').style.opacity = g.flashA.toFixed(3);
-    const low = me.alive && me.hp < 35 ? 0.3 + Math.sin(this.t * 5) * 0.12 : 0;
+    const low = me.alive && me.hp < (me.maxHp || 150) * 0.25 ? 0.3 + Math.sin(this.t * 5) * 0.12 : 0;
     $('hurtov').style.opacity = Math.max(g.hurtA, low).toFixed(3);
     $('bloodov').style.opacity = Math.max(0, (g.bloodA = Math.max(0, (g.bloodA || 0) - dt * 0.25))).toFixed(3);
     // أزرار حسب الحالة
