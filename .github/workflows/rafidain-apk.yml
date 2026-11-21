@@ -24,6 +24,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # البناية تبدأ من الالتزام الذي شغّلها، فنجلب ملفّات الأصوات من رأس الفرع (اللي ولّدتها بنايات سابقة)
+      - name: Bring voice files from the branch head
+        continue-on-error: true
+        run: |
+          git fetch -q --depth=1 origin rafidain-game
+          git ls-tree -r --name-only FETCH_HEAD game/voice | grep '\.ogg$' | xargs -r git checkout FETCH_HEAD --
+          echo "ogg from head: $(ls game/voice/*.ogg 2>/dev/null | wc -l)"
+
       - name: Generate Iraqi voice lines (Azure ar-IQ, incremental)
         if: ${{ env.AZ_KEY != '' }}
         continue-on-error: true
@@ -69,16 +77,42 @@ jobs:
       - name: Commit APKs back to the branch
         shell: bash
         run: |
-          mkdir -p apk
-          cp app/build/outputs/apk/release/app-release.apk apk/rafidain.apk
-          cp server/build/outputs/apk/release/server-release.apk apk/rafidain-server.apk
-          rm -f apk/build-log.txt
+          mkdir -p /tmp/out/voice apk
+          cp app/build/outputs/apk/release/app-release.apk /tmp/out/rafidain.apk || exit 1
+          cp server/build/outputs/apk/release/server-release.apk /tmp/out/rafidain-server.apk || exit 1
+          cp -r game/voice/. /tmp/out/voice/ 2>/dev/null || true
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f -A apk
-          git add -A game/voice 2>/dev/null || true
-          git commit -m "APK build #${{ github.run_number }} [skip ci]"
-          for i in 1 2 3; do git pull --rebase origin rafidain-game && git push origin HEAD:rafidain-game && break; sleep 5; done
+          for i in 1 2 3 4; do
+            # نبني فوق رأس الفرع الحالي (بدل rebase) حتى لا تتعارض ملفّات الـAPK والأصوات الثنائية
+            git fetch -q origin rafidain-game && git reset -q --hard FETCH_HEAD || { sleep 5; continue; }
+            mkdir -p apk game/voice
+            cp /tmp/out/rafidain.apk apk/rafidain.apk
+            cp /tmp/out/rafidain-server.apk apk/rafidain-server.apk
+            rm -f apk/build-log.txt
+            python3 - <<'PY'
+          import os, json, shutil, filecmp
+          src, dst = '/tmp/out/voice', 'game/voice'
+          dl, sl = os.path.join(dst, 'lines.json'), os.path.join(src, 'lines.json')
+          if os.path.exists(dl):
+              ids = {l['id'] for l in json.load(open(dl, encoding='utf-8'))}
+              add = rem = 0
+              for f in os.listdir(src):
+                  if f.endswith('.ogg') and f[:-4] in ids and not os.path.exists(os.path.join(dst, f)):
+                      shutil.copy(os.path.join(src, f), dst); add += 1
+              for f in os.listdir(dst):
+                  if f.endswith('.ogg') and f[:-4] not in ids:
+                      os.remove(os.path.join(dst, f)); rem += 1
+              same = os.path.exists(sl) and filecmp.cmp(sl, dl, shallow=False)
+              if same and os.path.exists(os.path.join(src, 'manifest.js')):
+                  shutil.copy(os.path.join(src, 'manifest.js'), dst)
+              print(f'voices merged: +{add} -{rem} manifest {"updated" if same else "kept (newer code on branch)"}')
+          PY
+            git add -f -A apk game/voice
+            git commit -q -m "APK build #${{ github.run_number }} [skip ci]" || true
+            git push -q origin HEAD:rafidain-game && break
+            sleep 5
+          done
 
       - uses: actions/upload-artifact@v4
         with:
@@ -95,6 +129,12 @@ jobs:
           cp build-log.txt apk/build-log.txt 2>/dev/null || echo "no log (failed before gradle)" > apk/build-log.txt
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f apk/build-log.txt
-          git commit -m "Build log (failed) #${{ github.run_number }} [skip ci]"
-          for i in 1 2 3; do git pull --rebase origin rafidain-game && git push origin HEAD:rafidain-game && break; sleep 5; done
+          cp apk/build-log.txt /tmp/build-log.txt
+          for i in 1 2 3; do
+            git fetch -q origin rafidain-game && git reset -q --hard FETCH_HEAD || { sleep 5; continue; }
+            mkdir -p apk && cp /tmp/build-log.txt apk/build-log.txt
+            git add -f apk/build-log.txt
+            git commit -q -m "Build log (failed) #${{ github.run_number }} [skip ci]" || true
+            git push -q origin HEAD:rafidain-game && break
+            sleep 5
+          done
