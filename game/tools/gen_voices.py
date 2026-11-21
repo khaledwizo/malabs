@@ -36,6 +36,12 @@ def token_ok(r):
         print(f'  {r}: {e}'); return False
 
 
+# سرّان مقلوبان؟ (المفتاح الحقيقي طويل؛ اسم المنطقة قصير)
+if key and len(key) < 20 and len(region) >= 20:
+    print('secrets look swapped (key short, region long) — swapping'); key, region = region, key.lower()
+if key and key.lower() == region:
+    print('AUTH ERROR: AZURE_SPEECH_KEY holds the region name, not the key. Put KEY 1 (32 or 84 characters) in AZURE_SPEECH_KEY.')
+    key = ''
 if key:
     import re
     print(f'key: length {len(key)}, hex={bool(re.fullmatch(r"[0-9a-fA-F]+", key))}, region given: {region!r}')
