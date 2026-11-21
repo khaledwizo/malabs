@@ -115,9 +115,13 @@ else:
 
 ids = {l['id'] for l in lines}
 man = {}
+orphans = 0
 for f in sorted(os.listdir(out)):
+    if f.endswith('.ogg') and f[:-4] not in ids:  # جملة انحذفت أو تغيّر نصّها → لا داعي لحملها بالـAPK
+        os.remove(os.path.join(out, f)); orphans += 1
+        continue
     if f.endswith('.ogg') and f[:-4] in ids:
         try: man[f[:-4]] = round(ogg_duration(os.path.join(out, f)), 2)
         except Exception: pass
 open(os.path.join(out, 'manifest.js'), 'w', encoding='utf-8').write('window.RAFIDAIN_VOICES=' + json.dumps(man, separators=(',', ':')) + ';\n')
-print(f'made {made}, kept {skipped}, failed {failed}, manifest {len(man)}/{len(lines)}')
+print(f'made {made}, kept {skipped}, failed {failed}, removed {orphans} old, manifest {len(man)}/{len(lines)}')

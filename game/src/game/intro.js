@@ -87,6 +87,7 @@ export class Intro {
     const dallah = new THREE.LatheGeometry([[0, 0], [0.11, 0], [0.12, 0.06], [0.08, 0.16], [0.06, 0.2], [0.09, 0.26], [0.03, 0.32], [0, 0.34]].map(p => new THREE.Vector2(p[0], p[1])), 16);
     for (const [x, s] of [[6.25, 1], [6.6, 0.85], [6.95, 0.75]]) { const o = add(dallah, brass, x, 0.42, -3.45); o.scale.setScalar(s); }
     // السفرة: قماش ومنسف رز ولحم وخبز ولبن وتمر
+    const f0 = S.children.length;
     add(BX(3.8, 0.01, 1.5), this.mat('clothCream', 2, 1), 0, 0.016, 0, 0, false);
     add(new THREE.CylinderGeometry(0.62, 0.62, 0.04, 32), brass, 0, 0.04, 0);
     const rice = add(new THREE.SphereGeometry(0.5, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), col(0xe6c06a), 0, 0.05, 0); rice.scale.y = 0.42;
@@ -95,6 +96,10 @@ export class Intro {
     for (const [x, z] of [[-1.3, -0.45], [-1.3, 0.45], [1.35, -0.45], [1.35, 0.45], [-0.9, -0.55], [0.95, 0.55]]) add(new THREE.CylinderGeometry(0.17, 0.17, 0.02, 18), breadM, x, 0.03, z);
     for (const [x, z] of [[-0.65, -0.55], [0.75, -0.55], [-0.65, 0.55], [0.75, 0.55], [-1.7, 0]]) { add(new THREE.CylinderGeometry(0.07, 0.05, 0.06, 14), bowlM, x + 0.25, 0.05, z); add(new THREE.CylinderGeometry(0.03, 0.026, 0.09, 10), glassM, x - 0.2, 0.06, z * 0.8); }
     add(new THREE.CylinderGeometry(0.16, 0.13, 0.03, 18), bowlM, 1.6, 0.03, 0); for (let k = 0; k < 7; k++) add(new THREE.SphereGeometry(0.022, 6, 5), col(0x4a2412), 1.6 + Math.cos(k) * 0.07, 0.055, Math.sin(k * 1.7) * 0.07);
+    this.foodItems = S.children.slice(f0 + 1); // كل شي فوق القماش
+    // أثر الانفجار (مخفي حتى الانفجار): بقعة محروقة وشظايا
+    this.scorch = add(new THREE.CircleGeometry(0.9, 24), new THREE.MeshStandardMaterial({ color: 0x120c08, roughness: 1, transparent: true, opacity: 0.85 }), 0, 0.03, 0.1, 0, false); this.scorch.rotation.x = -Math.PI / 2; this.scorch.visible = false;
+    this.debris = []; for (let k = 0; k < 16; k++) { const d = add(BX(0.06 + Math.random() * 0.1, 0.03, 0.05 + Math.random() * 0.08), k % 3 ? col(0x3a2a1c) : col(0xd9a85f), (Math.random() - 0.5) * 4, 0.02, (Math.random() - 0.5) * 2.6, Math.random() * 3); d.visible = false; this.debris.push(d); }
     // مساند الجالسين
     for (const k in SEATS) { const s = SEATS[k]; add(BX(0.75, 0.13, 0.7), k === 'sheikh' ? red : grn, s.x - Math.sin(s.yaw) * 0.18, 0.065, s.z - Math.cos(s.yaw) * 0.18 * -1, s.yaw); }
     // الفوانيس والإضاءة الدافئة
@@ -122,10 +127,11 @@ export class Intro {
     S.add(this.sheikhSit.root); S.add(this.sheikhStand.root); this.sheikhSit.root.visible = false; this.sheikhStand.root.visible = false;
     // اليد الخفيّة والرمّانة
     const dark = new THREE.MeshStandardMaterial({ color: 0x0c0b0a, roughness: 1 });
-    this.hand = new THREE.Group(); this.hand.position.set(5.05, 1.05, -1.75); S.add(this.hand); this.hand.visible = false;
-    const sleeve = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 0.5, 10), new THREE.MeshStandardMaterial({ color: 0x2a2420, roughness: 0.95 })); sleeve.rotation.z = Math.PI / 2; sleeve.position.x = 0.2; this.hand.add(sleeve);
-    const palm = new THREE.Mesh(roundBox(0.1, 0.06, 0.09, 0.025), new THREE.MeshStandardMaterial({ color: 0xa06a4a, roughness: 0.6 })); palm.position.x = -0.07; this.hand.add(palm);
-    this.handLight = new THREE.PointLight(0xffa860, 0, 1.6, 2); this.handLight.position.set(4.5, 1.3, -1.3); S.add(this.handLight);
+    // الغريب الملثّم بالباب (واحد من العصائب) — لا شعارات ولا رايات
+    this.stranger = new Civilian({ id: 92, x: -8.55, y: 0, z: 0.28, yaw: -Math.PI / 2, pose: 'stand', look: 'masked', seed: 13 });
+    S.add(this.stranger.root); this.stranger.root.visible = false;
+    this.strangerLight = new THREE.PointLight(0x9ab0e0, 0, 2.6, 2); this.strangerLight.position.set(-7.6, 1.9, 0.6); S.add(this.strangerLight);
+    this.doorTarget = 0; this.doorOpen = 0;
     const nade = this.nade = new THREE.Group(); S.add(nade); nade.visible = false;
     const nb = new THREE.Mesh(new THREE.SphereGeometry(0.045, 14, 10), new THREE.MeshStandardMaterial({ color: 0x3a4628, roughness: 0.55, metalness: 0.3 })); nb.scale.y = 1.25; nade.add(nb);
     const lever = new THREE.Mesh(BX(0.016, 0.07, 0.012), new THREE.MeshStandardMaterial({ color: 0x8a8a80, metalness: 0.8, roughness: 0.3 })); lever.position.set(0.03, 0.04, 0); nade.add(lever);
@@ -148,12 +154,19 @@ export class Intro {
       case 'door': return [V3(-3.4, 1.55, 1.6), V3(-7.5, 1.5, 0), V3(-0.3, 0, -0.15)];
       case 'hands': return [V3(2.7, 1.3, 0.9), V3(0.0, 0.62, 0), V3(-0.35, -0.1, -0.1)];
       case 'shadow': return [V3(3.85, 1.2, -0.45), V3(4.85, 1.02, -1.7), V3(0.12, 0, -0.06)];
-      case 'grenade': return [V3(1.05, 0.32, 0.85), V3(0.5, 0.1, 0), V3(-0.25, 0, -0.1)];
+      case 'grenade': return [V3(2.45, 0.45, -0.15), V3(-1.0, 0.1, 0.25), V3(-0.25, 0, 0.05)];
+      case 'door2': return [V3(-4.9, 1.45, 1.5), V3(-8.3, 1.45, 0.25), V3(-0.25, 0, -0.1)];
+      case 'doorHand': return [V3(-6.35, 1.32, 0.45), V3(-8.45, 1.28, 0.3), V3(-0.15, 0, -0.03)];
+      case 'after': return [V3(4.0, 1.75, 2.8), V3(-0.3, 1.1, 0), V3(-0.4, 0, -0.2)];
+      case 'afterS': return [V3(0.05, 1.72, -2.55), V3(0.35, 1.45, 1.65), V3(0.06, 0, 0.04)];
+      case 'afterI': return [V3(0.35, 1.7, -0.55), V3(-0.65, 1.6, 1.5), V3(0.08, 0, 0)];
       case 'sheikh': return [...this.faceShot('sheikh', 0.45, 1.3), V3(0, 0, 0)];
       case 'sheikh2': return [...this.faceShot('sheikh', -0.5, 1.6, 0.15), V3(0, 0, 0)];
       case 'sheikhClose': return [...this.faceShot('sheikh', 0.22, 0.95, -0.07), V3(0, 0, 0)];
       case 'black': return null;
     }
+    const am = /^after(M|K|K2|S2)$/.exec(n);
+    if (am) { const k = { M: 'mohammed', K: 'khaled', K2: 'khaled', S2: 'saif' }[am[1]]; return [...this.faceShot(k, am[1] === 'K2' ? 0.32 : am[1] === 'S2' ? -0.3 : -0.4, am[1] === 'S2' ? 0.9 : 1.0, am[1] === 'S2' ? -0.12 : 0.03), V3(0, 0, 0)]; }
     const m = /^(khaled|mohammed|ibrahim|saif)(2?)$/.exec(n);
     if (m) return [...this.faceShot(m[1], m[2] ? -0.42 : 0.42, m[2] ? 0.85 : 1.15), V3(0, 0, 0)];
     return [V3(5.4, 2.3, 3.6), V3(0, 0.7, 0), V3(0, 0, 0)];
@@ -182,14 +195,31 @@ export class Intro {
   }
   act(a) {
     const A = this.actors;
-    if (a === 'door') { this.doorT = 0; this.sheikhStand.root.visible = true; Audio.play('creak'); for (const k in A) A[k].lookAt = 'door'; }
+    if (a === 'door') { this.doorTarget = 1.25; this.sheikhStand.root.visible = true; Audio.play('creak'); for (const k in A) A[k].lookAt = 'door'; }
     if (a === 'stand') this.standT = 0;
-    if (a === 'sheikhSeat') { this.sheikhStand.root.visible = false; this.sheikhSit.root.visible = true; this.standT = -1; for (const k in A) A[k].stand = 0; this.doorClose = true; }
+    if (a === 'sheikhSeat') { this.sheikhStand.root.visible = false; this.sheikhSit.root.visible = true; this.standT = -1; for (const k in A) A[k].stand = 0; this.doorTarget = 0; }
     if (a === 'sheikhHand') { this.sheikhSit.raise = true; this.drone = true; }
     if (a === 'handshake') { this.sheikhSit.raise = false; A.ibrahim.handT = 0; A.mohammed.handT = -0.9; A.ibrahim.lookAt = 'mohammed'; A.mohammed.lookAt = 'ibrahim'; Audio.play('heart'); }
-    if (a === 'pin') { this.hand.visible = true; this.handT = 0; this.nade.visible = true; this.nadeHeld = true; this.handLight.intensity = 1.4; setTimeout(() => this.active && Audio.play('pin', [5, 1, -1.7]), 600); }
-    if (a === 'grenade') { this.nade.visible = true; this.nadeHeld = false; this.nadeT = 0; this.bounced = 0; for (const k in A) { A[k].lookAt = 'nade'; A[k].react = 0; } this.sheikhSit.focus(0.4, 0.1, 4); }
-    if (a === 'boom') { this.boomT = 0; this.flash = 1; this.shake = 1; Audio.play('boom', [0.3, 0.2, 0.1]); setTimeout(() => this.active && Audio.play('ring'), 250); for (const k in A) A[k].react = 1; this.nade.visible = false; }
+    if (a === 'stranger') { this.stranger.root.visible = true; this.doorTarget = 1.15; this.strangerLight.intensity = 3.2; Audio.play('creak'); }
+    if (a === 'pin') { this.stranger.hold = true; this.nade.visible = true; this.nadeHeld = true; setTimeout(() => this.active && Audio.play('pin', [-8.2, 1.3, 0.3]), 700); }
+    if (a === 'grenade') { this.stranger.hold = false; this.stranger.throwT = 0; this.throwAt = this.t + 0.55; this.bounced = 0; for (const k in A) A[k].react = 0; }
+    if (a === 'aftermath') this.aftermath();
+    if (a === 'aim') { A.ibrahim.m.setWeapon('rafid'); A.saif.m.setWeapon('nisr'); A.mohammed.m.setWeapon('dijla'); for (const k of ['ibrahim', 'saif', 'mohammed']) A[k].aim = 1; Audio.play('draw', [0.7, 1.2, 1.5]); }
+    if (a === 'cock') Audio.play('reload', [0.75, 1.3, 1.6]);
+    if (a === 'shots') { const P = [[0.7, 1.4, 1.6], [-0.6, 1.4, -1.5], [0.6, 1.3, -1.6], [-0.7, 1.4, 1.5]]; [0, 0.09, 0.18, 0.3, 0.42, 0.55, 0.8, 0.88, 1.05, 1.2, 1.32, 1.5].forEach((d, i) => setTimeout(() => this.active && Audio.play(i % 3 === 1 ? 'pistol' : 'rifleHeavy', P[i % 4]), d * 1000)); }
+    if (a === 'boom') { this.boomT = 0; this.expo = 2.4; this.expoT = 0; this.expoRate = 1.1; this.flash = 1; this.shake = 1; Audio.play('boom', [-0.1, 0.2, 0.1]); setTimeout(() => this.active && Audio.play('ring'), 250); for (const k in A) A[k].react = 1; this.nade.visible = false; for (const o of this.foodItems) o.visible = false; this.scorch.visible = true; for (const d of this.debris) d.visible = true; this.sheikhSit.die([1, 0, 0.2]); }
+  }
+  // بعد الانفجار: غبار ودخان، الشيخ على الأرض، والكل واقف بعيداً عن السفرة
+  aftermath() {
+    const S = this.scene; S.fog = new THREE.Fog(0x2e241a, 0.8, 9); S.background = new THREE.Color(0x120d09);
+    for (const L of this.lamps) L.base *= 0.45; this.lamps[1].base = 0.4;
+    const P = { khaled: [-0.75, -1.65, Math.PI], mohammed: [0.85, -1.75, Math.PI], ibrahim: [-0.7, 1.6, 0], saif: [0.8, 1.7, 0] };
+    for (const k in this.actors) { const a = this.actors[k], p = P[k]; a.seat = { x: p[0], z: p[1], yaw: p[2] }; a.m.root.position.set(p[0], 0, p[1]); a.after = true; a.react = 0; a.stand = 1; }
+    this.key.intensity = 0; this.expo = 0.15; this.expoT = 0.95; this.expoRate = 0.9;
+    // نار صغيرة على السفرة المحروقة تضيء الوجوه من تحت
+    this.blaze = new THREE.PointLight(0xff7a2a, 4.5, 6, 1.6); this.blaze.position.set(0, 0.45, 0.1); S.add(this.blaze);
+    const fm = new THREE.MeshStandardMaterial({ color: 0x331000, emissive: 0xff6a14, emissiveIntensity: 2.4, transparent: true, opacity: 0.85 });
+    this.flames = []; for (let k = 0; k < 7; k++) { const f = new THREE.Mesh(new THREE.ConeGeometry(0.06 + Math.random() * 0.05, 0.25 + Math.random() * 0.2, 6), fm); f.position.set((Math.random() - 0.5) * 0.7, 0.15, 0.1 + (Math.random() - 0.5) * 0.5); S.add(f); this.flames.push(f); }
   }
   frame(dt) {
     if (!this.active) return;
@@ -206,19 +236,23 @@ export class Intro {
     const t = this.t;
     for (const L of this.lamps) { L.pl.intensity = L.base * (0.88 + Math.sin(t * 7 + L.ph) * 0.05 + Math.sin(t * 13.1 + L.ph * 2) * 0.04); }
     this.fire.intensity = 3.0 + Math.sin(t * 9) * 0.5 + Math.sin(t * 23) * 0.3;
+    if (this.blaze) { this.blaze.intensity = 4.2 + Math.sin(t * 11) * 0.8 + Math.sin(t * 27) * 0.5; this.flames.forEach((f, i) => { f.scale.y = 0.8 + Math.sin(t * 9 + i * 1.7) * 0.25; f.rotation.y = t * 2 + i; }); }
     // طقطقة الجمر بالوجاق
     if (!this.waiting && Audio.ctx && Math.random() < dt * 3) { try { const o = Audio.out([6.6, 0.4, -3.6], 0.1, 3, 30); Audio.nz(o, Audio.ctx.currentTime, 0.03 + Math.random() * 0.04, 2000 + Math.random() * 2500, 700, 2, 'bandpass', 0.6, 0.002); } catch (e) { } }
     // الباب ينفتح ثم يتسكّر
-    if (this.doorT !== undefined) { this.doorT += dt; const e = this.doorClose ? Math.max(0, 1 - (this.doorT - 0) * 0.0) : ease(this.doorT / 1.4); const open = this.doorClose ? 0 : e; for (const D of this.doors) D.g.rotation.y = D.s * open * 1.25; this.doorLight.intensity = open * 5; }
+    this.doorOpen += (this.doorTarget - this.doorOpen) * Math.min(1, dt * 1.6); for (const D of this.doors) D.g.rotation.y = D.s * this.doorOpen; this.doorLight.intensity = this.doorOpen * 4;
     // وقوف الجالسين احتراماً للشيخ
     if (this.standT !== undefined && this.standT >= 0) { this.standT += dt; for (const k in this.actors) this.actors[k].stand = ease((this.standT - 0.15 * Object.keys(this.actors).indexOf(k)) / 0.9); }
-    if (this.handT !== undefined && this.hand.visible) { this.handT += dt; const e = ease(this.handT / 0.7); this.hand.position.x = 5.05 - e * 0.3; if (this.bi >= 0 && SCRIPT[this.bi].act === 'grenade' && this.nadeT > 0.25) this.hand.position.x = 4.75 + ease((this.nadeT - 0.25) / 0.5) * 0.45; }
+    // الغريب يفلت من الباب بعد الرمي
+    if (this.throwAt && this.t > this.throwAt + 1.3 && this.stranger.root.visible) { this.stranger.root.visible = false; this.strangerLight.intensity = 0; this.doorTarget = 0.9; }
+    if (this.throwAt && this.nadeHeld && this.t >= this.throwAt) { this.nadeHeld = false; this.nadeT = 0; this.n0 = this.nade.position.clone(); }
     // الرمّانة: قوس ثم ارتداد ثم تدحرج حتى تستقر وسط السفرة
-    if (this.nade.visible && this.nadeHeld) { this.nade.position.set(this.hand.position.x - 0.1, this.hand.position.y + 0.06, this.hand.position.z); this.nade.rotation.set(0, 0, 0.3); }
+    if (this.nade.visible && this.nadeHeld) { const h = this.stranger.arms[1].fo.localToWorld(V3(0, -0.32, -0.02)); this.nade.position.copy(h); this.nade.rotation.set(0, 0, 0.3); }
     else if (this.nade.visible) {
       this.nadeT += dt; const T = this.nadeT, n = this.nade;
-      if (T < 0.7) { const e = T / 0.7; n.position.set(4.75 - e * 2.6, 1.05 + Math.sin(e * Math.PI) * 0.55 - e * 1.0, -1.65 + e * 1.2); }
-      else { if (!this.bounced) { this.bounced = 1; Audio.play('bounce', [2.1, 0, -0.45]); } const e = Math.min(1, (T - 0.7) / 1.3), k = 1 - Math.pow(1 - e, 3); n.position.set(2.15 - k * 1.8, 0.06 + Math.abs(Math.sin(e * 9)) * 0.08 * (1 - e), -0.45 + k * 0.55); }
+      const p0 = this.n0 || V3(-8.2, 1.5, 0.3);
+      if (T < 0.95) { const e = T / 0.95; n.position.set(p0.x + (-1.3 - p0.x) * e, p0.y + (0.05 - p0.y) * e + Math.sin(e * Math.PI) * 1.0, p0.z + (0.35 - p0.z) * e); if (e > 0.5) for (const k in this.actors) this.actors[k].lookAt = 'nade'; }
+      else { if (!this.bounced) { this.bounced = 1; Audio.play('bounce', [-1.3, 0, 0.35]); this.sheikhSit.focus(-0.5, 0.2, 4); } const e = Math.min(1, (T - 0.95) / 1.1), k = 1 - Math.pow(1 - e, 3); n.position.set(-1.3 + k * 1.2, 0.06 + Math.abs(Math.sin(e * 9)) * 0.07 * (1 - e), 0.35 - k * 0.23); }
       n.rotation.z -= dt * (T < 2 ? 14 * (1 - Math.min(1, T / 2)) : 0); n.rotation.x += dt * 3 * (1 - Math.min(1, T / 2));
     }
     // الشخصيات
@@ -227,6 +261,12 @@ export class Intro {
   }
   // وضعية الجلوس على الأرض (رجل على رجل تقريباً) أو الوقوف، مع إيماءات الكلام والالتفات
   poseActor(k, a, dt) {
+    if (a.after) { // واقف: بلا سلاح، أو موجّه سلاحه نحو الطرف الثاني
+      const hurt = this.t - (this.boomT !== undefined ? this.t - this.boomT : 0);
+      a.m.update({ alive: true, yaw: a.seat.yaw + Math.sin(this.t * 0.9 + a.ph) * 0.03, pitch: a.aim ? -0.03 : -0.28, speed: 0, vx: 0, vz: 0, crouch: 0, onGround: true, reloading: false, fireT: 0, lean: 0, hurt: 9 }, dt);
+      if (!a.aim) a.m.head.rotation.x = -0.05 + Math.sin(this.t * 1.3 + a.ph) * 0.04;
+      return;
+    }
     const m = a.m, t = this.t + a.ph, st = a.stand, sit = 1 - st;
     a.talk = Math.max(0, a.talk - dt);
     m.root.rotation.set(0, a.seat.yaw, 0);
@@ -267,7 +307,8 @@ export class Intro {
     if (Audio.ctx) { const f = V3(0, 0, -1).applyQuaternion(cam.quaternion); Audio.setListener(cam.position.x, cam.position.y, cam.position.z, f.x, f.y, f.z); }
     if (this.flash > 0) { this.flash = Math.max(0, this.flash - dt * 0.45); }
     this.flashEl.style.opacity = this.flash.toFixed(3);
-    if (this.boomT !== undefined) { this.boomT += dt; r.toneMappingExposure = 1.1 * Math.max(0, 1 - this.boomT / 2.6); } else r.toneMappingExposure = 1.1;
+    if (this.boomT !== undefined) this.boomT += dt;
+    this.expo = this.expo ?? 1.1; this.expo += ((this.expoT ?? 1.1) - this.expo) * Math.min(1, dt * (this.expoRate || 2)); r.toneMappingExposure = this.expo;
     r.render(this.scene, cam);
   }
   finish() {

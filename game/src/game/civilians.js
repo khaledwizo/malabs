@@ -18,10 +18,10 @@ const ROBES = [[232, 230, 224], [196, 192, 182], [128, 110, 88], [86, 96, 104], 
 export class Civilian {
   constructor(n) {
     this.n = n; let a = n.seed | 0; const R = () => { a = (a * 1103515245 + 12345) & 0x7fffffff; return a / 0x7fffffff; };
-    const woman = n.look === 'pilgrim' && R() < 0.45, sheikh = n.look === 'sheikh';
+    const woman = n.look === 'pilgrim' && R() < 0.45, sheikh = n.look === 'sheikh', masked = n.look === 'masked';
     const skinC = SKINS[Math.floor(R() * SKINS.length)];
     const skin = std('skin' + skinC, { color: skinC, roughness: 0.6 });
-    const robeC = woman ? [22, 22, 26] : sheikh ? [238, 236, 230] : n.look === 'nursery' ? [70, 112, 72] : ROBES[Math.floor(R() * ROBES.length)];
+    const robeC = woman ? [22, 22, 26] : masked ? [30, 30, 32] : sheikh ? [238, 236, 230] : n.look === 'nursery' ? [70, 112, 72] : ROBES[Math.floor(R() * ROBES.length)];
     const robe = fab('robe' + robeC.join(), robeC);
     const face = sheikh ? faceMat(20, '#c08a68', { beard: '#b9b4ac', beardA: 0.85, mustache: '#a8a29a', brow: '#8f8a82', eye: '#2a1c12', lip: '#8d5446' }) : faceMat(Math.floor(R() * 6) + (woman ? 10 : 0), skinC, woman ? { brow: '#1a120c', lip: '#9c5a4a' } : { beard: R() < 0.7 ? (R() < 0.3 ? '#bdb8b0' : '#2a221c') : null, beardA: 0.9, mustache: '#231d18', brow: '#1d1612' });
     const root = this.root = new THREE.Group(); root.position.set(n.x, n.y, n.z); root.rotation.y = n.yaw;
@@ -46,7 +46,12 @@ export class Civilian {
     mesh(geo('neck', () => new THREE.CylinderGeometry(0.05, 0.056, 0.1, 10)), skin, 0, 0.53, 0, chest);
     const head = this.head = new THREE.Group(); head.position.y = 0.6; chest.add(head);
     mesh(headGeo(), face, 0, 0.05, 0, head);
-    if (woman) { const h = mesh(geo('hijab', () => new THREE.SphereGeometry(0.135, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.72)), std('abaya', { color: 0x141416, roughness: 0.9, side: THREE.DoubleSide }), 0, 0.06, 0.02, head); h.rotation.x = -0.35; mesh(geo('hijab2', () => new THREE.CylinderGeometry(0.13, 0.2, 0.3, 14, 1, true)), std('abaya', {}), 0, -0.12, 0.02, head); }
+    if (masked) { // لثام أسود يغطّي الرأس كله إلا فتحة العينين
+      mesh(geo('balac', () => new THREE.SphereGeometry(0.133, 16, 12)), std('balac', { color: 0x0c0c0d, roughness: 0.95 }), 0, 0.055, 0.004, head).scale.set(1, 1.12, 1.04);
+      mesh(roundBox(0.1, 0.024, 0.02, 0.008), skin, 0, 0.085, -0.128, head);
+      for (const s2 of [-1, 1]) mesh(geo('eyeM', () => new THREE.SphereGeometry(0.011, 6, 5)), std('eyeM', { color: 0x050505 }), s2 * 0.026, 0.087, -0.138, head);
+    }
+    else if (woman) { const h = mesh(geo('hijab', () => new THREE.SphereGeometry(0.135, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.72)), std('abaya', { color: 0x141416, roughness: 0.9, side: THREE.DoubleSide }), 0, 0.06, 0.02, head); h.rotation.x = -0.35; mesh(geo('hijab2', () => new THREE.CylinderGeometry(0.13, 0.2, 0.3, 14, 1, true)), std('abaya', {}), 0, -0.12, 0.02, head); }
     else if (sheikh || R() < 0.75) {
       const red = sheikh || R() < 0.55, m = shem(red);
       mesh(geo('shemTop', () => new THREE.SphereGeometry(0.128, 16, 10, 0, Math.PI * 2, 0, Math.PI * 0.55)), m, 0, 0.07, 0.008, head);
@@ -152,11 +157,15 @@ export class Civilian {
       if (this.wave > 0) { this.wave -= dt; const w = Math.sin(Math.min(1, (2.2 - this.wave) * 3) * Math.PI / 2) * Math.min(1, this.wave * 3); P[1][0] = -0.3 * w + P[1][0] * (1 - w); P[1][1] = -1.9 * w + P[1][1] * (1 - w); P[1][2] = -0.4 * w + Math.sin(t * 12) * 0.35 * w + P[1][2] * (1 - w); }
       if (d < 3.2 && this.wave <= 0 && !this.waved && !this.cower) { this.wave = 2.2; this.waved = true; } if (d > 8) this.waved = false;
       if (this.raise) { P[1] = [-2.35, -0.25, -0.25]; hx -= 0.08; }
+      // يمسك الرمّانة أمامه ثم يرميها
+      if (this.hold) P[1] = [-1.1, -0.15, -1.5];
+      if (this.throwT !== undefined) { this.throwT += dt; const T = this.throwT; if (T < 0.45) { const e = T / 0.45; P[1] = [-1.1 - 1.6 * e, -0.15 - 0.2 * e, -1.5 + 0.2 * e]; } else if (T < 0.7) { const e = (T - 0.45) / 0.25; P[1] = [-2.7 + 1.9 * e, -0.35, -1.3 + 1.1 * e]; } else P[1] = [-0.8, -0.3, -0.2]; }
       // الخوف من الرمي: ينحني ويغطّي رأسه
       if (this.cower > 0) { const e = Math.min(1, this.cower * 2, (this.cowerMax - this.cower) * 4 + 0.2); P[0] = [-2.6 * e + P[0][0] * (1 - e), 0.35 * e + P[0][1] * (1 - e), -1.7 * e + P[0][2] * (1 - e)]; P[1] = [-2.6 * e + P[1][0] * (1 - e), -0.35 * e + P[1][1] * (1 - e), -1.7 * e + P[1][2] * (1 - e)]; cx = 0.5 * e; hx = 0.5 * e; }
       this.chest.rotation.y += (chestY - this.chest.rotation.y) * k;
     }
-    this.arms.forEach((a, i) => { a.up.rotation.x += (P[i][0] - a.up.rotation.x) * k; a.up.rotation.z += (P[i][1] - a.up.rotation.z) * k; a.fo.rotation.x += (P[i][2] - a.fo.rotation.x) * k; });
+    const kk = this.throwT !== undefined && this.throwT < 0.8 ? 1 : k;
+    this.arms.forEach((a, i) => { const k = i === 1 ? kk : kk === 1 ? Math.min(1, dt * 7) : kk; a.up.rotation.x += (P[i][0] - a.up.rotation.x) * k; a.up.rotation.z += (P[i][1] - a.up.rotation.z) * k; a.fo.rotation.x += (P[i][2] - a.fo.rotation.x) * k; });
     this.head.rotation.x += (hx - this.head.rotation.x) * k; this.head.rotation.y += (hy - this.head.rotation.y) * k;
     this.chest.rotation.x += (cx - this.chest.rotation.x) * k;
     if (!this.sit) this.root.rotation.z = sway;
