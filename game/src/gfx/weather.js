@@ -178,25 +178,28 @@ export class Weather {
     this.renderer.toneMappingExposure = S.exp;
     const wm = this.meshes.userData.waterMat; if (wm) { const u = wm.uniforms; u.sky.value.copy(S.sky[1]); u.top.value.copy(S.sky[0]); u.deep.value.copy(S.deep); u.sun.value.copy(this.sunDir); u.glint.value = S.sunVis + S.moon * 0.35; u.rain.value = S.rain; }
     const gm = this.meshes.userData.glowMat; if (gm) gm.uniforms.gain.value = S.glow;
-    if (Math.abs((this.wetApplied ?? -1) - S.wet) > 0.02) {
-      this.wetApplied = S.wet;
-      for (const [m, r0, c0, k] of this.matBase) {
-        const floorish = /stone|marble|paving|brick|tile|wood|metal|iron|mud|graveDirt|roof|plaster/.test(k);
-        m.roughness = Math.max(0.06, r0 * (1 - (floorish ? 0.62 : 0.35) * S.wet)); m.color.copy(c0).multiplyScalar(1 - 0.22 * S.wet);
-        m.envMapIntensity = (m.metalness > 0.3 ? 0.9 : 0.04) + S.wet * (floorish ? 0.5 : 0.22);
-      }
-    }
-    this.wet = S.wet;
-    const pm = this.kit.mats.puddle; if (pm) pm.mat.opacity = Math.max(0, S.wet - 0.25) * 1.15;
+    // البلل يتجمّع تدريجياً (update): هنا نحفظ الهدف فقط
+    this.wetTarget = S.wet; this.rainNow = S.rain; if (this.wetNow === undefined) this.wetNow = S.wet * 0.3;
     this.rain.visible = S.rain > 0.02; this.rainU.alpha.value = 0.5 * S.rain + (S.rain > 0.02 ? 0.12 : 0) * Math.min(1, S.rain * 4);
     this.splash.visible = S.rain > 0.02; this.splU.alpha.value = S.rain;
     if (this.mist) { this.mist.visible = S.mist > 0.02; this.mistU.alpha.value = 0.2 * S.mist; this.mistU.col.value.copy(S.mistCol); }
     if (this.ambKind !== S.amb) { this.ambKind = S.amb; Audio.setAmbience(S.amb); }
-    Audio.setRainLevel && Audio.setRainLevel(S.amb === 'storm' ? 0.9 * Math.min(1, S.rain + 0.1) : S.amb === 'horror' ? 0.45 * S.rain / 0.3 : 0);
+    Audio.setRainLevel && Audio.setRainLevel(S.amb === 'storm' ? 0.62 * Math.min(1, S.rain + 0.1) : S.amb === 'horror' ? 0.45 * S.rain / 0.3 : 0);
+  }
+  // الأرض تبتلّ شوي شوي: لمعان وغمقان خفيف، والبرك تبدأ نقاط صغيرة وتتوسّع ببطء
+  applyWet(w) {
+    if (Math.abs((this.wetApplied ?? -1) - w) < 0.008) return;
+    this.wetApplied = w; this.wet = w;
+    for (const [m, r0, c0, k] of this.matBase) {
+      const floorish = /stone|marble|paving|brick|tile|wood|metal|iron|mud|graveDirt|roof|plaster/.test(k);
+      m.roughness = Math.max(0.06, r0 * (1 - (floorish ? 0.62 : 0.35) * w)); m.color.copy(c0).multiplyScalar(1 - 0.22 * w);
+      m.envMapIntensity = (m.metalness > 0.3 ? 0.9 : 0.04) + w * (floorish ? 0.5 : 0.22);
+    }
+    const pm = this.kit.mats.puddle; if (pm) { const p = Math.max(0, w - 0.12) / 0.88; pm.mat.opacity = Math.min(0.8, p * 1.1); if (pm.mat.userData.th) pm.mat.userData.th.value = 0.95 - 0.7 * p; }
   }
   set(want) {
     const id = this.pick(want); this.id = id; this.blend = null; this.plan = null;
-    this.ambKind = null; this.apply(this.stateOf(id));
+    this.ambKind = null; this.apply(this.stateOf(id)); this.wetNow = this.wetTarget * 0.3; this.applyWet(this.wetNow); // بداية المطر: الأرض رطبة شوي بس
     this.ghost.visible = false; this.ghostState = null; this.ghostT = 20 + Math.random() * 25;
     this.boltT = 3 + Math.random() * 6; this.flash = 0;
     this.updateEnv();
@@ -273,6 +276,8 @@ export class Weather {
   update(dt, t) {
     this.t = t;
     if (this.blend) { const B = this.blend; B.t += dt; const k = Math.min(1, B.t / B.dur), e = k * k * (3 - 2 * k); this.apply(this.mix(B.from, B.to, e)); if (k >= 1) { this.blend = null; this.updateEnv(); } }
+    // تجمّع الماء: يرتفع مع المطر (~3 دقائق للبلل الكامل) وينشف أبطأ بعد ما يوقف
+    if (this.wetTarget !== undefined) { const tg = this.wetTarget, w = this.wetNow ?? 0; this.wetNow = tg > w ? Math.min(tg, w + dt / 180 * (0.4 + (this.rainNow || 0))) : Math.max(tg, w - dt / 260); this.applyWet(this.wetNow); }
     const P = this.cur; if (!P) return;
     const cam = this.camera.position, L = this.L;
     // صوت المطر مكتوم تحت الأسقف

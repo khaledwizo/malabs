@@ -51,7 +51,8 @@ export class Builder {
     if (!this.cur) { fn(); return; }
     const key = mat + '#d', bt = this.batch(mat), s0 = bt.count; fn();
     let L = this.dyn.get(key); if (!L) { L = []; this.dyn.set(key, L); }
-    L.push([this.cur.id, s0, bt.count]);
+    const last = L[L.length - 1];
+    if (last && last[0] === this.cur.id && last[2] === s0) last[2] = bt.count; else L.push([this.cur.id, s0, bt.count]); // دمج الأجزاء المتتالية
   }
   tile(mat) { const m = this.gfx.mats[mat]; return m ? m.tile : 1; }
   // صندوق بإحداثيات الزوايا

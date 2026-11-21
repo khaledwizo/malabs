@@ -127,3 +127,29 @@ STAGE 4.3 (Nov 2026) — new cutscene story + real Iraqi voices live
   gen_voices.py removes .ogg files no longer in lines.json. Workflow: brings voice files from the branch head before
   generating (runs check out their event SHA), and commits by resetting onto the branch head + merging voices/APKs instead of
   rebase (binary conflicts). APK build #14: 348 ogg in assets/voice, cert dce687429cdb64f87ae6b1e5.
+
+STAGE 4.4 (Nov 2026) — user feedback round
+- Character select: camera framed a point behind the right-side panel (selected char hidden, previous one shown). Now
+  charFrameNdc() finds the visible part beside the panel and the camera rotates so the selected char sits there; others hidden.
+- Clothing: shirt/tie panels were coplanar with the jacket front (z-fight stripes) → pushed forward; vest wider than torso;
+  Ibrahim's cape was rotated onto his chest → now on shoulders/back.
+- Breakables: setProp keyed saved ranges by prop+mesh, so a 2nd part with the same material (tombstone cap, crate top band)
+  was skipped and floated → key includes range start; builder merges contiguous ranges.
+- Civilians faced -z but x-rotations were applied as if +z were front (arms/elbows behind, chest/head bends inverted) →
+  sign flipped at apply time; fall direction now with the bullet.
+- Souq talk: one audible "turn" at a time (u.hold, FLOOR_R 22m, gap 1.6–3s, nearest unit first); greetings/calls/reactions
+  need the turn too; global call gap; only one unit reacts to gunfire.
+- Tea: chaychi holds a porcelain qouri (right) + tray of estikans (left), both kept level (levelHeld); counter has charcoal
+  stove + kettle + qouri + 7 estikans; café tables get estikans on saucers (half/empty); tea customers hold beads.
+- Shadows: whole-map 1024 shadow (≈24cm texels) made stairs/floors look broken → shadow frustum follows the camera
+  (±40/55/70m by quality) snapped to texels, uses the weather sun direction.
+- Audio: removed synthetic bird chirp from menu/day ambience (the repeating "two dots"); softer hearth crackle in intro;
+  music silent during intro (Audio.introOn) and restarts from the top when it ends; new rain loop (rainSamples: shaped
+  noise hiss with slow breathing, filtered-noise drop impacts, rising-pitch puddle plops, light wash), quieter level.
+- Rain: wetness accumulates gradually (wetNow → target, ~3 min to full, dries slower); puddle texture now encodes shape in
+  colour so a threshold (pTh) grows puddles from small spots.
+- Night (weather night>0.5, in matches): shopkeepers, tea seller and his customers go home (setAway, sim npc.away skipped
+  by bullets/nades, collision box disabled). Rain: other civilians hold umbrellas (left hand, kept upright).
+- Lanterns: every hanging lantern has a soft flame-flicker light (fl=2) and is a 'lamp' prop (hp 1, glass, THIN|NOPLAYER);
+  street lamps too. Breaking: light off (lampAt), glow sprite size 0, lantern model glass emissive off per instance
+  (lampOn instanced attribute), glass shards + sparks + breakGlass sound; restored each round. Duplicate lights deduped.

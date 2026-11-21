@@ -26,6 +26,17 @@ const BOT_NAMES = ['يوسف', 'حيدر', 'زيد', 'عمر', 'مصطفى', 'ل
 const ease = t => t * t * (3 - 2 * t);
 const angTo = (a, b) => { let d = b - a; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; return d; };
 
+// مركز الجزء الظاهر من الشاشة أفقياً (‎-1..1‎) بجانب لوحة اختيار الشخصية
+function charFrameNdc() {
+  if (typeof document === 'undefined') return 0;
+  const el = document.querySelector('#s-chars.on .panel'), W = innerWidth || 1;
+  if (!el) return -0.45;
+  const r = el.getBoundingClientRect();
+  if (r.width > W * 0.8) return 0;
+  const cx = r.left > W * 0.25 ? r.left / 2 : (r.right + W) / 2;
+  return Math.max(-0.8, Math.min(0.8, cx / W * 2 - 1));
+}
+
 export class Game {
   constructor(ctx) {
     Object.assign(this, ctx); // renderer, scene, camera, world, info, Q, sunDir, weather
@@ -46,16 +57,21 @@ export class Game {
     const L = this.info.lineup || { x: -2.4, z: 23.6, dx: 1.6 };
     CHAR_ORDER.forEach((id, i) => { const m = new CharModel(id, i % 2); m.root.position.set(L.x + i * L.dx, 0, L.z); m.setWeapon(['rafid', 'saqr', 'zawba', 'nisr'][i], i === 1 ? 'x8' : null); this.scene.add(m.root); this.lineup.push(m); });
   }
-  menuView(mode, ch) { this.menuMode = mode; if (ch) this.menuChar = ch; }
+  menuView(mode, ch) { if (mode === 'chars' && this.menuMode !== 'chars') this.menuSnap = true; this.menuMode = mode; if (ch) this.menuChar = ch; this.menuFrameT = 0; }
   menuWeapon(id, scope, att) { this.menuWeaponId = id; this.vm.setChar(Settings.char); this.vm.setWeapon(id, scope, att); }
   updateMenu(dt) {
     this.menuT += dt;
     const cam = this.camera, L = this.info.lineup || { x: -2.4, z: 23.6, dx: 1.6 };
     if (this.freeCam) { const f = this.freeCam; cam.position.set(f.x, f.y, f.z); cam.rotation.set(f.pitch || 0, f.yaw || 0, 0, 'YXZ'); if (cam.fov !== (f.fov || 70)) { cam.fov = f.fov || 70; cam.updateProjectionMatrix(); } this.lineup.forEach(m => { m.root.visible = false; }); return; }
     if (this.menuMode === 'chars') {
-      const i = CHAR_ORDER.indexOf(this.menuChar), tx = L.x + i * L.dx;
-      cam.position.lerp(new THREE.Vector3(tx - 0.9, 1.45, L.z + 2.4), Math.min(1, dt * 3));
-      cam.lookAt(new THREE.Vector3(tx - 0.5, 1.25, L.z));
+      // نضع الشخصية المختارة في منتصف الجزء الظاهر من الشاشة (اللوحة الجانبية تغطّي جهة)
+      if (!(this.menuFrameT > 0)) { this.menuFrameT = 0.4; this.menuNdc = charFrameNdc(); } this.menuFrameT -= dt;
+      // الكاميرا أمام الشخصية تقريباً (الشارع ضيّق) وتدور بزاوية كي تقع الشخصية في الجزء الظاهر
+      const i = Math.max(0, CHAR_ORDER.indexOf(this.menuChar)), tx = L.x + i * L.dx, d = 2.6, c0 = -0.35 * Math.sign(this.menuNdc || -1);
+      const want = new THREE.Vector3(tx + c0, 1.2, L.z + d);
+      if (this.menuSnap) { cam.position.copy(want); this.menuSnap = false; } else cam.position.lerp(want, Math.min(1, dt * 4));
+      const T = Math.tan(THREE.MathUtils.degToRad(31)) * cam.aspect, beta = Math.atan2(tx - cam.position.x, cam.position.z - L.z) - Math.atan(this.menuNdc * T);
+      cam.lookAt(cam.position.x + Math.sin(beta) * 5, 1.0, cam.position.z - Math.cos(beta) * 5);
     } else {
       const P = this.info.menuCam || { x: 6, y: 5.2, z: 32.6, lx: -4, ly: 4.5, lz: 10 };
       const a = this.menuT * 0.05;
@@ -63,11 +79,11 @@ export class Game {
       cam.lookAt(new THREE.Vector3(Math.sin(a) * 6 + P.lx, P.ly, P.lz));
     }
     if (cam.fov !== 62) { cam.fov = 62; cam.updateProjectionMatrix(); }
-    this.lineup.forEach((m, i) => { const sel = this.menuMode === 'chars' && CHAR_ORDER[i] === this.menuChar; m.update({ yaw: Math.PI + (sel ? Math.sin(this.menuT * 0.8) * 0.5 : 0.15 * (i - 1.5)), pitch: sel ? -0.05 : 0, speed: 0, vx: 0, vz: 0, crouch: 0, onGround: true, alive: true }, dt); m.root.visible = this.menuMode === 'chars'; });
+    this.lineup.forEach((m, i) => { const sel = this.menuMode === 'chars' && CHAR_ORDER[i] === this.menuChar; m.update({ yaw: Math.PI + (sel ? Math.sin(this.menuT * 0.8) * 0.5 : 0.15 * (i - 1.5)), pitch: sel ? -0.05 : 0, speed: 0, vx: 0, vz: 0, crouch: 0, onGround: true, alive: true }, dt); m.root.visible = this.menuMode === 'chars' && sel; });
   }
   // ---------- بدء المباراة ----------
   startMatch(o) {
-    this.quit(true); this.wxSeed = 0;
+    this.quit(true); this.wxSeed = 0; this.civNight = undefined;
     Social.presence('game');
     const sim = this.sim = new Sim(this.world, { mode: o.mode, roundsToWin: o.roundsToWin, timeLimit: o.timeLimit, difficulty: o.difficulty, seed: Date.now() & 0xffff });
     const me = sim.addPlayer({ name: o.name, team: o.team, char: o.char, loadout: o.loadout });
@@ -297,13 +313,15 @@ export class Game {
         case 'bounce': Audio.play('bounce', e.p); break;
         case 'break': {
           const set = this.meshes && this.meshes.userData.setProp; if (set) set(e.id, false);
-          const P = this.world.props[e.id]; if (!P || e.silent) break;
+          const P = this.world.props[e.id]; if (!P) break;
+          if (P.kind === 'lamp' && this.meshes.userData.lampAt) this.meshes.userData.lampAt(P.c, false); // ينطفئ الفانوس المكسور
+          if (e.silent) break;
           const at = P.c || e.p, kind = P.kind; this.fx.debris(at, kind);
-          Audio.play(kind === 'vase' ? 'breakClay' : kind === 'tomb' ? 'breakStone' : kind === 'sack' ? 'flesh' : 'breakWood', at);
+          Audio.play(kind === 'vase' ? 'breakClay' : kind === 'tomb' ? 'breakStone' : kind === 'sack' ? 'flesh' : kind === 'lamp' ? 'breakGlass' : 'breakWood', at);
           break;
         }
         case 'reset': this.resetWorldVis(); break;
-        case 'npcHit': { const c = this.civs && this.civs[e.id]; if (c && e.p) { const d = me ? [e.p[0] - me.pos[0], 0, e.p[2] - me.pos[2]] : [0, 0, 1]; this.fx.blood(e.p, d, 25, false, this.world); Audio.play('flesh', e.p); } break; }
+        case 'npcHit': { const c = this.civs && this.civs[e.id]; if (c && e.p && !c.away) { const d = me ? [e.p[0] - me.pos[0], 0, e.p[2] - me.pos[2]] : [0, 0, 1]; this.fx.blood(e.p, d, 25, false, this.world); Audio.play('flesh', e.p); } break; }
         case 'npcDie': { const c = this.civs && this.civs[e.id]; if (!c) break; c.die(e.d); if (!e.silent) { setTimeout(() => { this.fx.bloodPool([c.n.x, c.n.y, c.n.z], this.world, 0.55 + Math.random() * 0.25); Audio.play('bodyFall', [c.n.x, 0.3, c.n.z]); }, 650); if (e.k === this.me) UI.toast('قتلت أحد أهل السوق!'); } break; }
         case 'heal': if (e.id === this.me) this.vm.healT = e.k === 2 ? 4 : 2.4; Audio.play(e.k === 2 ? 'syringe' : 'bandage', e.id === this.me ? null : this.posOf(e.id)); break;
         case 'healed': if (e.id === this.me) { Audio.play('healed'); this.vm.healT = 0; } break;
@@ -488,8 +506,16 @@ export class Game {
   updateWorldAnim(dt) { if (this.onAnim) this.onAnim(dt, this.t); this.updateCivs(dt); }
   // أهل السوق: تحريك القريبين فقط، وإخفاء البعيدين، وظلال للقريبين جداً
   updateCivs(dt) {
-    const cam = this.camera.position;
+    const cam = this.camera.position, W = this.weather;
+    // الليل: أصحاب المحال والچايچي وزبائنه راحوا لبيوتهم. المطر: الباقون بمظلّات
+    const night = !!(this.sim && W && W.cur && W.cur.night > 0.5), rain = !!(W && (W.rainNow || 0) > 0.15);
+    if (this.civNight !== night) {
+      this.civNight = night;
+      (this.civs || []).forEach((c, i) => { const away = night && c.shop; c.setAway(away); const st = this.sim && this.sim.npcs && this.sim.npcs[i]; if (st) st.away = away; const wn = this.world.npcs[i]; if (wn && wn.box >= 0) { if (away) this.world.disable(wn.box); else if (!st || st.alive !== false) this.world.restore(wn.box); } });
+    }
     for (const c of this.civs || []) {
+      if (c.away) continue;
+      if (c.umbOK) c.setUmbrella(rain && c.alive);
       const d = Math.hypot(c.n.x - cam.x, c.n.z - cam.z), vis = d < 48;
       if (c.root.visible !== vis) c.root.visible = vis;
       if (!vis) continue;
@@ -501,10 +527,10 @@ export class Game {
   syncWorld(instant) {
     const sim = this.sim, set = this.meshes && this.meshes.userData.setProp; if (!sim) return;
     const P = sim.props || [], N = sim.npcs || [];
-    (this.world.props || []).forEach((p, i) => { const on = !P[i] || P[i].alive !== false; if (set) set(i, on); });
+    (this.world.props || []).forEach((p, i) => { const on = !P[i] || P[i].alive !== false; if (set) set(i, on); if (p.kind === 'lamp' && this.meshes.userData.lampAt) this.meshes.userData.lampAt(p.c, on); });
     (this.civs || []).forEach((c, i) => { const alive = !N[i] || N[i].alive !== false; if (alive && !c.alive) c.revive(); else if (!alive && c.alive) { c.die(null); if (instant) { c.dead = 0.999; c.update(0.01, this.camera.position); } } });
   }
-  resetWorldVis() { const set = this.meshes && this.meshes.userData.setProp; (this.world.props || []).forEach((p, i) => set && set(i, true)); for (const c of this.civs || []) if (!c.alive) c.revive(); }
+  resetWorldVis() { const set = this.meshes && this.meshes.userData.setProp, la = this.meshes && this.meshes.userData.lampAt; (this.world.props || []).forEach((p, i) => { set && set(i, true); if (la && p.kind === 'lamp') la(p.c, true); }); for (const c of this.civs || []) if (!c.alive) c.revive(); }
   spectate(dt) {
     const sim = this.sim, cam = this.camera, me = this.mp;
     const sp = this.spec || (this.spec = { id: -1, t: 0, pos: me ? me.pos.slice() : [0, 0, 0] });

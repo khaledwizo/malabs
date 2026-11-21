@@ -109,7 +109,7 @@ export function buildWorldMeshes(B, kit, info) {
   const saved = new Map();
   group.userData.setProp = (id, on) => {
     for (const [mesh, s0, e0] of (props.get(id) || [])) {
-      const P = mesh.geometry.attributes.position, A = P.array, k = id + ':' + mesh.id;
+      const P = mesh.geometry.attributes.position, A = P.array, k = id + ':' + mesh.id + ':' + s0; // جزء لكل مدى (قد يكون للجسم عدّة أجزاء بنفس المادّة)
       if (!on) { if (saved.has(k)) continue; saved.set(k, A.slice(s0 * 3, e0 * 3)); for (let i = s0; i < e0; i++) { A[i * 3 + 1] = -60; } }
       else { const S = saved.get(k); if (!S) continue; A.set(S, s0 * 3); saved.delete(k); }
       P.addUpdateRange(s0 * 3, (e0 - s0) * 3); P.needsUpdate = true;
@@ -117,9 +117,14 @@ export function buildWorldMeshes(B, kit, info) {
   };
   // النماذج المرخّصة المكرّرة (فوانيس خشبية، أسماك...) كـ InstancedMesh
   const dummy = new THREE.Object3D();
+  const lampInst = []; // [InstancedMesh, attr, L] لنماذج الفوانيس (لإطفاء زجاج المكسور منها)
   for (const [proto, L] of B.inst) {
     for (const { geo, mat } of modelParts(proto, kit.Q.aniso || 4)) {
       const im = new THREE.InstancedMesh(geo, mat, L.length);
+      if (proto === 'lantern' && mat.emissiveMap) {
+        const at = new THREE.InstancedBufferAttribute(new Float32Array(L.length).fill(1), 1); geo.setAttribute('lampOn', at); lampInst.push([im, at, L]);
+        if (!mat.userData.lampPatched) { mat.userData.lampPatched = true; mat.onBeforeCompile = sh => { sh.vertexShader = 'attribute float lampOn;\nvarying float vLampOn;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\nvLampOn = lampOn;'); sh.fragmentShader = 'varying float vLampOn;\n' + sh.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance *= vLampOn;'); }; }
+      }
       L.forEach(([x, y, z, ry, s, sy], i) => { dummy.position.set(x, y, z); dummy.rotation.set(0, ry, 0); dummy.scale.set(s, sy, s); dummy.updateMatrix(); im.setMatrixAt(i, dummy.matrix); });
       im.castShadow = Q.shadow > 0; im.receiveShadow = Q.shadow > 0; im.computeBoundingSphere(); group.add(im);
     }
@@ -151,24 +156,32 @@ export function buildWorldMeshes(B, kit, info) {
         vF = mix(1.0, f, fl); gl_PointSize = size * scale / -mv.z * (0.7 + 0.3 * vF); gl_Position = projectionMatrix * mv; }`,
       fragmentShader: `uniform sampler2D map; uniform float gain; varying float vF; void main(){ vec4 c = texture2D(map, gl_PointCoord); gl_FragColor = vec4(c.rgb * 1.2 * gain * vF, c.a * 0.85); }`,
     });
-    const pts = new THREE.Points(geo, mat); pts.frustumCulled = false; group.add(pts); group.userData.glowMat = mat;
+    const pts = new THREE.Points(geo, mat); pts.frustumCulled = false; group.add(pts); group.userData.glowMat = mat; group.userData.glowSizes = [geo.attributes.size, sizes.slice()];
   }
   // أضواء نقطية حقيقية (محدودة العدد حسب الجودة)
   // مجمّع أضواء نقطية حقيقية: تُسند لأقرب الفوانيس إلى الكاميرا (عدد ثابت حسب الجودة لتفادي إعادة ترجمة الظلال)
-  const maxL = [0, 4, 6, 10][Q.details] || 0, pool = [], all = B.lights;
+  // ضوء واحد لكل فانوس (نحذف المكرّر القريب) — ويمكن إطفاؤه إذا انكسر
+  const all = []; for (const l of B.lights) { const dup = all.find(o => (o.x - l.x) ** 2 + (o.y - l.y) ** 2 + (o.z - l.z) ** 2 < 1.1); if (dup) { if (l.intensity > dup.intensity) Object.assign(dup, l); } else all.push({ ...l }); }
+  const maxL = [0, 4, 6, 10][Q.details] || 0, pool = [];
   for (let i = 0; i < maxL; i++) { const pl = new THREE.PointLight(0xffb060, 0, 8, 1.6); pl.userData.idx = -1; group.add(pl); pool.push(pl); }
-  const flick = (t, i) => { let f = 0.74 + 0.26 * (Math.sin(t * 23 + i * 7.1) * 0.5 + Math.sin(t * 7.3 + i * 3.7) * 0.3 + Math.sin(t * 51 + i) * 0.2); if (Math.sin(t * 1.7 + i * 5) > 0.93) f *= 0.12; return f; };
+  const flick = (t, i, k) => { if (k === 2) return 0.86 + 0.14 * (Math.sin(t * 13 + i * 7.1) * 0.5 + Math.sin(t * 5.3 + i * 3.7) * 0.3 + Math.sin(t * 29 + i) * 0.2); let f = 0.74 + 0.26 * (Math.sin(t * 23 + i * 7.1) * 0.5 + Math.sin(t * 7.3 + i * 3.7) * 0.3 + Math.sin(t * 51 + i) * 0.2); if (Math.sin(t * 1.7 + i * 5) > 0.93) f *= 0.12; return f; };
   let pickT = 0; const d2 = new Float32Array(all.length);
   group.userData.updateLights = (cx, cy, cz, t, dt, mul) => {
     if (!maxL) return;
     if ((pickT -= dt) <= 0) {
       pickT = 0.25;
-      for (let i = 0; i < all.length; i++) { const l = all[i]; d2[i] = ((l.x - cx) ** 2 + (l.y - cy) ** 2 + (l.z - cz) ** 2) / (l.intensity * l.intensity + 0.5); }
+      for (let i = 0; i < all.length; i++) { const l = all[i]; d2[i] = l.off ? 1e12 : ((l.x - cx) ** 2 + (l.y - cy) ** 2 + (l.z - cz) ** 2) / (l.intensity * l.intensity + 0.5); }
       const order = [...all.keys()].sort((a, b) => d2[a] - d2[b]).slice(0, maxL), want = new Set(order);
       const free = pool.filter(p => !want.has(p.userData.idx));
       for (const i of order) { if (pool.some(p => p.userData.idx === i)) continue; const p = free.shift(); if (!p) break; const l = all[i]; p.userData.idx = i; p.position.set(l.x, l.y, l.z); p.color.setHex(l.color); p.distance = l.dist * (mul > 1.2 ? 1.25 : 1); p.userData.fade = 0; }
     }
-    for (const p of pool) { const i = p.userData.idx; if (i < 0) { p.intensity = 0; continue; } const l = all[i]; p.userData.fade = Math.min(1, (p.userData.fade ?? 1) + dt * 3); p.intensity = l.intensity * mul * p.userData.fade * (l.fl ? flick(t, i) : 1); }
+    for (const p of pool) { const i = p.userData.idx; if (i < 0) { p.intensity = 0; continue; } const l = all[i]; p.userData.fade = l.off ? 0 : Math.min(1, (p.userData.fade ?? 1) + dt * 3); p.intensity = l.intensity * mul * p.userData.fade * (l.fl ? flick(t, i, l.fl) : 1); }
+  };
+  // فانوس انكسر (on=false) أو رجع بجولة جديدة: الضوء والتوهّج وزجاج النموذج قرب النقطة c
+  group.userData.lampAt = (c, on) => {
+    for (const l of all) if ((l.x - c[0]) ** 2 + (l.y - c[1]) ** 2 + (l.z - c[2]) ** 2 < 0.9) l.off = !on;
+    const gs = group.userData.glowSizes; if (gs) { const [at, s0] = gs; B.glows.forEach((g, i) => { if ((g.x - c[0]) ** 2 + (g.y - c[1]) ** 2 + (g.z - c[2]) ** 2 < 0.5) at.array[i] = on ? s0[i] : 0; }); at.needsUpdate = true; }
+    for (const [im, at, L] of lampInst) { L.forEach(([x, y, z, ry, sc], i) => { const hx = x + Math.cos(ry) * 1.53 * sc, hz = z - Math.sin(ry) * 1.53 * sc; if ((hx - c[0]) ** 2 + (hz - c[2]) ** 2 < 0.5) at.array[i] = on ? 1 : 0; }); at.needsUpdate = true; }
   };
   group.userData.waters = waters; group.userData.waterMat = wm;
   return group;
@@ -182,10 +195,24 @@ export function setupLights(scene, info, Q, bounds) {
   const cx = (bounds[0] + bounds[2]) / 2, cz = (bounds[1] + bounds[3]) / 2, ext = Math.max(bounds[2] - bounds[0], bounds[3] - bounds[1]) * 0.62;
   sun.position.set(cx + sunDir.x * 120, sunDir.y * 120, cz + sunDir.z * 120); sun.target.position.set(cx, 0, cz);
   scene.add(sun); scene.add(sun.target);
+  // الظل يتبع اللاعب بمساحة أصغر (دقّة أعلى بثلاث-أربع مرّات): كانت الخريطة كلها بخريطة ظل واحدة
+  // فيصير البكسل ~٢٤سم ويتكسّر ظل الدرج والأروقة. نثبّت المركز على شبكة بكسلات الظل كي لا يرتعش
+  const se = Q.shadow >= 4096 ? 70 : Q.shadow >= 2048 ? 55 : 40;
   if (Q.shadow > 0) {
     sun.castShadow = true; sun.shadow.mapSize.set(Q.shadow, Q.shadow);
-    const c = sun.shadow.camera; c.left = -ext; c.right = ext; c.top = ext; c.bottom = -ext; c.near = 10; c.far = 300;
-    sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.035; sun.shadow.radius = 2;
+    const c = sun.shadow.camera; c.left = -se; c.right = se; c.top = se; c.bottom = -se; c.near = 10; c.far = 320; c.updateProjectionMatrix();
+    sun.shadow.bias = -0.00025; sun.shadow.normalBias = 0.02; sun.shadow.radius = 2;
   }
-  return { sun, hemi, amb, sunDir };
+  const _f = new THREE.Vector3(), _X = new THREE.Vector3(), _Y = new THREE.Vector3(), UP = new THREE.Vector3(0, 1, 0), _d = new THREE.Vector3();
+  const follow = (cam, sd) => {
+    if (!(Q.shadow > 0)) return;
+    _d.copy(sd || sunDir); if (_d.y < 0.15) { _d.y = 0.15; } _d.normalize();
+    cam.getWorldDirection(_f); _f.y = 0; if (_f.lengthSq() < 1e-6) _f.set(0, 0, -1); _f.normalize();
+    const tx = cam.position.x + _f.x * se * 0.35, tz = cam.position.z + _f.z * se * 0.35, texel = 2 * se / Q.shadow;
+    _X.crossVectors(UP, _d).normalize(); _Y.crossVectors(_d, _X);
+    const u = Math.round((tx * _X.x + tz * _X.z) / texel) * texel, v = Math.round((tx * _Y.x + tz * _Y.z) / texel) * texel, w = tx * _d.x + tz * _d.z;
+    sun.target.position.set(_X.x * u + _Y.x * v + _d.x * w, _X.y * u + _Y.y * v + _d.y * w, _X.z * u + _Y.z * v + _d.z * w);
+    sun.position.copy(sun.target.position).addScaledVector(_d, 140); sun.target.updateMatrixWorld();
+  };
+  return { sun, hemi, amb, sunDir, follow };
 }

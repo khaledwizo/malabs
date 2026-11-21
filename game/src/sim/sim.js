@@ -37,7 +37,7 @@ export class Sim {
   resetWorld(ev = true) {
     const W = this.w;
     (W.props || []).forEach((p, i) => { const st = this.props[i]; st.hp = p.hp; st.alive = true; for (const b of p.boxes) W.restore(b); });
-    this.npcs.forEach((n, i) => { n.alive = true; n.hp = 70; const w = (W.npcs || [])[i]; if (w && w.box >= 0) W.restore(w.box); });
+    this.npcs.forEach((n, i) => { n.alive = true; n.hp = 70; const w = (W.npcs || [])[i]; if (w && w.box >= 0 && !n.away) W.restore(w.box); });
     if (ev) this.events.push({ t: 'reset' });
   }
   hitProp(pid, dmg, at) {
@@ -319,7 +319,7 @@ export class Sim {
       // أهل السوق
       const NP = this.w.npcs;
       if (NP) for (let i = 0; i < NP.length; i++) {
-        const n = NP[i]; if (!n.kill || !this.npcs[i].alive) continue;
+        const n = NP[i]; if (!n.kill || !this.npcs[i].alive || this.npcs[i].away) continue;
         const h = this.hitNpc(n, x, y, z, d, best ? best.t : wt);
         if (h) { best = h; best.npc = i; best.q = null; }
       }
@@ -456,7 +456,7 @@ export class Sim {
         this.damage(q, o, dmg, 'frag', false, false, false, 0.6, 'chest', [(c[0] - x) / (d || 1), 0.4, (c[2] - z) / (d || 1)]);
       }
       (this.w.props || []).forEach((pr, i) => { if (!this.props[i].alive) return; const dd = Math.hypot(pr.c[0] - x, pr.c[1] - y, pr.c[2] - z); if (dd < N.radius * 0.8) this.hitProp(i, N.dmg * 1.5 * (1 - dd / N.radius), pr.c); });
-      (this.w.npcs || []).forEach((nn, i) => { if (!nn.kill || !this.npcs[i].alive) return; const dd = Math.hypot(nn.x - x, nn.z - z); if (dd < N.radius && this.w.los(x, y + 0.2, z, nn.x, nn.y + 1, nn.z)) this.damageNpc(i, o, N.dmg * (1 - dd / N.radius), [(nn.x - x) / (dd || 1), 0.3, (nn.z - z) / (dd || 1)], [nn.x, nn.y + 1, nn.z]); });
+      (this.w.npcs || []).forEach((nn, i) => { if (!nn.kill || !this.npcs[i].alive || this.npcs[i].away) return; const dd = Math.hypot(nn.x - x, nn.z - z); if (dd < N.radius && this.w.los(x, y + 0.2, z, nn.x, nn.y + 1, nn.z)) this.damageNpc(i, o, N.dmg * (1 - dd / N.radius), [(nn.x - x) / (dd || 1), 0.3, (nn.z - z) / (dd || 1)], [nn.x, nn.y + 1, nn.z]); });
     } else if (n.kind === 'smoke') this.smokes.push({ x, y, z, r: N.radius, t: 0, life: N.life });
     else if (n.kind === 'molotov') {
       const g = this.w.ray(x, y + 0.2, z, 0, -1, 0, 4, F.NOBULLET, {});

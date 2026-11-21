@@ -113,12 +113,12 @@ export class CharModel {
     const chest = this.chest = new THREE.Group(); torso.add(chest);
     mesh(roundBox(0.45, 0.5, 0.26, 0.09), M.jacket, 0, 0.27, 0, chest);
     mesh(roundBox(0.5, 0.17, 0.275, 0.08), M.jacket, 0, 0.43, 0, chest); // صدر وكتفان عريضان
-    if (d.cape) { const cp = mesh(cached('cape', () => new THREE.CylinderGeometry(0.2, 0.3, 0.3, 16, 1, true, -Math.PI * 0.62, Math.PI * 1.24)), M.cape, 0, 0.39, 0.005, chest); cp.rotation.y = Math.PI; cp.scale.set(1.12, 1, 0.82); }
+    if (d.cape) { const cp = mesh(cached('cape', () => new THREE.CylinderGeometry(0.2, 0.3, 0.3, 16, 1, true, -Math.PI * 0.62, Math.PI * 1.24)), M.cape, 0, 0.4, 0.012, chest); cp.scale.set(1.18, 1, 0.92); } // عباءة كتف من الخلف والجانبين (مفتوحة من الأمام)
     if (d.hood) { const hd = mesh(cached('hood', () => new THREE.SphereGeometry(0.16, 16, 10, 0, Math.PI * 2, Math.PI * 0.35, Math.PI * 0.45)), M.jacket, 0, 0.54, 0.1, chest); hd.scale.set(1.05, 0.8, 0.9); hd.rotation.x = 0.5; }
-    if (d.jacketOpen || d.tie) { mesh(roundBox(0.13, 0.42, 0.04, 0.015), M.shirt, 0, 0.29, -0.11, chest); }
-    if (d.tie) { const t = mesh(roundBox(0.045, 0.32, 0.02, 0.008), M.tie, 0, 0.3, -0.135, chest); mesh(roundBox(0.05, 0.04, 0.025, 0.01), M.tie, 0, 0.47, -0.135, chest); t.rotation.x = 0.03; }
+    if (d.jacketOpen || d.tie) { mesh(roundBox(0.13, 0.4, 0.03, 0.012), M.shirt, 0, 0.3, -0.134, chest); } // القميص بارز قليلاً عن وجه السترة (لا تداخل يرتجف)
+    if (d.tie) { const t = mesh(roundBox(0.045, 0.3, 0.016, 0.006), M.tie, 0, 0.31, -0.153, chest); mesh(roundBox(0.05, 0.04, 0.022, 0.009), M.tie, 0, 0.465, -0.155, chest); t.rotation.x = 0.03; }
     if (d.jacketOpen && !d.tie) mesh(roundBox(0.15, 0.06, 0.06, 0.02), M.shirt, 0, 0.5, -0.06, chest);
-    if (d.vest) { mesh(roundBox(0.45, 0.38, 0.29, 0.07), M.vest, 0, 0.27, 0, chest); for (let k = 0; k < 3; k++) mesh(roundBox(0.09, 0.12, 0.05, 0.02), M.vest, -0.12 + k * 0.12, 0.17, -0.155, chest); }
+    if (d.vest) { mesh(roundBox(0.474, 0.38, 0.3, 0.07), M.vest, 0, 0.27, 0, chest); for (let k = 0; k < 3; k++) mesh(roundBox(0.09, 0.12, 0.05, 0.02), M.vest, -0.12 + k * 0.12, 0.17, -0.168, chest); }
     // الرقبة والرأس
     mesh(cached('neck', () => new THREE.CylinderGeometry(0.052, 0.058, 0.12, 12)), M.skin, 0, 0.55, 0, chest);
     const head = this.head = new THREE.Group(); head.position.y = 0.625; chest.add(head);

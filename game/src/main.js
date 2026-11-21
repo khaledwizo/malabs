@@ -62,7 +62,7 @@ weather.set('menu');
 applyRes();
 game.onAnim = (dt, t) => {
   sky.material.uniforms.t.value = t; meshes.userData.waterMat.uniforms.t.value = t; sky.position.copy(camera.position);
-  weather.update(dt, t);
+  weather.update(dt, t); L.follow && L.follow(camera, weather.sunDir); // ظل حادّ حول اللاعب
   if (game.post.enabled) game.post.grade = weather.grade;
 };
 UI.init(game);

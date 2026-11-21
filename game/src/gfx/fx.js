@@ -154,6 +154,11 @@ export class FX {
   // تحطّم جسم: شظايا تتطاير وتسقط مع غبار (خشب، فخّار، حجر، أكياس بهار)
   debris(p, kind) {
     const k = this.k, A = this.alpha;
+    if (kind === 'lamp') { // شظايا زجاج لامعة وشرارات وجمرة الفتيلة
+      for (let i = 0; i < 22 * k; i++) { const a = Math.random() * 6.28, sp = 0.6 + Math.random() * 2.4, s = 0.02 + Math.random() * 0.035; A.add(p[0], p[1], p[2], Math.cos(a) * sp, 0.5 + Math.random() * 1.6, Math.sin(a) * sp, 0.6 + Math.random() * 0.6, s, s, 0.85, 0.92, 0.95, 0.9, 11, 0.6); }
+      for (let i = 0; i < 16 * k; i++) { const a = Math.random() * 6.28, sp = 1 + Math.random() * 3; this.add.add(p[0], p[1], p[2], Math.cos(a) * sp, 0.5 + Math.random() * 2.5, Math.sin(a) * sp, 0.3 + Math.random() * 0.5, 0.06, 0.02, 1, 0.65, 0.25, 1, 9, 1); }
+      this.lightFlash(p, 0xffaa55, 2.5); return;
+    }
     const col = kind === 'vase' ? [0.62, 0.36, 0.22] : kind === 'tomb' ? [0.74, 0.72, 0.68] : kind === 'sack' ? [0.8, 0.55, 0.25] : [0.52, 0.36, 0.2];
     const dust = kind === 'sack' ? [0.85, 0.6, 0.3] : kind === 'tomb' ? [0.7, 0.68, 0.64] : [0.66, 0.58, 0.48];
     for (let i = 0; i < 28 * k; i++) { const a = Math.random() * 6.28, sp = 1.2 + Math.random() * 3.4, s = 0.05 + Math.random() * 0.09, v = 0.8 + Math.random() * 0.35; A.add(p[0] + (Math.random() - 0.5) * 0.4, p[1] + Math.random() * 0.4, p[2] + (Math.random() - 0.5) * 0.4, Math.cos(a) * sp, 1.5 + Math.random() * 3.2, Math.sin(a) * sp, 0.8 + Math.random() * 0.7, s, s * 0.85, col[0] * v, col[1] * v, col[2] * v, 1, 11, 0.6); }

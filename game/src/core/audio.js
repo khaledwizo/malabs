@@ -29,12 +29,14 @@ export const Audio = {
   // الموسيقى: أعلى في القوائم، خافتة أثناء القتال
   setMusic(v) { this.musV = v; this.applyMusic(); },
   musicMode(m) { this.musM = m; this.applyMusic(); },
-  applyMusic() { if (!this.mus) return; const v = (this.musV ?? Settings.music) * (this.musM === 'game' ? 0.22 : this.musM === 'intro' ? 0 : 0.6); this.mus.gain.setTargetAtTime(v, this.ctx.currentTime, 0.8); },
+  applyMusic() { if (!this.mus) return; const v = this.introOn ? 0 : (this.musV ?? Settings.music) * (this.musM === 'game' ? 0.22 : this.musM === 'intro' ? 0 : 0.6); this.mus.gain.setTargetAtTime(v, this.ctx.currentTime, 0.8); },
+  // بعد المقدّمة: الموسيقى تبدأ من أولها
+  restartMusic() { if (this.musSrc) { try { this.musSrc.stop(); } catch (e) { } this.musSrc = null; } if (this.mus) this.mus.gain.cancelScheduledValues(this.ctx.currentTime), this.mus.gain.setValueAtTime(0, this.ctx.currentTime); this.startMusic(); },
   startMusic() {
     if (this.musSrc || !this.ctx) return;
     try {
-      const m = composeArabic(11), c = this.ctx, b = c.createBuffer(2, m.L.length, m.sr);
-      b.copyToChannel(m.L, 0); b.copyToChannel(m.R, 1);
+      const c = this.ctx; let b = this.musBuf;
+      if (!b) { const m = composeArabic(11); b = this.musBuf = c.createBuffer(2, m.L.length, m.sr); b.copyToChannel(m.L, 0); b.copyToChannel(m.R, 1); }
       // صدى قاعة (رجع صوتي مولّد)
       const ir = c.createBuffer(2, Math.floor(c.sampleRate * 2.2), c.sampleRate);
       for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 3.2) * 0.35; }
@@ -43,23 +45,11 @@ export const Audio = {
       this.musSrc = s; this.applyMusic();
     } catch (e) { console.warn('music', e); }
   },
-  // حلقة مطر واقعية: هسيس وردي + آلاف القطرات الصغيرة + هدير منخفض
+  // حلقة مطر واقعية: «شششش» ضوضاء مشكّلة تتنفّس ببطء + آلاف ارتطامات القطرات (ضوضاء قصيرة لا نغمات)
+  // + قطرات قليلة تسقط بالبرك (فقاعة صاعدة النغمة) + غسيل منخفض خفيف — بلا طنين ولا رنين صناعي
   buildRain() {
-    const c = this.ctx, sr = 22050, n = sr * 6, L = new Float32Array(n), R = new Float32Array(n);
-    let b0 = 0, b1 = 0, b2 = 0, br = 0;
-    for (let i = 0; i < n; i++) {
-      const w = Math.random() * 2 - 1;
-      b0 = 0.99765 * b0 + w * 0.099; b1 = 0.963 * b1 + w * 0.2965; b2 = 0.57 * b2 + w * 1.0526;
-      const pink = (b0 + b1 + b2 + w * 0.1848) * 0.11; br = (br + 0.02 * w) / 1.02;
-      L[i] = pink * 0.55 + br * 1.6; R[i] = pink * 0.55 + br * 1.6;
-    }
-    for (let k = 0; k < 2600; k++) {
-      const t0 = Math.floor(Math.random() * (n - 400)), f = 1800 + Math.random() * 5200, a = 0.04 + Math.random() * 0.12, tau = 0.0008 + Math.random() * 0.0025, pan = Math.random();
-      const len = Math.floor(tau * 6 * sr);
-      for (let j = 0; j < len; j++) { const t = j / sr, v = Math.sin(2 * Math.PI * f * t) * Math.exp(-t / tau) * a; L[t0 + j] += v * (1 - pan); R[t0 + j] += v * pan; }
-    }
-    const xf = sr; for (let i = 0; i < xf; i++) { const k = i / xf; L[i] = L[i] * k + L[n - xf + i] * (1 - k); R[i] = R[i] * k + R[n - xf + i] * (1 - k); }
-    const buf = c.createBuffer(2, n - xf, sr); buf.copyToChannel(L.subarray(0, n - xf), 0); buf.copyToChannel(R.subarray(0, n - xf), 1);
+    const c = this.ctx, sr = 22050, { L, R, n } = rainSamples(sr, 7);
+    const buf = c.createBuffer(2, n, sr); buf.copyToChannel(L, 0); buf.copyToChannel(R, 1);
     this.rainBuf = buf;
   },
   // تحت سقف: صوت المطر مكتوم
@@ -170,9 +160,7 @@ export const Audio = {
       s.connect(fl); fl.connect(g); g.connect(this.amb); s.start(); this.ambNodes.push({ s, g, f: fl }); return { s, g, f: fl };
     };
     if (kind === 'menu' || kind === 'day' || kind === 'sunset') {
-      loop(this.brown, 'lowpass', 480, 0.7, 0.35);
-      const chirp = () => { if (this.ambKind !== kind) return; const t = c.currentTime; if (Math.random() < 0.7) for (let k = 0; k < 2 + Math.random() * 3; k++) this.osc(this.amb, t + k * 0.12, 0.08, 2600 + Math.random() * 1500, 3400 + Math.random() * 1200, 'sine', 0.05); this.ambTimer = setTimeout(chirp, 3000 + Math.random() * 7000); };
-      this.ambTimer = setTimeout(chirp, 2000);
+      loop(this.brown, 'lowpass', 480, 0.7, 0.35); // نسيم هادئ فقط (أُزيلت زقزقة الطيور المصطنعة)
     } else if (kind === 'storm') {
       this.rainNode = loop(this.rainBuf || this.noise, 'lowpass', 9000, 0.5, 0.9);
       const wind = loop(this.brown, 'bandpass', 380, 0.9, 0.3);
@@ -236,6 +224,8 @@ const SOUNDS = {
   // تحطّم الأشياء: خشب يتشظّى، فخّار يتكسّر، حجر يتفتّت
   breakWood: (A, pos, t) => { const o = A.out(pos, 0.9, 3, 60); A.nz(o, t, 0.16, 1400, 300, 1.2, 'bandpass', 1, 0.002); for (let k = 0; k < 6; k++) A.nz(o, t + 0.03 + k * 0.035 + Math.random() * 0.02, 0.05, 2200 + Math.random() * 1500, 700, 4, 'bandpass', 0.45 - k * 0.05, 0.002); A.nz(o, t + 0.2, 0.25, 500, 120, 0.8, 'lowpass', 0.5, 0.01); },
   breakClay: (A, pos, t) => { const o = A.out(pos, 0.8, 3, 50); A.nz(o, t, 0.06, 3200, 1600, 2.5, 'bandpass', 1, 0.001); for (let k = 0; k < 9; k++) A.nz(o, t + 0.05 + k * 0.03 + Math.random() * 0.03, 0.035, 3500 + Math.random() * 2500, 1800, 6, 'bandpass', 0.4 - k * 0.03, 0.001); },
+  // زجاج فانوس ينكسر: صدمة حادّة ثم شظايا ترنّ وتتساقط، وطشّة شرارة خفيفة
+  breakGlass: (A, pos, t) => { const o = A.out(pos, 0.85, 3, 55); A.nz(o, t, 0.05, 5200, 2600, 1.8, 'highpass', 1, 0.0005); for (let k = 0; k < 14; k++) { const d = 0.03 + k * 0.035 + Math.random() * 0.05; A.osc(o, t + d, 0.05 + Math.random() * 0.06, 3800 + Math.random() * 4200, 3600 + Math.random() * 3800, 'sine', 0.18 - k * 0.01); A.nz(o, t + d, 0.02, 6000 + Math.random() * 3000, 3000, 8, 'bandpass', 0.25, 0.0005); } A.nz(o, t + 0.02, 0.18, 2600, 1200, 1, 'bandpass', 0.18, 0.003); },
   breakStone: (A, pos, t) => { const o = A.out(pos, 0.9, 3, 60); A.nz(o, t, 0.22, 900, 140, 0.9, 'lowpass', 1, 0.002); for (let k = 0; k < 5; k++) A.nz(o, t + 0.08 + k * 0.06, 0.06, 1600 + Math.random() * 800, 500, 3, 'bandpass', 0.35, 0.002); },
   bodyFall: (A, pos, t) => { const o = A.out(pos, 0.7, 2, 35); A.nz(o, t, 0.18, 420, 70, 0.7, 'lowpass', 1, 0.004); A.nz(o, t + 0.16, 0.1, 300, 60, 0.7, 'lowpass', 0.4, 0.004); },
   // العلاج: تمزيق الضمادة ولفّها، أو نقرة الإبرة وهسيسها
@@ -270,3 +260,41 @@ const SOUNDS = {
   whisper: (A, pos, t) => { const o = A.out(pos, 0.25, 2, 20); A.nz(o, t, 1.4, 3200, 2200, 2, 'bandpass', 0.35, 0.4); A.nz(o, t + 0.5, 1.0, 2600, 1800, 2, 'bandpass', 0.25, 0.3); },
   stinger: (A, pos, t) => { const o = A.out(null, 0.5); A.osc(o, t, 1.6, 90, 40, 'sawtooth', 0.25, 0.01); A.nz(o, t, 1.2, 3000, 600, 1, 'bandpass', 0.3, 0.01); A.osc(o, t, 1.2, 1500, 1520, 'sine', 0.08); },
 };
+
+// يولّد عيّنات المطر (منفصلة كي تُختبر خارج المتصفح)
+export function rainSamples(sr, secs) {
+  const N = sr * secs, L = new Float32Array(N), R = new Float32Array(N);
+  const one = f => 1 - Math.exp(-2 * Math.PI * f / sr);
+  // 1) الهسيس: ضوضاء بيضاء → تمرير عالٍ ~350Hz ثم منخفض ~5.5kHz، بتنفّس بطيء مستقل لكل أذن
+  for (const [D, seed] of [[L, 1], [R, 2]]) {
+    let lp1 = 0, lp2 = 0, hp = 0, env = 1, envT = 1, k = 0;
+    for (let i = 0; i < N; i++) {
+      const w = Math.random() * 2 - 1;
+      hp += (w - hp) * one(350); const h = w - hp;
+      lp1 += (h - lp1) * one(3600); lp2 += (lp1 - lp2) * one(5200);
+      if (--k <= 0) { k = Math.floor(sr * (0.25 + Math.random() * 0.5)); envT = 0.8 + Math.random() * 0.4; }
+      env += (envT - env) * 0.00008;
+      D[i] = lp2 * 0.32 * env;
+    }
+  }
+  // 2) غسيل منخفض خفيف (المطر البعيد على السطوح)
+  let br = 0; for (let i = 0; i < N; i++) { br = (br + 0.02 * (Math.random() * 2 - 1)) / 1.02; L[i] += br * 0.35; R[i] += br * 0.35; }
+  // 3) ارتطام القطرات: نبضات ضوضاء قصيرة جداً مفلترة (معظمها خافت وقليل منها قريب)
+  const drops = Math.floor(secs * 1500);
+  for (let k = 0; k < drops; k++) {
+    const t0 = Math.floor(Math.random() * (N - 300)), near = Math.random() < 0.06, a = (near ? 0.22 : 0.05) * (0.3 + Math.random()), tau = (near ? 0.0012 : 0.0006) + Math.random() * 0.0012;
+    const f = one(900 + Math.random() * (near ? 2000 : 3600)), pan = Math.random(), len = Math.min(300, Math.floor(tau * 7 * sr));
+    let y = 0; for (let j = 0; j < len; j++) { y += ((Math.random() * 2 - 1) - y) * f; const v = y * Math.exp(-j / sr / tau) * a; L[t0 + j] += v * (1 - pan * 0.7); R[t0 + j] += v * (0.3 + pan * 0.7); }
+  }
+  // 4) قطرات بالبرك: فقاعة نغمتها تصعد بسرعة (صوت الماء الحقيقي) — قليلة وخافتة
+  for (let k = 0; k < secs * 9; k++) {
+    const t0 = Math.floor(Math.random() * (N - 2000)), f0 = 700 + Math.random() * 1300, dur = 0.012 + Math.random() * 0.025, a = 0.018 + Math.random() * 0.03, pan = Math.random(), len = Math.floor(dur * 3 * sr);
+    let ph = 0; for (let j = 0; j < len; j++) { const t = j / sr, f = f0 * (1 + 0.9 * Math.min(1, t / dur)); ph += 2 * Math.PI * f / sr; const v = Math.sin(ph) * Math.exp(-t / dur) * a * Math.min(1, j / 20); L[t0 + j] += v * (1 - pan); R[t0 + j] += v * pan; }
+  }
+  // وصل الحلقة بلا قطع، وتطبيع
+  const xf = Math.floor(sr * 0.8), n = N - xf;
+  for (let i = 0; i < xf; i++) { const q = i / xf; L[i] = L[i] * q + L[n + i] * (1 - q); R[i] = R[i] * q + R[n + i] * (1 - q); }
+  let pk = 0; for (let i = 0; i < n; i++) pk = Math.max(pk, Math.abs(L[i]), Math.abs(R[i]));
+  const g = 0.7 / Math.max(pk, 1e-6); for (let i = 0; i < n; i++) { L[i] *= g; R[i] *= g; }
+  return { L: L.subarray(0, n), R: R.subarray(0, n), n };
+}

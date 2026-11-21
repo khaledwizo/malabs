@@ -7,7 +7,7 @@ import { Audio } from '../core/audio.js';
 import { Voices, voiceId } from '../core/voices.js';
 import { PERSONAS, GROUPS } from './talkdata.js';
 
-const START_R = 14, STORY_R = 7, GREET_R = 4.6, CALL_R = 13, HEAR_R = 26;
+const START_R = 14, STORY_R = 7, GREET_R = 4.6, CALL_R = 13, HEAR_R = 26, FLOOR_R = 22;
 const V = new THREE.Vector3();
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
@@ -41,7 +41,12 @@ export class TalkManager {
       u.storyLeft = shuffle(u.solo && u.m[0].per.story ? u.m[0].per.story.map((_, i) => i) : []);
     }
     for (const c of this.civs) { c.greetCD = 0; c.greets = 0; c.callCD = 4 + Math.random() * 10; c.cower = 0; c.talkT = 0; }
+    for (const u of this.units) u.hold = false; this.floorGap = 1.5; this.callGap = 6;
   }
+  // «الدور»: حوار واحد (أو نداء أو ترحيب) مسموع بنفس الوقت — يخلص ويبدأ غيره بعد سكتة قصيرة.
+  // الحوار البعيد اللي ما يوصلك صوته ما يمنع اللي يمّك
+  free(u) { if (u.hold) return true; if (this.floorGap > 0) return false; for (const o of this.units) if (o !== u && o.hold && o.dd < FLOOR_R) return false; return true; }
+  take(u) { u.hold = true; }
   // جملة لم تُقل بعد من قائمة الشخص (أو null)
   fresh(c, list) {
     if (!list) return null;
@@ -56,6 +61,7 @@ export class TalkManager {
   }
   // ينطق السطر: صوت مسجّل أو همهمة، فقاعة، إيماءات، والسامعون يلتفتون
   speak(u, L) {
+    this.take(u);
     const c = L.c, per = c.per, id = voiceId(per, L.text, false), rec = Voices.has(id);
     const dur = rec ? Voices.dur(id) : Math.max(1.3, 0.45 + L.text.length * 0.067 * (1 - per.r / 100));
     const cur = u.cur = { c, L, t: 0, dur, el: null, done: false };
@@ -63,9 +69,9 @@ export class TalkManager {
     else if (this.vol(c) > 0.02) Audio.babble([c.n.x, c.n.y + 1.5, c.n.z], dur, 1 + per.p / 100, Math.min(1, (Settings.talk ?? 0.9) * 1.1));
     c.say(dur);
     const cam = this.g.camera.position;
-    if (L.kind === 'convo') { const o = u.m.find(q => q !== c && q.alive); if (o) c.focus(o.n.x, o.n.z, dur); }
+    if (L.kind === 'convo') { const o = u.m.find(q => q !== c && q.here); if (o) c.focus(o.n.x, o.n.z, dur); }
     else c.focus(cam.x, cam.z, dur + 0.5);
-    for (const q of u.m) if (q !== c && q.alive) q.focus(c.n.x, c.n.z, dur + 0.8);
+    for (const q of u.m) if (q !== c && q.here) q.focus(c.n.x, c.n.z, dur + 0.8);
     if (L.kind === 'greet') { c.wave = 2.2; c.waved = true; }
     this.bubble(c, L.text, dur);
   }
@@ -75,7 +81,7 @@ export class TalkManager {
   onShot(pos) {
     if (!this.g.sim) return;
     for (const c of this.civs) {
-      if (!c.alive || c.n.pose === 'pray') continue;
+      if (!c.here || c.n.pose === 'pray') continue;
       const d = Math.hypot(c.n.x - pos[0], c.n.z - pos[2]); if (d > 24) continue;
       if (!(c.cower > 0.4)) c.scare(2.2 + Math.random() * 2.2 + (d < 8 ? 1.5 : 0));
       if (c.unit) c.unit.scare = 5;
@@ -87,20 +93,25 @@ export class TalkManager {
     if (!live || !this.on) { this.stopAll(); for (const u of this.units) u.q.length = 0; this.renderBubbles(); return; }
     const cam = g.camera.position, me = g.mp, alive = !!(me && me.alive);
     for (const c of this.civs) { c.greetCD -= dt; c.callCD -= dt; }
-    for (const u of this.units) this.step(u, dt, cam, alive);
+    this.floorGap -= dt; this.callGap -= dt;
+    for (const u of this.units) if (u.hold && !u.m.some(c => c.here)) u.hold = false;
+    // الأقرب أولاً: هو اللي ياخذ الدور إذا صار السوق ساكت
+    for (const u of this.units) u.dd = Math.hypot(u.cx - cam.x, u.cz - cam.z);
+    const order = this.units.slice().sort((a, b) => (b.hold ? 1 : 0) - (a.hold ? 1 : 0) || a.dd - b.dd);
+    for (const u of order) this.step(u, dt, cam, alive);
     // زوّار الضريح: فقاعة هادئة بلا صوت حين تقترب
-    if ((this.prayT = (this.prayT || 0) - dt) <= 0) { this.prayT = 1; for (const c of this.civs) if (c.alive && c.n.pose === 'pray' && (c.prayCD = (c.prayCD || 0) - 1) <= 0 && Math.hypot(c.n.x - cam.x, c.n.z - cam.z) < 4.5) { c.prayCD = 30; this.bubble(c, '(يقرأ سورة الفاتحة بخشوع)', 3.5); break; } }
+    if ((this.prayT = (this.prayT || 0) - dt) <= 0) { this.prayT = 1; for (const c of this.civs) if (c.here && c.n.pose === 'pray' && (c.prayCD = (c.prayCD || 0) - 1) <= 0 && Math.hypot(c.n.x - cam.x, c.n.z - cam.z) < 4.5) { c.prayCD = 30; this.bubble(c, '(يقرأ سورة الفاتحة بخشوع)', 3.5); break; } }
     this.renderBubbles();
   }
   step(u, dt, cam, alive) {
-    const live = u.m.filter(c => c.alive);
+    const live = u.m.filter(c => c.here);
     if (!live.length) { this.stopUnit(u); u.q.length = 0; return; }
     const d = Math.hypot(u.cx - cam.x, u.cz - cam.z);
     if (u.scare > 0) u.scare -= dt;
     // السطر الجاري: لا يُقطع أبداً (إلا بموت المتكلّم)
     if (u.cur) {
       const C = u.cur; C.t += dt;
-      if (!C.c.alive) { this.stopUnit(u); u.q = u.q.filter(L => L.kind !== 'convo' && L.c !== C.c); return; }
+      if (!C.c.here) { this.stopUnit(u); u.q = u.q.filter(L => L.kind !== 'convo' && L.c !== C.c); return; }
       if (C.el) C.el.volume = Math.max(0, Math.min(1, this.vol(C.c)));
       if (C.done || C.t > C.dur + (C.el ? 2.5 : 0.25)) {
         u.cur = null; u.gap = u.q.length ? (C.L.kind === 'story' ? 0.55 : 0.35) + Math.random() * 0.4 : 0.6;
@@ -114,16 +125,24 @@ export class TalkManager {
     if (u.gap > 0) { u.gap -= dt; return; }
     // الفزع: صيحة بعد السطر، ثم صمت حتى يهدأ الرمي، ثم حمد وسلامة
     if (u.scare > 0) {
-      if (!u.reacted) { u.reacted = true; if (d < HEAR_R) { const c = this.nearest(live, cam), t = this.fresh(c, c.per.react); if (t) this.speak(u, { c, text: t, kind: 'react' }); } }
+      // واحد بس يصيح (الأقرب)، والباقون ينحنون ساكتين
+      if (!u.reacted) { u.reacted = this.free(u) && d < HEAR_R ? 1 : 2; if (u.reacted === 1) { const c = this.nearest(live, cam), t = this.fresh(c, c.per.react); if (t) this.speak(u, { c, text: t, kind: 'react' }); else u.reacted = 2; } }
+      this.release(u); return;
+    }
+    if (u.reacted) { const r = u.reacted; u.reacted = 0; if (r === 1 && d < HEAR_R && this.free(u)) { const c = this.nearest(live, cam), t = this.fresh(c, c.per.calm); if (t) { this.speak(u, { c, text: t, kind: 'calm' }); return; } } }
+    // تكملة السالفة أو القصة
+    if (u.q.length) { const L = u.q.shift(); if (L.c.here) this.speak(u, L); return; }
+    this.release(u);
+    if (!this.free(u)) {
+      if (u.cd > 0) u.cd -= dt;
+      // غيرهم يحچي: إذا مرّيت يمّهم يرحّبون بيك بعد ما يخلص
+      if (alive && !u.pendingGreet) for (const c of live) if (c.greetCD <= 0 && c.greets < 2 && Math.hypot(c.n.x - cam.x, c.n.z - cam.z) < GREET_R) { u.pendingGreet = c; break; }
       return;
     }
-    if (u.reacted) { u.reacted = false; if (d < HEAR_R) { const c = this.nearest(live, cam), t = this.fresh(c, c.per.calm); if (t) { this.speak(u, { c, text: t, kind: 'calm' }); return; } } }
-    // تكملة السالفة أو القصة
-    if (u.q.length) { const L = u.q.shift(); if (L.c.alive) this.speak(u, L); return; }
     // ترحيب مؤجّل: بعد ما خلّصوا حچيهم
     if (u.pendingGreet) {
       const c = u.pendingGreet; u.pendingGreet = null;
-      if (alive && c.alive && Math.hypot(c.n.x - cam.x, c.n.z - cam.z) < 8) { c.greetCD = 45; c.greets++; const t = this.fresh(c, c.per.greet); if (t) { this.speak(u, { c, text: t, kind: 'greet' }); return; } }
+      if (alive && c.here && Math.hypot(c.n.x - cam.x, c.n.z - cam.z) < 8) { c.greetCD = 45; c.greets++; const t = this.fresh(c, c.per.greet); if (t) { this.speak(u, { c, text: t, kind: 'greet' }); return; } }
     }
     // ترحيب عند الاقتراب
     if (alive) for (const c of live) {
@@ -131,19 +150,18 @@ export class TalkManager {
       if (Math.hypot(c.n.x - cam.x, c.n.z - cam.z) < GREET_R && this.visible(c)) { c.greetCD = 45; c.greets++; const t = this.fresh(c, c.per.greet); if (t) { this.speak(u, { c, text: t, kind: 'greet' }); u.cd = Math.max(u.cd, 2.5); return; } }
     }
     if (u.cd > 0) { u.cd -= dt; return; }
-    // حتى تفهم السالفة: لا تبدأ سالفتان قريبتان بنفس الوقت
-    if (this.busyNear(u, cam)) return;
     // مجموعة: سالفة جديدة حين تدخل دائرتهم
     if (!u.solo) {
-      if (d < START_R && u.convoLeft.length && live.length === u.m.length) { const ci = u.convoLeft.shift(); for (const [r, t] of u.convos[ci]) this.enqueue(u, u.m[r], t, 'convo'); }
+      if (d < START_R && u.convoLeft.length && live.length === u.m.length) { const ci = u.convoLeft.shift(); for (const [r, t] of u.convos[ci]) this.enqueue(u, u.m[r], t, 'convo'); this.take(u); }
       return;
     }
     // فرد: قصّة لمن يقف يمّه، أو نداء على البضاعة
     const c = u.m[0], dc = Math.hypot(c.n.x - cam.x, c.n.z - cam.z);
     if (dc < STORY_R && alive) u.dwell += dt; else u.dwell = 0;
-    if (u.dwell > 1.2 && u.storyLeft.length) { const si = u.storyLeft.shift(); for (const t of c.per.story[si]) this.enqueue(u, c, t, 'story'); u.dwell = 0; return; }
-    if (c.per.call && c.callCD <= 0 && dc < CALL_R && dc > 5.2) { c.callCD = 16 + Math.random() * 14; const t = this.fresh(c, c.per.call); if (t) { this.speak(u, { c, text: t, kind: 'call' }); u.cd = 3; } }
+    if (u.dwell > 1.2 && u.storyLeft.length) { const si = u.storyLeft.shift(); for (const t of c.per.story[si]) this.enqueue(u, c, t, 'story'); this.take(u); u.dwell = 0; return; }
+    if (c.per.call && c.callCD <= 0 && this.callGap <= 0 && dc < CALL_R && dc > 5.2) { c.callCD = 22 + Math.random() * 18; this.callGap = 9 + Math.random() * 7; const t = this.fresh(c, c.per.call); if (t) { this.speak(u, { c, text: t, kind: 'call' }); u.cd = 3; } }
   }
+  release(u) { if (u.hold && !u.cur && !u.q.length && !(u.gap > 0)) { u.hold = false; if (u.dd < FLOOR_R) this.floorGap = 1.6 + Math.random() * 1.4; } }
   busyNear(u, cam) { for (const o of this.units) if (o !== u && (o.q.length || (o.cur && o.cur.L.kind !== 'call')) && Math.hypot(o.cx - cam.x, o.cz - cam.z) < START_R) return true; return false; }
   nearest(list, cam) { let b = list[0], bd = 1e9; for (const c of list) { const d = Math.hypot(c.n.x - cam.x, c.n.z - cam.z); if (d < bd) { bd = d; b = c; } } return b; }
   visible(c) { const cam = this.g.camera.position; return this.g.world.los(cam.x, cam.y, cam.z, c.n.x, c.n.y + 1.4, c.n.z); }
@@ -163,7 +181,7 @@ export class TalkManager {
     const cam = this.g.camera, W = innerWidth, H = innerHeight, t = this.t;
     for (let i = this.bubbles.length - 1; i >= 0; i--) {
       const b = this.bubbles[i], c = b.c;
-      if (t > b.until + 0.35 || !this.g.sim || !c.alive) { b.el.remove(); this.bubbles.splice(i, 1); continue; }
+      if (t > b.until + 0.35 || !this.g.sim || !c.here) { b.el.remove(); this.bubbles.splice(i, 1); continue; }
       const top = c.n.y + (c.sit ? 1.5 : 2.02);
       V.set(c.n.x, top, c.n.z).project(cam);
       const d = Math.hypot(c.n.x - cam.position.x, c.n.z - cam.position.z);

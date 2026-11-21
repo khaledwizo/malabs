@@ -5,7 +5,7 @@
 import * as THREE from 'three';
 
 export function buildDistricts(B, H) {
-  const { T, R, pick, vis, block, frame, facade, lantern, crate, sack, pot, vase, barrel, palm, column, archWall, wallX, wallZ, floor, signs, gunProp, n, MAT, F, bench, table, fbox, palmFar, door, streetLamp } = H;
+  const { estikan, qouri, teaStove, T, R, pick, vis, block, frame, facade, lantern, crate, sack, pot, vase, barrel, palm, column, archWall, wallX, wallZ, floor, signs, gunProp, n, MAT, F, bench, table, fbox, palmFar, door, streetLamp } = H;
   const PI = Math.PI;
   const graffiti = (text, x, y, z, ry, w = 2.4, o = {}) => { if (vis) signs.push({ text, x, y, z, ry, w, h: o.h || w * 0.375, rx: o.rx || 0, opt: { graffiti: true, ...(o.opt || {}) } }); };
   const sign = (text, x, y, z, ry, w, opt) => { if (vis) signs.push({ text, x, y, z, ry, w, opt: opt || {} }); };
@@ -389,7 +389,7 @@ export function buildDistricts(B, H) {
   for (const [x, z, h] of [[47.5, 30.6, 8.2], [55.5, 29.6, 7.4], [66.5, 31.3, 9], [76.5, 30.1, 7.6], [86.6, 30.8, 8.5]]) palm(x, z, h, 0.1 + R() * 0.1, R() * 6);
   for (const x of [51, 61, 71, 81]) bench(x, 26.2, 2.6, 'x');
   B.box(76, 0, 20, 80, 2.7, 23, 'plasterWhite');
-  if (vis) { B.box(75.6, 2.7, 19.6, 80.4, 2.9, 23.6, 'woodBlue', { col: false }); B.box(76.6, 1.0, 23.0, 79.4, 1.9, 23.03, 'dark', { col: false }); B.box(76.4, 0.95, 23.0, 79.6, 1.05, 23.4, 'woodDark', { col: false }); for (let k = 0; k < 4; k++) pot(76.9 + k * 0.7, 1.05, 23.2, 0.06, 'glass'); B.geo(() => new THREE.PlaneGeometry(4.6, 1.3), T(78, 2.5, 23.7, 0, 1, 1, 1, -1.1), 'clothCream', { uvs: 0.5 }); }
+  if (vis) { B.box(75.6, 2.7, 19.6, 80.4, 2.9, 23.6, 'woodBlue', { col: false }); B.box(76.6, 1.0, 23.0, 79.4, 1.9, 23.03, 'dark', { col: false }); B.box(76.4, 0.95, 23.0, 79.6, 1.05, 23.4, 'woodDark', { col: false }); teaStove(76.95, 1.05, 23.2, PI); for (let k = 0; k < 7; k++) estikan(77.55 + k * 0.28, 1.05, 23.2, k < 4 ? 0.9 : 0, 0.5 + k); B.geo(() => new THREE.PlaneGeometry(4.6, 1.3), T(78, 2.5, 23.7, 0, 1, 1, 1, -1.1), 'clothCream', { uvs: 0.5 }); }
   sign('شاي الشريعة', 78, 2.38, 23.04, 0, 2.6, { bg: '#7a1a1f', border: '#f3d98a' });
   table(74.6, 24.8); table(81.2, 24.6);
   // مرسى العبّارة

@@ -59,7 +59,7 @@ export function makeMaterials(Q) {
   mk('glow', null, 1, { color: 0xffc66b, emissive: 0xffb04a, ei: 2.2, vc: false, lambert: true });
   // تفاصيل الأرض وبرك المطر
   { const m = mk('decal', { map: TX.decalAtlas(512) }, 1, { transparent: true, depthWrite: false, rough: 0.95, vc: false }); m.polygonOffset = true; m.polygonOffsetFactor = -2; m.polygonOffsetUnits = -2; }
-  { const m = mk('puddle', null, 1, { color: 0x2a2a2c, rough: 0.04, metal: 0.1, transparent: true, opacity: 0, depthWrite: false, vc: false }); m.alphaMap = TX.puddleTex(128); m.polygonOffset = true; m.polygonOffsetFactor = -3; m.polygonOffsetUnits = -3; if (m.isMeshStandardMaterial) m.envMapIntensity = 1.3; }
+  { const m = mk('puddle', null, 1, { color: 0x2a2a2c, rough: 0.04, metal: 0.1, transparent: true, opacity: 0, depthWrite: false, vc: false }); m.alphaMap = TX.puddleTex(128); m.userData.th = { value: 1 }; m.onBeforeCompile = sh => { sh.uniforms.pTh = m.userData.th; sh.fragmentShader = 'uniform float pTh;\n' + sh.fragmentShader.replace('#include <alphamap_fragment>', 'diffuseColor.a *= smoothstep(pTh, pTh + 0.18, texture2D(alphaMap, vAlphaMapUv).g);'); }; m.polygonOffset = true; m.polygonOffsetFactor = -3; m.polygonOffsetUnits = -3; if (m.isMeshStandardMaterial) m.envMapIntensity = 1.3; }
   mk('rubber', null, 1, { color: 0x161616, rough: 0.85, vc: false });
   mk('chrome', null, 1, { color: 0xd8d8dc, rough: 0.18, metal: 0.95, vc: false });
   mk('glassDark', null, 1, { color: 0x10161c, rough: 0.06, metal: 0.4, vc: false });
@@ -68,6 +68,8 @@ export function makeMaterials(Q) {
   mk('concrete', TX.plaster(256, { base: [150, 146, 138], seed: 61, cracks: 5 }), 2.5, { rough: 0.95 });
   mk('paintWhite', null, 1, { color: 0xe8e6e0, rough: 0.45, metal: 0.2 });
   mk('glass', null, 1, { color: 0x88aabb, rough: 0.1, metal: 0.3, transparent: true, opacity: 0.35, depthWrite: false, vc: false });
+  mk('tea', null, 1, { color: 0x6a1a06, rough: 0.1, vc: false }); // چاي داخل الاستكان
+  mk('porcelain', null, 1, { color: 0xf3f0ea, rough: 0.25, vc: false }); mk('porcBlue', null, 1, { color: 0x2d5ba6, rough: 0.3, vc: false });
   mk('dark', null, 1, { color: 0x15110d, rough: 1 });
   mk('spice1', null, 1, { color: 0xc4561e, rough: 1 }); mk('spice2', null, 1, { color: 0xd8a72c, rough: 1 }); mk('spice3', null, 1, { color: 0x6d7a2a, rough: 1 });
   mk('dates', null, 1, { color: 0x5a2a14, rough: 0.6 });

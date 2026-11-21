@@ -25,7 +25,7 @@ export class Intro {
   constructor(o) { this.r = o.renderer; this.kit = o.kit; this.onDone = o.onDone; this.active = false; }
   start() {
     this.active = true; this.t = 0; this.bi = -1; this.waiting = true; this.flash = 0; this.shake = 0;
-    Voices.load(); Audio.musicMode('intro');
+    Voices.load(); Audio.introOn = true; Audio.musicMode('intro'); // لا موسيقى خلفية أثناء المقدّمة
     this.ui();
     this.build();
   }
@@ -238,7 +238,7 @@ export class Intro {
     this.fire.intensity = 3.0 + Math.sin(t * 9) * 0.5 + Math.sin(t * 23) * 0.3;
     if (this.blaze) { this.blaze.intensity = 4.2 + Math.sin(t * 11) * 0.8 + Math.sin(t * 27) * 0.5; this.flames.forEach((f, i) => { f.scale.y = 0.8 + Math.sin(t * 9 + i * 1.7) * 0.25; f.rotation.y = t * 2 + i; }); }
     // طقطقة الجمر بالوجاق
-    if (!this.waiting && Audio.ctx && Math.random() < dt * 3) { try { const o = Audio.out([6.6, 0.4, -3.6], 0.1, 3, 30); Audio.nz(o, Audio.ctx.currentTime, 0.03 + Math.random() * 0.04, 2000 + Math.random() * 2500, 700, 2, 'bandpass', 0.6, 0.002); } catch (e) { } }
+    if (!this.waiting && Audio.ctx && Math.random() < dt * 1.4) { try { const o = Audio.out([6.6, 0.4, -3.6], 0.05, 3, 30); Audio.nz(o, Audio.ctx.currentTime, 0.02 + Math.random() * 0.03, 700 + Math.random() * 1100, 500, 1.2, 'bandpass', 0.5, 0.002); } catch (e) { } } // طقطقة جمر خافتة ودافئة
     // الباب ينفتح ثم يتسكّر
     this.doorOpen += (this.doorTarget - this.doorOpen) * Math.min(1, dt * 1.6); for (const D of this.doors) D.g.rotation.y = D.s * this.doorOpen; this.doorLight.intensity = this.doorOpen * 4;
     // وقوف الجالسين احتراماً للشيخ
@@ -319,7 +319,7 @@ export class Intro {
     this.el.classList.add('out'); setTimeout(() => this.el.remove(), 600);
     this.scene.traverse(o => { if (o.geometry && o.geometry.dispose) o.geometry.dispose(); });
     this.scene = null;
-    Audio.musicMode('menu');
+    Audio.introOn = false; Audio.musicMode('menu'); if (Audio.ctx) Audio.restartMusic(); // الموسيقى تبدأ من أولها بعد نهاية المقدّمة
     this.onDone && this.onDone();
   }
 }

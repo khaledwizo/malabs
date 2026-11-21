@@ -424,7 +424,10 @@ export function decalAtlas(S = 512) {
 }
 // قناع بقعة ماء (برك المطر)
 export function puddleTex(S = 128) {
+  // الشكل في قناة اللون (أسود → أبيض) لا في الشفافية: المركز أعمق، فتكبر البركة تدريجياً كلما زاد البلل
   const c = document.createElement('canvas'); c.width = c.height = S; const x = c.getContext('2d');
-  for (let k = 0; k < 7; k++) { const gx = S * (0.3 + Math.random() * 0.4), gy = S * (0.3 + Math.random() * 0.4), r = S * (0.18 + Math.random() * 0.18), g = x.createRadialGradient(gx, gy, r * 0.5, gx, gy, r); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, S, S); }
+  x.fillStyle = '#000'; x.fillRect(0, 0, S, S); x.globalCompositeOperation = 'lighter';
+  for (let k = 0; k < 7; k++) { const gx = S * (0.3 + Math.random() * 0.4), gy = S * (0.3 + Math.random() * 0.4), r = S * (0.16 + Math.random() * 0.18), g = x.createRadialGradient(gx, gy, 0, gx, gy, r); g.addColorStop(0, 'rgba(255,255,255,0.55)'); g.addColorStop(0.6, 'rgba(255,255,255,0.3)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, S, S); }
+  x.globalCompositeOperation = 'source-over';
   const t = new THREE.CanvasTexture(c); return t;
 }
