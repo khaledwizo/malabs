@@ -15,10 +15,19 @@ android {
         versionCode = 100 + buildNum
         versionName = "1.0." + buildNum
     }
+    // مفتاح توقيع ثابت (من ذاكرة GitHub المؤقتة) كي تُثبَّت كل نسخة جديدة فوق القديمة دون حذف
+    signingConfigs {
+        create("stable") {
+            storeFile = file(System.getProperty("user.home") + "/.android/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
     buildTypes {
         release {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("stable")
         }
     }
     compileOptions {
