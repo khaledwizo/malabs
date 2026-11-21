@@ -62,18 +62,35 @@ export class Civilian {
       mesh(roundBox(0.065, 0.09, 0.035, 0.016), skin, 0, -0.27, 0, fo);
       this.arms.push({ up, fo, s });
     }
-    if (n.look === 'tea' || (sit && R() < 0.35)) { const gl = mesh(geo('chai', () => new THREE.CylinderGeometry(0.025, 0.02, 0.07, 8)), std('chai', { color: 0x9a3a10, roughness: 0.15, transparent: true, opacity: 0.85 }), 0, -0.31, -0.03, this.arms[1].fo); this.cup = gl; }
+    if ((n.look === 'tea' && sit) || (sit && R() < 0.35)) { const gl = mesh(geo('chai', () => new THREE.CylinderGeometry(0.025, 0.02, 0.07, 8)), std('chai', { color: 0x9a3a10, roughness: 0.15, transparent: true, opacity: 0.85 }), 0, -0.31, -0.03, this.arms[1].fo); this.cup = gl; }
+    // أدوات المهنة: إبريق الچاي، المسبحة، مرشّة الماء
+    const Rh = this.arms[1].fo;
+    if (n.look === 'tea' && !sit) { const pot = this.pot = new THREE.Group(); pot.position.set(0, -0.33, -0.02); Rh.add(pot); const met = std('teapot', { color: 0xc8c4bc, roughness: 0.25, metalness: 0.85 }); mesh(geo('potB', () => new THREE.SphereGeometry(0.065, 12, 8)), met, 0, -0.04, 0, pot).scale.set(1, 0.85, 1); mesh(geo('potS', () => new THREE.CylinderGeometry(0.008, 0.014, 0.09, 6)), met, 0, -0.02, -0.08, pot).rotation.x = -0.9; mesh(geo('potL', () => new THREE.CylinderGeometry(0.03, 0.04, 0.025, 10)), met, 0, 0.02, 0, pot); }
+    else if (n.look === 'nursery' && !sit) { const can = this.can = new THREE.Group(); can.position.set(0, -0.32, -0.04); Rh.add(can); const gm = std('canG', { color: 0x3f7a46, roughness: 0.45, metalness: 0.5 }); mesh(geo('canB', () => new THREE.CylinderGeometry(0.06, 0.07, 0.14, 10)), gm, 0, -0.08, 0, can); mesh(geo('canS', () => new THREE.CylinderGeometry(0.008, 0.012, 0.2, 6)), gm, 0, -0.06, -0.11, can).rotation.x = -1.1; }
+    else if (sit && !this.cup) { this.beads = mesh(geo('beads', () => new THREE.TorusGeometry(0.045, 0.008, 5, 16)), std('beads', { color: 0x5a1a12, roughness: 0.35 }), 0, -0.33, -0.01, Rh); this.beads.rotation.y = Math.PI / 2; }
     mergeChildren(body);
     this.pose0(); this.alive = true; this.t = R() * 10; this.dead = 0; this.wave = 0; this.look = 0;
     root.traverse(o => { if (o.isMesh) o.userData.npc = n.id; });
   }
-  pose0() {
-    const n = this.n, [L, R] = this.arms;
-    const set = (a, ux, uz, fx) => { a.up.rotation.set(ux, 0, uz); a.fo.rotation.set(fx, 0, 0); };
-    if (n.pose === 'pray') { set(L, -0.35, 0.18, -1.55); set(R, -0.35, -0.18, -1.55); L.fo.rotation.z = 0.25; R.fo.rotation.z = -0.25; }
-    else if (this.sit) { set(L, -0.5, 0.1, -0.7); set(R, -0.55, -0.1, this.cup ? -1.35 : -0.7); }
-    else { set(L, 0.05, 0.12, -0.15); set(R, 0.05, -0.12, -0.15); if (n.look === 'vendor' || n.look === 'tea') { L.up.rotation.x = -0.25; R.up.rotation.x = -0.25; L.fo.rotation.x = -1.2; R.fo.rotation.x = -1.2; L.up.rotation.z = 0.45; R.up.rotation.z = -0.45; } }
+  // الوضعيات الأساسية لكل ذراع: [دوران العضد x، العضد z، الساعد x]
+  basePose() {
+    const n = this.n, L = [0.05, 0.12, -0.15], R = [0.05, -0.12, -0.15];
+    if (n.pose === 'pray') return [[-0.35, 0.18, -1.55], [-0.35, -0.18, -1.55]];
+    if (this.sit) return [[-0.5, 0.1, -0.7], [-0.55, -0.1, this.cup ? -1.35 : -0.85]];
+    if (n.look === 'fisher') return [[0.42, -0.18, -1.05], [0.42, 0.18, -1.05]]; // يداه خلف ظهره يتأمّل النهر
+    if (n.look === 'vendor' || n.look === 'tea') return [[-0.25, 0.45, -1.2], [-0.25, -0.45, -1.2]];
+    if (n.look === 'nursery') return [[-0.2, 0.2, -0.9], [-0.35, -0.15, -1.0]];
+    return [L, R];
   }
+  pose0() {
+    const P = this.basePose(); this.arms.forEach((a, i) => { a.up.rotation.set(P[i][0], 0, P[i][1]); a.fo.rotation.set(P[i][2], 0, 0); });
+    if (this.n.pose === 'pray') { this.arms[0].fo.rotation.z = 0.25; this.arms[1].fo.rotation.z = -0.25; }
+    this.head.rotation.set(0, 0, 0); this.chest.rotation.set(0, 0, 0);
+  }
+  // يتكلّم الآن (إيماءات باليد وإيماء بالرأس) — dur ثوانٍ
+  say(dur) { this.talkT = dur; this.gHand = Math.random() < 0.7 ? 1 : 0; }
+  // ينظر نحو نقطة (متكلّم آخر أو اللاعب) لمدّة
+  focus(x, z, dur) { this.fx = x; this.fz = z; this.focusT = dur; }
   // cam: موضع الكاميرا للالتفات والتحية
   update(dt, cam) {
     this.t += dt;
@@ -84,24 +101,60 @@ export class Civilian {
         r.rotation.set(-e * Math.PI / 2 * 0.97 * f.b, this.n.yaw + f.tw * e, e * f.s * 0.4, 'YXZ');
         r.position.y = this.n.y + (this.sit ? 0.1 * (1 - e) : 0) + e * 0.12;
         for (const a of this.arms) { a.up.rotation.z = a.s * (0.2 + 1.2 * e); a.up.rotation.x = -0.3 * e; a.fo.rotation.x = -0.3 * e; }
-        this.head.rotation.set(0.2 * e, f.s * 0.5 * e, 0);
+        this.head.rotation.set(0.2 * e, f.s * 0.5 * e, 0); this.chest.rotation.set(0, 0, 0);
       }
       return;
     }
-    const n = this.n, br = Math.sin(this.t * 1.6) * 0.012;
+    const n = this.n, t = this.t, k = Math.min(1, dt * 7);
+    this.talkT = Math.max(0, (this.talkT || 0) - dt); this.focusT = Math.max(0, (this.focusT || 0) - dt); this.cower = Math.max(0, (this.cower || 0) - dt);
+    const br = Math.sin(t * 1.6) * 0.012;
     this.chest.scale.set(1, 1 + br, 1 + br * 1.3);
-    if (n.pose === 'pray') { this.head.rotation.x = 0.28 + Math.sin(this.t * 0.7) * 0.04; for (const a of this.arms) a.fo.rotation.x = -1.55 + Math.sin(this.t * 0.9 + a.s) * 0.03; return; }
-    // التفات نحو اللاعب القريب وتحية عند الاقتراب
-    const dx = cam.x - this.root.position.x, dz = cam.z - this.root.position.z, d = Math.hypot(dx, dz);
-    let want = Math.sin(this.t * 0.3 + n.id) * 0.35;
-    if (d < 9) { let a = Math.atan2(-dx, -dz) - n.yaw; while (a > Math.PI) a -= Math.PI * 2; while (a < -Math.PI) a += Math.PI * 2; if (Math.abs(a) < 1.6) want = Math.max(-1.1, Math.min(1.1, a)); }
-    this.look += (want - this.look) * Math.min(1, dt * 2.5); this.head.rotation.y = this.look;
-    if (d < 3.2 && this.wave <= 0 && !this.waved) { this.wave = 2.2; this.waved = true; } if (d > 8) this.waved = false;
-    const R = this.arms[1];
-    if (this.wave > 0) { this.wave -= dt; const w = Math.sin(Math.min(1, (2.2 - this.wave) * 3) * Math.PI / 2) * Math.min(1, this.wave * 3); R.up.rotation.set(-0.3 * w + (this.sit ? -0.55 : 0.05) * (1 - w), 0, -1.9 * w + (this.sit ? -0.1 : -0.12) * (1 - w)); R.fo.rotation.x = -0.4 * w - (this.cup ? 1.35 : 0.7) * (1 - w) * (this.sit ? 1 : 0.2) + Math.sin(this.t * 12) * 0.35 * w; }
-    else if (this.cup && Math.sin(this.t * 0.25 + n.id) > 0.97) R.fo.rotation.x = -1.9; // رشفة شاي
-    else if (this.cup) R.fo.rotation.x += (-1.35 - R.fo.rotation.x) * Math.min(1, dt * 3);
+    // الهدف: وضعية أساسية + عمل المهنة + كلام + تحية + خوف
+    const P = this.basePose().map(a => a.slice());
+    let hx = 0, hy = 0, cx = 0, sway = 0;
+    if (n.pose === 'pray') { hx = 0.28 + Math.sin(t * 0.7) * 0.04; P[0][2] += Math.sin(t * 0.9) * 0.03; P[1][2] += Math.sin(t * 0.9 + 1) * 0.03; }
+    else {
+      // جهة النظر: من يكلّمه، أو اللاعب القريب، أو تلفّت هادئ
+      const dx = cam.x - this.root.position.x, dz = cam.z - this.root.position.z, d = Math.hypot(dx, dz);
+      let want = Math.sin(t * 0.3 + n.id) * 0.35, tx = null, tz = null;
+      if (this.focusT > 0) { tx = this.fx; tz = this.fz; } else if (d < 9) { tx = cam.x; tz = cam.z; }
+      if (tx !== null) { let a = Math.atan2(-(tx - this.root.position.x), -(tz - this.root.position.z)) - n.yaw; while (a > Math.PI) a -= Math.PI * 2; while (a < -Math.PI) a += Math.PI * 2; if (Math.abs(a) < 2.2) want = Math.max(-1.25, Math.min(1.25, a)); }
+      this.look = (this.look || 0) + (want - (this.look || 0)) * Math.min(1, dt * 2.5);
+      hy = this.look * 0.7; const chestY = this.look * 0.3;
+      // عمل المهنة حين لا يتكلّم
+      const busy = this.talkT > 0 || this.wave > 0;
+      if (!busy) {
+        if (this.sit) {
+          if (this.cup) { if (Math.sin(t * 0.25 + n.id) > 0.97) P[1][2] = -1.9; } // رشفة شاي
+          else if (this.beads) { P[1][2] = -0.95 + Math.sin(t * 2.4) * 0.12; P[1][0] = -0.6; } // يعدّ حبّات المسبحة
+        } else {
+          const per = 7 + (n.id % 5), ph = (t + n.id * 1.7) % per, w = ph < 1.8 ? Math.sin(ph / 1.8 * Math.PI) : 0;
+          if (n.look === 'tea') { P[1][0] = -0.25 - 1.0 * w; P[1][1] = -0.45 + 0.1 * w; P[1][2] = -1.2 + 0.6 * w; P[0][0] = -0.25 - 0.35 * w; if (this.pot) this.pot.rotation.x = 0.9 * w; } // يصبّ الچاي
+          else if (n.look === 'vendor') { P[0][0] -= 0.45 * w; P[1][0] -= 0.55 * w; P[0][2] += 0.6 * w; P[1][2] += 0.55 * w; cx = 0.18 * w; } // يرتّب البضاعة
+          else if (n.look === 'nursery') { P[1][0] = -0.35 - 0.5 * w; P[1][2] = -1.0 + 0.5 * w; if (this.can) this.can.rotation.x = 0.8 * w; } // يسقي الشتلات
+          else if (n.look === 'fisher') { if (w > 0) { P[1][0] = -2.0 * w + 0.42 * (1 - w); P[1][1] = -0.3 * w; P[1][2] = -1.9 * w - 1.05 * (1 - w); hx = -0.1 * w; } } // يظلّل عينيه ويتأمّل دجلة
+          sway = Math.sin(t * 0.45 + n.id) * 0.018; // نقل الوزن بين القدمين
+        }
+      }
+      // الكلام: يد تشرح وإيماء بالرأس
+      if (this.talkT > 0) {
+        const g = this.gHand ?? 1, s = g ? -1 : 1, A = P[g];
+        A[0] = (this.sit ? -0.75 : -0.55) + Math.sin(t * 4.1) * 0.16; A[1] = s * 0.28 + Math.sin(t * 2.7) * 0.08; A[2] = -1.25 + Math.sin(t * 5.6 + 1) * 0.35;
+        hx += Math.sin(t * 6.5) * 0.045; if (Math.sin(t * 0.9) > 0.6) { const B = P[1 - g]; B[0] -= 0.25; B[2] -= 0.3; }
+      } else if (this.focusT > 0 && Math.sin(t * 1.3 + n.id) > 0.92) hx += 0.12; // يومئ موافقاً وهو يسمع
+      // التحية بيد مرفوعة
+      if (this.wave > 0) { this.wave -= dt; const w = Math.sin(Math.min(1, (2.2 - this.wave) * 3) * Math.PI / 2) * Math.min(1, this.wave * 3); P[1][0] = -0.3 * w + P[1][0] * (1 - w); P[1][1] = -1.9 * w + P[1][1] * (1 - w); P[1][2] = -0.4 * w + Math.sin(t * 12) * 0.35 * w + P[1][2] * (1 - w); }
+      if (d < 3.2 && this.wave <= 0 && !this.waved && !this.cower) { this.wave = 2.2; this.waved = true; } if (d > 8) this.waved = false;
+      // الخوف من الرمي: ينحني ويغطّي رأسه
+      if (this.cower > 0) { const e = Math.min(1, this.cower * 2, (this.cowerMax - this.cower) * 4 + 0.2); P[0] = [-2.6 * e + P[0][0] * (1 - e), 0.35 * e + P[0][1] * (1 - e), -1.7 * e + P[0][2] * (1 - e)]; P[1] = [-2.6 * e + P[1][0] * (1 - e), -0.35 * e + P[1][1] * (1 - e), -1.7 * e + P[1][2] * (1 - e)]; cx = 0.5 * e; hx = 0.5 * e; }
+      this.chest.rotation.y += (chestY - this.chest.rotation.y) * k;
+    }
+    this.arms.forEach((a, i) => { a.up.rotation.x += (P[i][0] - a.up.rotation.x) * k; a.up.rotation.z += (P[i][1] - a.up.rotation.z) * k; a.fo.rotation.x += (P[i][2] - a.fo.rotation.x) * k; });
+    this.head.rotation.x += (hx - this.head.rotation.x) * k; this.head.rotation.y += (hy - this.head.rotation.y) * k;
+    this.chest.rotation.x += (cx - this.chest.rotation.x) * k;
+    if (!this.sit) this.root.rotation.z = sway;
   }
+  scare(dur) { if (!this.alive || this.n.pose === 'pray') return; this.cower = dur; this.cowerMax = dur; this.talkT = 0; }
   die(dir) {
     if (!this.alive) return; this.alive = false; this.dead = 0;
     // اتجاه السقوط: بعيداً عن مصدر الطلقة

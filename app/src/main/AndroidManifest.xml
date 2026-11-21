@@ -3,6 +3,13 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- محرّك نطق النص (كلام أهل السوق) — مطلوب منذ أندرويد 11 لرؤية خدمة النطق -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
+    </queries>
+
     <application
         android:allowBackup="true"
         android:hardwareAccelerated="true"

@@ -80,3 +80,18 @@ STAGE 4 (DONE, Nov 2026) — «النقلة النوعية» after user play-tes
 - UI: PUBG-like HUD v4 (scaled for all screens), meds buttons, zoom ± for variable scopes; big map opens/closes with animation and
   supports drag, pinch zoom, double-tap and mouse wheel.
 - Server/test builds use NULL_GFX so layout & RNG match the client exactly.
+
+STAGE 4.1 (Nov 2026) — talking townsfolk + tap fix
+- FIX: HUD buttons that open a screen (map, pause, score, loadout) sometimes needed two taps: Input.reset() cleared owners but
+  left control.busy=true. Now reset clears busy, those controls fire on finger-up (tapUp) and a 380ms click shield swallows the
+  browser's ghost click on the newly opened screen.
+- game/talk.js TalkManager + game/talkdata.js (Baghdadi dialect): greetings when you come within ~4.6m (wave + look at you),
+  vendor/tea/nursery/fisher calls, 18 multi-speaker gossip scenarios for clusters (<4.3m) incl. tea-kiosk scripts with
+  «أبو سلام الچايچي», gunfire reactions (civilians cower, nearest shouts) and a calm-down line. One voice at a time (nearest),
+  RTL speech bubbles with the speaker's name projected above heads (hidden when occluded/off-screen/>18m).
+- core/speech.js: Android TextToSpeech via bridge (speak/stopSpeak/ttsStatus/voiceCount, per-speaker voice/pitch/rate,
+  volume+pan by distance, __ttsDone callback; manifest <queries> TTS_SERVICE), web speechSynthesis if Arabic voice exists,
+  else Audio.babble() formant murmur. ttsText() maps چ→تش، گ→ق and laughter. Settings: «أصوات أهل السوق» volume (talk).
+- civilians.js: target-pose blending; work loops (vendor arranges goods, tea seller pours from a teapot, nursery waters with a
+  can, seated men count prayer beads / sip tea, fisherman hands behind back shading eyes), talk gestures + nods, listeners face
+  the speaker, weight shift, cower pose. test/talk.mjs covers bubbles, reactions and single-tap map/pause.

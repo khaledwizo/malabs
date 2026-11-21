@@ -78,11 +78,11 @@ export const HUD = {
     const slotsEl = $('slots');
     const slotAt = (x, y) => { const b = [...slotsEl.querySelectorAll('[data-slot]')].find(b => { const r = b.getBoundingClientRect(); return x >= r.left - 4 && x <= r.right + 4 && y >= r.top - 8 && y <= r.bottom + 8; }); if (b) game.queueSlot(+b.dataset.slot); };
     const controls = [
-      C('hPause', { round: false, tap: () => game.pause() }),
-      C('hScore', { round: false, tap: () => { this.showScore(!this.scoreOn); } }),
-      C('mini', { round: false, tap: () => ui.openMap() }),
-      C('rsLoad', { round: false, tap: () => ui.open('loadout') }),
-      C('warmLoad', { round: false, tap: () => ui.open('loadout') }),
+      C('hPause', { round: false, tapUp: true, pad: 12, tap: () => game.pause() }),
+      C('hScore', { round: false, tapUp: true, pad: 12, tap: () => { this.showScore(!this.scoreOn); } }),
+      C('mini', { round: false, tapUp: true, tap: () => ui.openMap() }),
+      C('rsLoad', { round: false, tapUp: true, tap: () => ui.open('loadout') }),
+      C('warmLoad', { round: false, tapUp: true, tap: () => ui.open('loadout') }),
       { id: 'slots', el: slotsEl, round: false, pad: 4, tap: slotAt },
       C('bFire', { action: 'fire', look: true, pad: 14 }),
       C('bFireL', { action: 'fire', look: true, pad: 10 }),

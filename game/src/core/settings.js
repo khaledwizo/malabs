@@ -28,7 +28,7 @@ export const DEFAULTS = {
   // التصويب (على طريقة ببجي): الكاميرا، التصويب القريب، المناظير البعيدة
   sens: 1, adsSens: 1, scopeSens: 1, invertY: false, adsMode: 'mixed', aimAssist: true, autoFire: false, leftFire: true, gyro: 'off', gyroSens: 1,
   touchSize: 1, hudAlpha: 0.9, crosshair: 'cross', crossColor: '#5dffb0',
-  volume: 0.85, music: 0.4, haptics: true,
+  volume: 0.85, music: 0.4, talk: 0.9, haptics: true,
   name: 'لاعب', char: 'khaled', mode: 'tdm', teamSize: 4, difficulty: 'normal', rounds: 5, tdmTime: 600, weather: 'random', team: 0,
 };
 

@@ -358,3 +358,9 @@ html:not(.touch) .hb,html:not(.touch) #mini{cursor:pointer}
 #healov b{position:relative;font:700 11px var(--fb);color:#fff;text-shadow:0 1px 3px #000}
 /* الشاشات الصغيرة جداً */
 @media (max-height:340px){#feed{display:none}#topbar #compass{display:none}}
+
+/* ===== كلام أهل السوق ===== */
+#talk{inset:0;pointer-events:none;z-index:1;overflow:hidden}
+.tb2{position:absolute;left:0;top:0;max-width:min(250px,42vw);background:rgba(250,246,236,.93);color:#1c1a16;font:600 13px/1.45 var(--fb);padding:5px 10px 7px;border-radius:12px;direction:rtl;text-align:right;box-shadow:0 3px 12px rgba(0,0,0,.35);transform-origin:50% 100%;opacity:0;will-change:transform,opacity}
+.tb2:after{content:'';position:absolute;bottom:-6px;left:50%;margin-left:-6px;border:6px solid transparent;border-top-color:rgba(250,246,236,.93);border-bottom:0}
+.tb2 small{display:block;font-size:10px;color:#8a6a2a;font-weight:800;margin-bottom:1px}

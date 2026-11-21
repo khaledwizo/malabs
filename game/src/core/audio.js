@@ -92,6 +92,26 @@ export const Audio = {
     const c = dest.context, o = c.createOscillator(); o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
     const g = c.createGain(); if (attack) { g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + attack); } else g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); o.connect(g); g.connect(dest); o.start(t); o.stop(t + dur + 0.05);
   },
+  // همهمة كلام بشري (حين لا يتوفّر محرّك نطق عربي): مقاطع بنبرة صوتية ومرشّحات حروف العلّة وتنغيم الجملة
+  babble(pos, dur, pitch = 1, vol = 0.8) {
+    if (!this.ctx) return; const c = this.ctx, t0 = c.currentTime + 0.02, end = t0 + dur;
+    const out = this.out(pos, 0.5 * vol, 2.5, 30); this.babbles = this.babbles || []; this.babbles.push(out); setTimeout(() => { const i = this.babbles.indexOf(out); if (i >= 0) this.babbles.splice(i, 1); }, (dur + 0.6) * 1000);
+    const V = [[730, 1090], [270, 2290], [300, 870], [530, 1840], [570, 840], [440, 1020]], f0 = 118 * pitch;
+    let t = t0;
+    while (t < end - 0.09) {
+      if (Math.random() < 0.16) { t += 0.07 + Math.random() * 0.12; continue; }
+      const sl = 0.08 + Math.random() * 0.09, pr = (t - t0) / dur, into = 1 + 0.12 * Math.sin(pr * Math.PI) - 0.1 * pr + (Math.random() - 0.5) * 0.08, v = V[(Math.random() * V.length) | 0];
+      const o = c.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(f0 * into, t); o.frequency.linearRampToValueAtTime(f0 * into * (0.94 + Math.random() * 0.1), t + sl);
+      const g = c.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.5, t + 0.018); g.gain.setValueAtTime(0.5, t + sl * 0.6); g.gain.exponentialRampToValueAtTime(0.0001, t + sl);
+      const f1 = c.createBiquadFilter(); f1.type = 'bandpass'; f1.frequency.value = v[0]; f1.Q.value = 5;
+      const f2 = c.createBiquadFilter(); f2.type = 'bandpass'; f2.frequency.value = v[1]; f2.Q.value = 7;
+      const m2 = c.createGain(); m2.gain.value = 0.45;
+      o.connect(g); g.connect(f1); g.connect(f2); f1.connect(out); f2.connect(m2); m2.connect(out); o.start(t); o.stop(t + sl + 0.02);
+      if (Math.random() < 0.55) this.nz(out, t, 0.035, 3000 + Math.random() * 3000, 2000, 1.5, 'bandpass', 0.16, 0.003);
+      t += sl;
+    }
+  },
+  stopBabble() { if (!this.ctx) return; for (const o of this.babbles || []) { try { o.gain.cancelScheduledValues(this.ctx.currentTime); o.gain.setValueAtTime(0, this.ctx.currentTime); } catch (e) { } } this.babbles = []; },
   play(name, pos, opt = {}) {
     if (!this.ctx || this.live > 56) return;
     this.live++; setTimeout(() => this.live--, 600);

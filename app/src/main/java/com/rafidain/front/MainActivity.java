@@ -11,6 +11,9 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.VibrationEffect;
+import android.speech.tts.TextToSpeech;
+import android.speech.tts.UtteranceProgressListener;
+import android.speech.tts.Voice;
 import android.os.Vibrator;
 import android.view.View;
 import android.view.Window;
@@ -24,12 +27,48 @@ import android.webkit.WebViewClient;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 /** غلاف بسيط: يعرض اللعبة (assets/index.html) في WebView بملء الشاشة. */
 public class MainActivity extends Activity {
     private WebView web;
     private long lastBack = 0;
+    // نطق كلام أهل السوق: 0 قيد التهيئة، 1 جاهز بصوت عربي، -1 غير متاح (تبقى الهمهمة والفقاعات)
+    private TextToSpeech tts;
+    private volatile int ttsState = 0;
+    private final List<Voice> arVoices = new ArrayList<>();
+
+    private void initTts() {
+        try {
+            tts = new TextToSpeech(this, st -> {
+                if (st != TextToSpeech.SUCCESS || tts == null) { ttsState = -1; return; }
+                try {
+                    int r = tts.setLanguage(new Locale("ar"));
+                    if (r < TextToSpeech.LANG_AVAILABLE) { ttsState = -1; return; }
+                    if (Build.VERSION.SDK_INT >= 21 && tts.getVoices() != null) {
+                        for (Voice v : tts.getVoices()) {
+                            if (v.getLocale() != null && "ar".equals(v.getLocale().getLanguage()) && !v.isNetworkConnectionRequired() && (v.getFeatures() == null || !v.getFeatures().contains(TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED))) arVoices.add(v);
+                        }
+                        Collections.sort(arVoices, (a, b) -> a.getName().compareTo(b.getName()));
+                    }
+                    tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
+                        @Override public void onStart(String id) { }
+                        @Override public void onDone(String id) { done(id); }
+                        @Override @SuppressWarnings("deprecation") public void onError(String id) { done(id); }
+                        @Override public void onError(String id, int code) { done(id); }
+                        @Override public void onStop(String id, boolean interrupted) { done(id); }
+                    });
+                    ttsState = 1;
+                } catch (Exception e) { ttsState = -1; }
+            });
+        } catch (Exception e) { ttsState = -1; }
+    }
+
+    private void done(final String id) {
+        runOnUiThread(() -> { if (web != null) web.evaluateJavascript("window.__ttsDone&&window.__ttsDone('" + id.replace("'", "") + "')", null); });
+    }
 
     @Override
     protected void onCreate(Bundle state) {
@@ -82,6 +121,7 @@ public class MainActivity extends Activity {
         hideBars();
         if (state != null) web.restoreState(state);
         if (web.getUrl() == null) web.loadUrl("file:///android_asset/index.html");
+        initTts();
     }
 
     private void hideBars() {
@@ -110,6 +150,7 @@ public class MainActivity extends Activity {
     protected void onPause() {
         if (web != null) {
             web.evaluateJavascript("window.__rafidainPause && window.__rafidainPause()", null);
+            try { if (tts != null) tts.stop(); } catch (Exception e) { }
             web.onPause();
         }
         super.onPause();
@@ -124,6 +165,7 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        if (tts != null) { try { tts.shutdown(); } catch (Exception e) { } tts = null; }
         if (web != null) { web.destroy(); web = null; }
         super.onDestroy();
     }
@@ -156,6 +198,30 @@ public class MainActivity extends Activity {
                 else v.vibrate(d);
             } catch (Exception e) { /* بلا اهتزاز */ }
         }
+
+        @JavascriptInterface
+        public int ttsStatus() { return ttsState; }
+
+        @JavascriptInterface
+        public int voiceCount() { return Math.max(1, arVoices.size()); }
+
+        /** يقرأ جملة بصوت عربي: النبرة والسرعة والصوت لكل شخص، والحجم والاتجاه حسب بعده عنك */
+        @JavascriptInterface
+        public void speak(String id, String text, float pitch, float rate, float vol, float pan, int voice) {
+            if (tts == null || ttsState != 1) { done(id); return; }
+            try {
+                if (!arVoices.isEmpty()) tts.setVoice(arVoices.get(Math.abs(voice) % arVoices.size()));
+                tts.setPitch(Math.max(0.5f, Math.min(2f, pitch)));
+                tts.setSpeechRate(Math.max(0.5f, Math.min(2f, rate)));
+                Bundle p = new Bundle();
+                p.putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, Math.max(0f, Math.min(1f, vol)));
+                p.putFloat(TextToSpeech.Engine.KEY_PARAM_PAN, Math.max(-1f, Math.min(1f, pan)));
+                if (tts.speak(text, TextToSpeech.QUEUE_FLUSH, p, id) != TextToSpeech.SUCCESS) done(id);
+            } catch (Exception e) { done(id); }
+        }
+
+        @JavascriptInterface
+        public void stopSpeak() { try { if (tts != null) tts.stop(); } catch (Exception e) { } }
 
         @JavascriptInterface
         public void copy(final String text) {

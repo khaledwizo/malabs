@@ -52,7 +52,7 @@ export const Input = {
   },
   press(a) { this.pressed.add(a); this.down.add(a); if (a === 'ads') this.adsPress(); },
   release(a) { this.down.delete(a); },
-  reset() { this.down.clear(); this.owners.clear(); this.stickEnd(); for (const c of this.controls) if (c.el) c.el.classList.remove('on'); },
+  reset() { this.down.clear(); this.owners.clear(); this.stickEnd(); for (const c of this.controls || []) { c.busy = false; if (c.el) c.el.classList.remove('on'); } },
   requestLock() { try { const p = this.el.requestPointerLock(); if (p && p.catch) p.catch(() => { }); } catch (e) { } },
   exitLock() { if (document.pointerLockElement) document.exitPointerLock(); },
   // ---------- التصويب: نقرة = تبديل، ضغط مطوّل = طالما الإصبع موضوع (النمط المختلط) ----------
@@ -103,7 +103,7 @@ export const Input = {
       if (c.busy) return;
       c.busy = true; if (c.el) c.el.classList.add('on');
       this.owners.set(id, { type: 'btn', c, lx: x, ly: y });
-      if (c.tap) { c.tap(x, y); return; }
+      if (c.tap) { if (!c.tapUp) c.tap(x, y); return; }
       if (c.action === 'ads') this.adsPress(e ? e.timeStamp : 0);
       else if (c.toggle) { if (this.toggles.has(c.action)) this.toggles.delete(c.action); else { this.toggles.add(c.action); if (c.excl) this.setToggle(c.excl, false); } this.pressed.add(c.action); }
       else this.press(c.action);
@@ -133,6 +133,7 @@ export const Input = {
       this.stickDraw(Math.cos(a) * Math.min(R, Math.hypot(dx, dy)), Math.sin(a) * Math.min(R, Math.hypot(dx, dy)), true);
       return;
     }
+    if (o.type === 'btn') { o.mx = x; o.my = y; }
     if (o.type === 'look' || (o.type === 'btn' && o.c.look)) {
       const dx = x - o.lx, dy = y - o.ly; o.lx = x; o.ly = y;
       // تسارع خفيف يجعل الالتفاف السريع أسهل مع بقاء الدقة في الحركات الصغيرة
@@ -147,7 +148,8 @@ export const Input = {
     if (o.type === 'btn') {
       const c = o.c; c.busy = false;
       if (c.el && !(c.toggle && this.toggles.has(c.action))) c.el.classList.remove('on');
-      if (c.tap) return;
+      // أزرار تفتح شاشة (الخريطة، الإيقاف...): تُنفَّذ عند رفع الإصبع كي لا تسقط اللمسة على الشاشة المفتوحة
+      if (c.tap) { if (c.tapUp && Math.hypot((o.mx ?? o.lx) - o.lx, (o.my ?? o.ly) - o.ly) < 40) { this.shield(); c.tap(o.lx, o.ly); } return; }
       if (c.action === 'ads') this.adsRelease(ts);
       else if (!c.toggle) this.release(c.action);
     }
@@ -195,6 +197,11 @@ export const Input = {
   },
   held(a) { return this.down.has(a) || this.down.has(a + 'P'); },
   on(a) { return this.toggles.has(a); },
+  // درع نقرات قصير: يمنع «النقرة الشبحية» التي يولّدها المتصفح بعد اللمس من الضغط على عناصر الشاشة التي فُتحت للتو
+  shield(ms = 380) {
+    this.shieldUntil = performance.now() + ms;
+    if (!this.shieldOn) { this.shieldOn = true; document.addEventListener('click', e => { if (performance.now() < this.shieldUntil) { e.stopPropagation(); e.preventDefault(); } }, true); }
+  },
   take(a) { if (this.pressed.has(a)) { this.pressed.delete(a); return true; } return false; },
   takeLook() { const r = [this.lookX, this.lookY]; this.lookX = 0; this.lookY = 0; return r; },
   endFrame() { this.pressed.clear(); this.wheel = 0; },

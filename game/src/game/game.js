@@ -19,6 +19,7 @@ import { NetSim } from '../net/client.js';
 import { GameServer } from '../net/server.js';
 import { Social } from '../net/social.js';
 import { Civilian } from './civilians.js';
+import { TalkManager } from './talk.js';
 
 const STEP = 1 / 60;
 const BOT_NAMES = ['يوسف', 'حيدر', 'زيد', 'عمر', 'مصطفى', 'ليث', 'أنمار', 'كرار', 'بلال', 'طارق', 'سجّاد', 'مرتضى', 'حسين', 'رعد', 'وسام', 'ياسر', 'نوفل', 'عمّار', 'قاسم', 'سلمان'];
@@ -38,6 +39,7 @@ export class Game {
     this.buildLineup();
     // أهل السوق
     this.civs = (this.world.npcs || []).map(n => { const c = new Civilian(n); this.scene.add(c.root); return c; });
+    this.talk = new TalkManager(this, this.civs);
   }
   // ---------- القوائم: كاميرا سينمائية وعرض الشخصيات ----------
   buildLineup() {
@@ -84,7 +86,7 @@ export class Game {
     Input.enabled = true; Input.clearToggles(); if (!Input.isTouch) Input.requestLock();
     if (this.weather) { this.weather.set(weather || Settings.weather); this.weather.schedule(this.wxSeed || (Date.now() & 0xffff)); }
     this.matchT = 0;
-    this.syncWorld(true);
+    this.syncWorld(true); this.talk && this.talk.reset();
     Audio.musicMode('game');
     Audio.play('roundStart');
   }
@@ -117,6 +119,7 @@ export class Game {
     UI.banner(MODES[ns.mode] ? MODES[ns.mode].name : 'معركة', 'فريقك: ' + TEAMS[this.mp ? this.mp.team : 0].name, '', 2.6);
   }
   quit(keep, keepSrv) {
+    if (this.talk) this.talk.clear();
     if (this.sim && this.sim.online) { try { this.sim.onlost = null; this.sim.close(); } catch (e) { } }
     if (this.hostSrv && !keepSrv) { const s = this.hostSrv; this.hostSrv = null; this.hostInfo = null; setTimeout(() => s.stop(), 200); }
     if (!keep) Social.presence('on');
@@ -240,6 +243,7 @@ export class Game {
         case 'shot': {
           const p = sim.players.get(e.id), wd = WEAPONS[e.w]; if (!p || !wd) break;
           this.shotAt.set(e.id, { t: this.t, q: e.q });
+          if (this.talk && !(wd.cls === 'knife')) this.talk.onShot(p.pos);
           const mine = e.id === this.me && (!sim.online || e.loc);
           let mz;
           if (mine) { this.vm.fire(wd.cls === 'sniper' || wd.cls === 'shotgun' || wd.cls === 'dmr'); mz = this.vmMuzzleWorld(); this.shake += wd.cls === 'sniper' ? 0.6 : wd.cls === 'shotgun' ? 0.5 : 0.14; if (wd.bolt || wd.pump) setTimeout(() => { if (this.sim) { this.vm.bolt(wd.pump); Audio.play(wd.pump ? 'pump' : 'bolt'); } }, 260); if (Settings.haptics && (wd.cls === 'sniper' || wd.cls === 'shotgun')) this.buzz(25); }
@@ -304,7 +308,7 @@ export class Game {
         case 'heal': if (e.id === this.me) this.vm.healT = e.k === 2 ? 4 : 2.4; Audio.play(e.k === 2 ? 'syringe' : 'bandage', e.id === this.me ? null : this.posOf(e.id)); break;
         case 'healed': if (e.id === this.me) { Audio.play('healed'); this.vm.healT = 0; } break;
         case 'boom': {
-          this.fx.explosion(e.p, e.kind);
+          this.fx.explosion(e.p, e.kind); if (this.talk && (e.kind === 'frag' || e.kind === 'flash' || e.kind === 'molotov')) this.talk.onShot(e.p);
           if (e.kind === 'frag') { Audio.play('boom', e.p); const d = me ? Math.hypot(me.pos[0] - e.p[0], me.pos[2] - e.p[2]) : 99; this.shake += Math.max(0, 1.6 - d / 12); if (d < 14 && Settings.haptics) this.buzz(60); }
           else if (e.kind === 'flash') Audio.play('flashbang', e.p);
           else if (e.kind === 'smoke') Audio.play('smokeHiss', e.p);
@@ -411,6 +415,7 @@ export class Game {
     Audio.setListener(cam.position.x, cam.position.y, cam.position.z, f.x, f.y, f.z);
     this.fx.update(dt, cam);
     this.updateWorldAnim(dt);
+    if (this.talk) this.talk.update(dt);
     // الرسم: العالم ثم السلاح
     this.draw(me && me.alive && !this.scoped);
     HUD.update(dt, this);
@@ -464,7 +469,7 @@ export class Game {
     const sh = x.createLinearGradient(cx - R, cy - R, cx + R, cy + R); sh.addColorStop(0, 'rgba(120,180,255,0.07)'); sh.addColorStop(0.5, 'rgba(255,255,255,0)'); x.fillStyle = sh; x.beginPath(); x.arc(cx, cy, R, 0, 7); x.fill();
   }
   renderMenu(dt) {
-    this.fx.update(dt, this.camera); this.updateWorldAnim(dt);
+    this.fx.update(dt, this.camera); this.updateWorldAnim(dt); if (this.talk) this.talk.update(dt);
     const r = this.renderer;
     const showGun = UI.screen === 'loadout' && this.menuWeaponId;
     if (this.post && this.post.enabled && !showGun) { this.post.render(this.scene, this.camera, null); return; }

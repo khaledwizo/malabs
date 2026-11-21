@@ -416,7 +416,7 @@ export function buildDistricts(B, H) {
   B.npc({ x: 55.3, y: 0.09, z: -18.85, yaw: PI, pose: 'sit', look: 'elder', stool: false });
   B.npc({ x: 77.0, y: 0.09, z: -3.15, yaw: 0, pose: 'sit', look: 'elder', stool: false });
   B.npc({ x: 60.4, y: 0.09, z: 26.15, yaw: PI, pose: 'sit', look: 'elder', stool: false });
-  B.npc({ x: -70, z: 31.9, yaw: PI, pose: 'stand', look: 'vendor' });
+  B.npc({ x: -70, z: 31.9, yaw: PI, pose: 'stand', look: 'fisher' });
   // صيد اليوم: طبق خشبي عليه أسماك بنّي (نموذج مرخّص CC0)
   B.box(-69.3, 0, 31.0, -67.9, 0.36, 31.8, 'woodDark', { cm: MAT.wood, flags: F.THIN });
   for (const [dx, dz, r] of [[-0.38, -0.1, 0.15], [0.05, 0.12, -0.2], [0.42, -0.08, 0.35]]) B.put('fish', -68.6 + dx, 0.36, 31.4 + dz, PI / 2 + r, 1.25);
