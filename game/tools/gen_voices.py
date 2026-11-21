@@ -12,9 +12,44 @@ from xml.sax.saxutils import escape
 lines = json.load(open(sys.argv[1], encoding='utf-8'))
 out = sys.argv[2]
 os.makedirs(out, exist_ok=True)
-key = os.environ.get('AZ_KEY', '').strip()
-region = (os.environ.get('AZ_REGION', '') or 'westeurope').strip()
+clean = lambda v: (v or '').strip().strip('"').strip("'").strip()
+key = clean(os.environ.get('AZ_KEY'))
+region = clean(os.environ.get('AZ_REGION')).lower().replace(' ', '') or 'westeurope'
 budget = float(os.environ.get('AZ_BUDGET_MIN', '40')) * 60
+REGIONS = ['eastus', 'eastus2', 'westus', 'westus2', 'westus3', 'centralus', 'northcentralus', 'southcentralus', 'westcentralus',
+           'westeurope', 'northeurope', 'uksouth', 'ukwest', 'francecentral', 'germanywestcentral', 'switzerlandnorth', 'swedencentral',
+           'norwayeast', 'italynorth', 'polandcentral', 'spaincentral', 'uaenorth', 'qatarcentral', 'israelcentral', 'southafricanorth',
+           'centralindia', 'southindia', 'jioindiawest', 'southeastasia', 'eastasia', 'japaneast', 'japanwest', 'koreacentral',
+           'australiaeast', 'canadacentral', 'canadaeast', 'brazilsouth', 'mexicocentral']
+
+
+def token_ok(r):
+    """فحص سريع للمفتاح والمنطقة عبر خدمة إصدار الرمز"""
+    try:
+        req = urllib.request.Request(f'https://{r}.api.cognitive.microsoft.com/sts/v1.0/issueToken', data=b'', method='POST',
+                                     headers={'Ocp-Apim-Subscription-Key': key, 'Content-Length': '0'})
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            return resp.status == 200
+    except urllib.error.HTTPError as e:
+        return False
+    except Exception as e:
+        print(f'  {r}: {e}'); return False
+
+
+if key:
+    import re
+    print(f'key: length {len(key)}, hex={bool(re.fullmatch(r"[0-9a-fA-F]+", key))}, region given: {region!r}')
+    if not token_ok(region):
+        print(f'key rejected in region {region!r}; searching the resource region...')
+        found = next((r for r in REGIONS if r != region and token_ok(r)), None)
+        if not found:
+            print('not found yet; new keys can take a minute to activate — waiting 75s'); time.sleep(75)
+            found = region if token_ok(region) else next((r for r in REGIONS if token_ok(r)), None)
+        if found:
+            print(f'using region {found!r}'); region = found
+        else:
+            print('AUTH ERROR: the key was rejected in every region. Re-copy KEY 1 from the Speech resource (Keys and Endpoint).')
+            key = ''
 url = f'https://{region}.tts.speech.microsoft.com/cognitiveservices/v1'
 
 
