@@ -112,3 +112,18 @@ STAGE 4.2 (Nov 2026) — authored Iraqi voices + first-launch cutscene
   Ibrahim al-Hashimi enters, reconciliation fails, a hidden hand throws a grenade, flash, cards, title). Tap card unlocks audio,
   skip button, Android back skips, letterbox + subtitles, key light on speaker, lookAt previous speaker. localStorage
   rafidain.intro.v1; replay from settings › sound. All names/groups fictional per user. Tests set the key (comma expr).
+
+STAGE 4.3 (Nov 2026) — new cutscene story + real Iraqi voices live
+- introdata.js rewritten (fictional): a week after the city elections, a reconciliation dinner at sheikh Ibrahim al-Hashimi's
+  mudhif. Mohammed/Khaled (Tikritis outside «التجمّع») blame the gathering (Ibrahim/Saif) for allying with العصائب, who have a
+  dark history in the city. The sheikh calms them; as hands meet, a masked stranger (look 'masked', one of العصائب) opens the
+  door, pulls the pin, throws and flees; sheikh falls; gathering members, blind to the stranger, accuse the other Tikritis and
+  draw weapons (Khaled: "الرمّانة إجت من الباب!"); shots in black; closing cards say the thrower was from العصائب to ignite
+  sedition, the gathering misunderstood, and war broke out among the people of Tikrit.
+- intro.js: door/door2/doorHand/grenade shots, strangerLight, held grenade on the stranger's hand + arc, exposure system
+  (expo/expoT/expoRate: blinding boom → black → slow dusty fade-in), aftermath standing/aiming actors, scorch/debris, fire light
+  with flame cones. civilians.js: looks 'sheikh' and 'masked', hold/raise/throw animations.
+- Voices: Azure key fixed (84-char key), generation working — 348/348 lines (316 souq + 28 intro, voice ar-IQ-BasselNeural).
+  gen_voices.py removes .ogg files no longer in lines.json. Workflow: brings voice files from the branch head before
+  generating (runs check out their event SHA), and commits by resetting onto the branch head + merging voices/APKs instead of
+  rebase (binary conflicts). APK build #14: 348 ogg in assets/voice, cert dce687429cdb64f87ae6b1e5.
