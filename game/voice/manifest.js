@@ -1,0 +1,1 @@
+window.RAFIDAIN_VOICES={};
