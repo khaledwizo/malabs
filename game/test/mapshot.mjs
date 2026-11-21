@@ -7,7 +7,7 @@ const q = process.argv[3] || 'medium', wx = process.argv[4] || '';
 const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
 const ctx = await b.newContext({ viewport: { width: 1280, height: 720 } });
 const p = await ctx.newPage();
-await p.addInitScript(([q]) => { try { localStorage.setItem('rafidain.settings.v2', JSON.stringify({ quality: q, fps: 0 })); } catch (e) { } }, [q]);
+await p.addInitScript(([q]) => { try { localStorage.setItem('rafidain.intro.v1', '1'), localStorage.setItem('rafidain.settings.v2', JSON.stringify({ quality: q, fps: 0 })); } catch (e) { } }, [q]);
 const logs = []; p.on('console', m => { if (m.type() === 'error' || m.type() === 'warning') logs.push(m.type() + ': ' + m.text()); }); p.on('pageerror', e => logs.push('PAGEERROR ' + e.message + '\n' + e.stack));
 await p.goto(url); await p.waitForTimeout(2500);
 await p.evaluate(() => { document.querySelectorAll('.screen,#home,#ui,#hud').forEach(e => e.style.display = 'none'); });

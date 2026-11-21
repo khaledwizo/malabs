@@ -29,7 +29,7 @@ export const Audio = {
   // الموسيقى: أعلى في القوائم، خافتة أثناء القتال
   setMusic(v) { this.musV = v; this.applyMusic(); },
   musicMode(m) { this.musM = m; this.applyMusic(); },
-  applyMusic() { if (!this.mus) return; const v = (this.musV ?? Settings.music) * (this.musM === 'game' ? 0.22 : 0.6); this.mus.gain.setTargetAtTime(v, this.ctx.currentTime, 0.8); },
+  applyMusic() { if (!this.mus) return; const v = (this.musV ?? Settings.music) * (this.musM === 'game' ? 0.22 : this.musM === 'intro' ? 0 : 0.6); this.mus.gain.setTargetAtTime(v, this.ctx.currentTime, 0.8); },
   startMusic() {
     if (this.musSrc || !this.ctx) return;
     try {

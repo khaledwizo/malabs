@@ -95,3 +95,20 @@ STAGE 4.1 (Nov 2026) — talking townsfolk + tap fix
 - civilians.js: target-pose blending; work loops (vendor arranges goods, tea seller pours from a teapot, nursery waters with a
   can, seated men count prayer beads / sip tea, fisherman hands behind back shading eyes), talk gestures + nods, listeners face
   the speaker, weight shift, cower pose. test/talk.mjs covers bubbles, reactions and single-tap map/pause.
+
+STAGE 4.2 (Nov 2026) — authored Iraqi voices + first-launch cutscene
+- talkdata.js rewritten: 25 PERSONAS (index-matched to world.npcs, look-checked) each with own voice prosody (p/r %) and
+  speech tics; greet (as مجاهد), call, react, calm, solo stories; GROUPS with authored multi-line convos (tea kiosk trio,
+  bench elders, stall trio, 3 souq vendor pairs across the street).
+- talk.js: units (groups/solos) run sequences that start when you enter their radius (14m groups, 7m+1.2s dwell stories) and
+  are never interrupted (only a speaker's death stops a line); greetings queue until they finish; gunfire → cower, a react line
+  after the current line, then a calm line and the story resumes; one nearby sequence at a time (busyNear); every line at most
+  once per match (used set reset in game begin); volume fades with distance (HTMLAudio volume) — babble fallback if no file.
+- Voices: tools/voice_lines.mjs → game/voice/lines.json (id = FNV-1a of voice|pitch|rate|loud|text, core/voicekey.js shared
+  with runtime). CI step runs tools/gen_voices.py with secrets AZURE_SPEECH_KEY/AZURE_SPEECH_REGION (Azure ar-IQ-BasselNeural,
+  ogg-24khz opus, incremental, ~3.2s pacing for free tier, writes voice/manifest.js with durations) and commits game/voice;
+  APK assets/voice/ loaded via <script src=voice/manifest.js> + new Audio('voice/<id>.ogg').
+- intro.js (+introdata.js): first-launch cinematic in a Tikrit mudhif (4 main chars sit on the floor around a سفرة, sheikh
+  Ibrahim al-Hashimi enters, reconciliation fails, a hidden hand throws a grenade, flash, cards, title). Tap card unlocks audio,
+  skip button, Android back skips, letterbox + subtitles, key light on speaker, lookAt previous speaker. localStorage
+  rafidain.intro.v1; replay from settings › sound. All names/groups fictional per user. Tests set the key (comma expr).

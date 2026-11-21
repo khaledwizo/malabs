@@ -14,6 +14,7 @@ import { UI } from './ui/ui.js';
 import { HUD } from './ui/hud.js';
 import { Social } from './net/social.js';
 import { buildGun } from './game/gunmodels.js';
+import { Intro, introSeen } from './game/intro.js';
 
 Social.load();
 Social.start(() => ({ name: Settings.name, char: Settings.char }));
@@ -68,12 +69,22 @@ UI.init(game);
 const wake = () => Audio.init();
 document.addEventListener('pointerdown', wake); document.addEventListener('touchstart', wake, { passive: true }); document.addEventListener('keydown', wake);
 document.addEventListener('visibilitychange', () => { if (document.hidden && game.sim && !game.paused && !game.sim.online) game.pause(); });
-window.__rafidainBack = () => { if (UI.mapOpen) { UI.closeMap(); return true; } if (game.sim && !game.paused) { game.pause(); return true; } if (UI.screen && UI.screen !== 'home') { UI.back(); return true; } return false; };
+window.__rafidainBack = () => { if (intro && intro.active) { intro.finish(); return true; } if (UI.mapOpen) { UI.closeMap(); return true; } if (game.sim && !game.paused) { game.pause(); return true; } if (UI.screen && UI.screen !== 'home') { UI.back(); return true; } return false; };
 window.__rafidainPause = () => { if (game.sim && !game.paused && !game.sim.online) game.pause(); };
 
+// المقدّمة السينمائية عند أول فتح (ويمكن إعادتها من الإعدادات)
+let intro = null;
+function playIntro() {
+  if (intro && intro.active) return;
+  document.body.classList.add('introOn');
+  intro = new Intro({ renderer, kit, onDone: () => { document.body.classList.remove('introOn'); intro = null; } });
+  intro.start(); window.__intro = intro;
+}
+if (!introSeen() && !/[?&]nointro/.test(location.search)) playIntro();
 let fpsT = 0;
 Loop.start((dt, now) => {
+  if (intro && intro.active) { intro.frame(dt); return; }
   game.frame(dt, now);
   fpsT -= dt; if (fpsT <= 0) { fpsT = 0.5; HUD.fps(`FPS ${Math.round(Loop.fps)} · ${Loop.ms.toFixed(1)}ms · ${resText}`); }
 });
-window.__R = { renderer, scene, camera, world, game, UI, HUD, Loop, Input, Settings, Social, THREE, buildGun, weather, stats: () => renderer.info.render };
+window.__R = { playIntro, renderer, scene, camera, world, game, UI, HUD, Loop, Input, Settings, Social, THREE, buildGun, weather, stats: () => renderer.info.render };

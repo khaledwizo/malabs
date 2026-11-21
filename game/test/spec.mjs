@@ -4,7 +4,7 @@ import path from 'path';
 const mobile = process.argv.includes('mobile');
 const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 const p = await (await b.newContext(mobile ? { viewport: { width: 844, height: 390 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true } : { viewport: { width: 960, height: 540 } })).newPage();
-await p.addInitScript(() => { localStorage.setItem('rafidain.settings.v1', JSON.stringify({ fps: 0, quality: 'medium' })); });
+await p.addInitScript(() => { localStorage.setItem('rafidain.intro.v1', '1'), localStorage.setItem('rafidain.settings.v1', JSON.stringify({ fps: 0, quality: 'medium' })); });
 const errs = []; p.on('pageerror', e => errs.push(e.message + '\n' + e.stack));
 await p.goto('file://' + path.resolve('dist/index.html')); await p.waitForTimeout(1500);
 await p.evaluate(() => { const U = window.__R.UI; U.setup.size = 3; U.startMatch(); });

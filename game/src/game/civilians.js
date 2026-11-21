@@ -18,12 +18,12 @@ const ROBES = [[232, 230, 224], [196, 192, 182], [128, 110, 88], [86, 96, 104], 
 export class Civilian {
   constructor(n) {
     this.n = n; let a = n.seed | 0; const R = () => { a = (a * 1103515245 + 12345) & 0x7fffffff; return a / 0x7fffffff; };
-    const woman = n.look === 'pilgrim' && R() < 0.45;
+    const woman = n.look === 'pilgrim' && R() < 0.45, sheikh = n.look === 'sheikh';
     const skinC = SKINS[Math.floor(R() * SKINS.length)];
     const skin = std('skin' + skinC, { color: skinC, roughness: 0.6 });
-    const robeC = woman ? [22, 22, 26] : n.look === 'nursery' ? [70, 112, 72] : ROBES[Math.floor(R() * ROBES.length)];
+    const robeC = woman ? [22, 22, 26] : sheikh ? [238, 236, 230] : n.look === 'nursery' ? [70, 112, 72] : ROBES[Math.floor(R() * ROBES.length)];
     const robe = fab('robe' + robeC.join(), robeC);
-    const face = faceMat(Math.floor(R() * 6) + (woman ? 10 : 0), skinC, woman ? { brow: '#1a120c', lip: '#9c5a4a' } : { beard: R() < 0.7 ? (R() < 0.3 ? '#bdb8b0' : '#2a221c') : null, beardA: 0.9, mustache: '#231d18', brow: '#1d1612' });
+    const face = sheikh ? faceMat(20, '#c08a68', { beard: '#b9b4ac', beardA: 0.85, mustache: '#a8a29a', brow: '#8f8a82', eye: '#2a1c12', lip: '#8d5446' }) : faceMat(Math.floor(R() * 6) + (woman ? 10 : 0), skinC, woman ? { brow: '#1a120c', lip: '#9c5a4a' } : { beard: R() < 0.7 ? (R() < 0.3 ? '#bdb8b0' : '#2a221c') : null, beardA: 0.9, mustache: '#231d18', brow: '#1d1612' });
     const root = this.root = new THREE.Group(); root.position.set(n.x, n.y, n.z); root.rotation.y = n.yaw;
     const mesh = (g, m, x, y, z, parent) => { const o = new THREE.Mesh(g, m); o.position.set(x, y, z); o.castShadow = true; o.receiveShadow = true; (parent || root).add(o); return o; };
     const sit = n.pose === 'sit';
@@ -47,11 +47,11 @@ export class Civilian {
     const head = this.head = new THREE.Group(); head.position.y = 0.6; chest.add(head);
     mesh(headGeo(), face, 0, 0.05, 0, head);
     if (woman) { const h = mesh(geo('hijab', () => new THREE.SphereGeometry(0.135, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.72)), std('abaya', { color: 0x141416, roughness: 0.9, side: THREE.DoubleSide }), 0, 0.06, 0.02, head); h.rotation.x = -0.35; mesh(geo('hijab2', () => new THREE.CylinderGeometry(0.13, 0.2, 0.3, 14, 1, true)), std('abaya', {}), 0, -0.12, 0.02, head); }
-    else if (R() < 0.75) {
-      const red = R() < 0.55, m = shem(red);
+    else if (sheikh || R() < 0.75) {
+      const red = sheikh || R() < 0.55, m = shem(red);
       mesh(geo('shemTop', () => new THREE.SphereGeometry(0.128, 16, 10, 0, Math.PI * 2, 0, Math.PI * 0.55)), m, 0, 0.07, 0.008, head);
       const dr = mesh(geo('shemDrape', () => new THREE.CylinderGeometry(0.125, 0.17, 0.24, 14, 1, true, Math.PI * 0.2, Math.PI * 1.6)), m, 0, -0.06, 0.02, head); dr.rotation.y = Math.PI;
-      if (R() < 0.7) { const eg = mesh(geo('egal', () => new THREE.TorusGeometry(0.112, 0.011, 6, 22)), std('egal', { color: 0x101010 }), 0, 0.12, 0.01, head); eg.rotation.x = Math.PI / 2; }
+      if (sheikh || R() < 0.7) { const eg = mesh(geo('egal', () => new THREE.TorusGeometry(0.112, 0.011, 6, 22)), std('egal', { color: 0x101010 }), 0, 0.12, 0.01, head); eg.rotation.x = Math.PI / 2; }
     } else mesh(geo('cap', () => new THREE.SphereGeometry(0.115, 14, 8, 0, Math.PI * 2, 0, Math.PI * 0.42)), std('capW', { color: 0xf2f0ea }), 0, 0.09, 0.005, head);
     // الذراعان
     this.arms = [];
@@ -68,6 +68,12 @@ export class Civilian {
     if (n.look === 'tea' && !sit) { const pot = this.pot = new THREE.Group(); pot.position.set(0, -0.33, -0.02); Rh.add(pot); const met = std('teapot', { color: 0xc8c4bc, roughness: 0.25, metalness: 0.85 }); mesh(geo('potB', () => new THREE.SphereGeometry(0.065, 12, 8)), met, 0, -0.04, 0, pot).scale.set(1, 0.85, 1); mesh(geo('potS', () => new THREE.CylinderGeometry(0.008, 0.014, 0.09, 6)), met, 0, -0.02, -0.08, pot).rotation.x = -0.9; mesh(geo('potL', () => new THREE.CylinderGeometry(0.03, 0.04, 0.025, 10)), met, 0, 0.02, 0, pot); }
     else if (n.look === 'nursery' && !sit) { const can = this.can = new THREE.Group(); can.position.set(0, -0.32, -0.04); Rh.add(can); const gm = std('canG', { color: 0x3f7a46, roughness: 0.45, metalness: 0.5 }); mesh(geo('canB', () => new THREE.CylinderGeometry(0.06, 0.07, 0.14, 10)), gm, 0, -0.08, 0, can); mesh(geo('canS', () => new THREE.CylinderGeometry(0.008, 0.012, 0.2, 6)), gm, 0, -0.06, -0.11, can).rotation.x = -1.1; }
     else if (sit && !this.cup) { this.beads = mesh(geo('beads', () => new THREE.TorusGeometry(0.045, 0.008, 5, 16)), std('beads', { color: 0x5a1a12, roughness: 0.35 }), 0, -0.33, -0.01, Rh); this.beads.rotation.y = Math.PI / 2; }
+    // بشت الشيخ: عباءة بنّية داكنة بحاشية ذهبية على الكتفين
+    if (sheikh) {
+      const bm = std('bisht', { color: 0x2a1d14, roughness: 0.75, side: THREE.DoubleSide }), gm = std('bishtGold', { color: 0xc9a24a, roughness: 0.35, metalness: 0.7 });
+      const len = sit ? 0.62 : 1.18, b = mesh(geo('bisht' + len, () => new THREE.CylinderGeometry(0.25, sit ? 0.36 : 0.42, len, 16, 1, true, Math.PI * 0.18, Math.PI * 1.64)), bm, 0, 0.5 - len / 2, 0.02, chest); b.rotation.y = Math.PI;
+      for (const s2 of [-1, 1]) { const tr = mesh(roundBox(0.035, 0.4, 0.02, 0.008), gm, s2 * 0.11, 0.33, -0.14, chest); tr.rotation.z = s2 * 0.12; }
+    }
     mergeChildren(body);
     this.pose0(); this.alive = true; this.t = R() * 10; this.dead = 0; this.wave = 0; this.look = 0;
     root.traverse(o => { if (o.isMesh) o.userData.npc = n.id; });
@@ -145,6 +151,7 @@ export class Civilian {
       // التحية بيد مرفوعة
       if (this.wave > 0) { this.wave -= dt; const w = Math.sin(Math.min(1, (2.2 - this.wave) * 3) * Math.PI / 2) * Math.min(1, this.wave * 3); P[1][0] = -0.3 * w + P[1][0] * (1 - w); P[1][1] = -1.9 * w + P[1][1] * (1 - w); P[1][2] = -0.4 * w + Math.sin(t * 12) * 0.35 * w + P[1][2] * (1 - w); }
       if (d < 3.2 && this.wave <= 0 && !this.waved && !this.cower) { this.wave = 2.2; this.waved = true; } if (d > 8) this.waved = false;
+      if (this.raise) { P[1] = [-2.35, -0.25, -0.25]; hx -= 0.08; }
       // الخوف من الرمي: ينحني ويغطّي رأسه
       if (this.cower > 0) { const e = Math.min(1, this.cower * 2, (this.cowerMax - this.cower) * 4 + 0.2); P[0] = [-2.6 * e + P[0][0] * (1 - e), 0.35 * e + P[0][1] * (1 - e), -1.7 * e + P[0][2] * (1 - e)]; P[1] = [-2.6 * e + P[1][0] * (1 - e), -0.35 * e + P[1][1] * (1 - e), -1.7 * e + P[1][2] * (1 - e)]; cx = 0.5 * e; hx = 0.5 * e; }
       this.chest.rotation.y += (chestY - this.chest.rotation.y) * k;

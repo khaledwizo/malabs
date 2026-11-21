@@ -1,0 +1,3442 @@
+[
+ {
+  "id": "04a2f1ff",
+  "tag": "npc0:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-6%",
+  "rate": "+0%",
+  "volume": "+0%",
+  "text": "هلا عيوني، هلا بالمجاهد، تفضّل!",
+  "shown": "هلا عيوني، هلا بالمجاهد، تفضّل!"
+ },
+ {
+  "id": "e1c9b9ba",
+  "tag": "npc0:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-6%",
+  "rate": "+0%",
+  "volume": "+0%",
+  "text": "الله يحفظك عيوني، شتحتاج من عدنا؟",
+  "shown": "الله يحفظك عيوني، شتحتاج من عدنا؟"
+ },
+ {
+  "id": "9576d90a",
+  "tag": "npc0:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-6%",
+  "rate": "+0%",
+  "volume": "+0%",
+  "text": "فشك أصلي يا جماعة!",
+  "shown": "فشك أصلي يا جماعة!"
+ },
+ {
+  "id": "5ee8ec5e",
+  "tag": "npc0:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-6%",
+  "rate": "+0%",
+  "volume": "+0%",
+  "text": "تعالوا عيوني، كلشي موجود!",
+  "shown": "تعالوا عيوني، كلشي موجود!"
+ },
+ {
+  "id": "46f068db",
+  "tag": "npc0:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-6%",
+  "rate": "+0%",
+  "volume": "+0%",
+  "text": "بالمفرد والجملة، تفضّلوا!",
+  "shown": "بالمفرد والجملة، تفضّلوا!"
+ },
+ {
+  "id": "e51eadc4",
+  "tag": "npc0:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-6%",
+  "rate": "+0%",
+  "volume": "+0%",
+  "text": "يا ستّار!",
+  "shown": "يا ستّار!"
+ },
+ {
+  "id": "74b01760",
+  "tag": "npc0:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-6%",
+  "rate": "+0%",
+  "volume": "+0%",
+  "text": "عيوني انبطحوا، انبطحوا!",
+  "shown": "عيوني انبطحوا، انبطحوا!"
+ },
+ {
+  "id": "63858792",
+  "tag": "npc0:calm",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-6%",
+  "rate": "+0%",
+  "volume": "+0%",
+  "text": "الحمد لله، عدّت على خير.",
+  "shown": "الحمد لله، عدّت على خير."
+ },
+ {
+  "id": "8d3d1efe",
+  "tag": "npc1:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+4%",
+  "rate": "+9%",
+  "volume": "+0%",
+  "text": "يا هلا بالمجاهد! تعال تعال، عدنا الأصلي!",
+  "shown": "يا هلا بالمجاهد! تعال تعال، عدنا الأصلي!"
+ },
+ {
+  "id": "97ba0f9c",
+  "tag": "npc1:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+4%",
+  "rate": "+9%",
+  "volume": "+0%",
+  "text": "يا معوّد إنت بطل، خذلك نظرة عالبضاعة!",
+  "shown": "يا معوّد إنت بطل، خذلك نظرة عالبضاعة!"
+ },
+ {
+  "id": "0a8e6a27",
+  "tag": "npc1:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+4%",
+  "rate": "+9%",
+  "volume": "+0%",
+  "text": "يا معوّد! هالكلاشنكوف ما يخون!",
+  "shown": "يا معوّد! هالكلاشنكوف ما يخون!"
+ },
+ {
+  "id": "4f5417ec",
+  "tag": "npc1:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+4%",
+  "rate": "+9%",
+  "volume": "+0%",
+  "text": "أصلي مو تقليد، شيلّه وجرّبه!",
+  "shown": "أصلي مو تقليد، شيلّه وجرّبه!"
+ },
+ {
+  "id": "cb720209",
+  "tag": "npc1:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+4%",
+  "rate": "+9%",
+  "volume": "+0%",
+  "text": "سعر اليوم بس، باچر يغلى!",
+  "shown": "سعر اليوم بس، باچر يغلى!"
+ },
+ {
+  "id": "d42222ae",
+  "tag": "npc1:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+4%",
+  "rate": "+9%",
+  "volume": "+0%",
+  "text": "يمعودين شنو هالطگاگ؟!",
+  "shown": "يمعودين شنو هالطگاگ؟!"
+ },
+ {
+  "id": "d0449de0",
+  "tag": "npc1:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+4%",
+  "rate": "+9%",
+  "volume": "+0%",
+  "text": "ولك وين داترمون؟!",
+  "shown": "ولك وين داترمون؟!"
+ },
+ {
+  "id": "fa02a869",
+  "tag": "npc1:calm",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+4%",
+  "rate": "+9%",
+  "volume": "+0%",
+  "text": "خلص؟ يلّا رجعنا للشغل.",
+  "shown": "خلص؟ يلّا رجعنا للشغل."
+ },
+ {
+  "id": "967294b3",
+  "tag": "npc2:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-14%",
+  "rate": "-10%",
+  "volume": "+0%",
+  "text": "رحم الله والديك يا مجاهد، الله يرجّعك لأهلك سالم.",
+  "shown": "رحم الله والديك يا مجاهد، الله يرجّعك لأهلك سالم."
+ },
+ {
+  "id": "48af13ab",
+  "tag": "npc2:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-14%",
+  "rate": "-10%",
+  "volume": "+0%",
+  "text": "هلا ابني، الله يكون بعونك.",
+  "shown": "هلا ابني، الله يكون بعونك."
+ },
+ {
+  "id": "f8cca679",
+  "tag": "npc2:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-14%",
+  "rate": "-10%",
+  "volume": "+0%",
+  "text": "خناجر عتيگة، شغل إيد!",
+  "shown": "خناجر عتيگة، شغل إيد!"
+ },
+ {
+  "id": "09c4b1b4",
+  "tag": "npc2:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-14%",
+  "rate": "-10%",
+  "volume": "+0%",
+  "text": "تعالوا ولدي، شوفوا الشغل الأصلي.",
+  "shown": "تعالوا ولدي، شوفوا الشغل الأصلي."
+ },
+ {
+  "id": "71c651a9",
+  "tag": "npc2:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-14%",
+  "rate": "-10%",
+  "volume": "+0%",
+  "text": "خنجر يصير هدية للعريس!",
+  "shown": "خنجر يصير هدية للعريس!"
+ },
+ {
+  "id": "13aea99b",
+  "tag": "npc2:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-14%",
+  "rate": "-10%",
+  "volume": "+0%",
+  "text": "لا حول ولا قوة إلا بالله!",
+  "shown": "لا حول ولا قوة إلا بالله!"
+ },
+ {
+  "id": "dfbd43a2",
+  "tag": "npc2:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-14%",
+  "rate": "-10%",
+  "volume": "+0%",
+  "text": "يا ربّ استر!",
+  "shown": "يا ربّ استر!"
+ },
+ {
+  "id": "3fc8ed31",
+  "tag": "npc2:calm",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-14%",
+  "rate": "-10%",
+  "volume": "+0%",
+  "text": "الحمد لله رب العالمين.",
+  "shown": "الحمد لله رب العالمين."
+ },
+ {
+  "id": "2678cfe4",
+  "tag": "npc2:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-14%",
+  "rate": "-10%",
+  "volume": "+0%",
+  "text": "هذا الخنجر عمره أكثر من مية سنة ابني.",
+  "shown": "هذا الخنجر عمره أكثر من مية سنة ابني."
+ },
+ {
+  "id": "6f992bf4",
+  "tag": "npc2:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-14%",
+  "rate": "-10%",
+  "volume": "+0%",
+  "text": "چان لجد جدّي، ورثه أبوي، وهسّه أبيعه لأن الزمن صعب.",
+  "shown": "چان لجد جدّي، ورثه أبوي، وهسّه أبيعه لأن الزمن صعب."
+ },
+ {
+  "id": "eed84526",
+  "tag": "npc2:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-14%",
+  "rate": "-10%",
+  "volume": "+0%",
+  "text": "بس والله ما أبيعه إلا لواحد يستاهله.",
+  "shown": "بس والله ما أبيعه إلا لواحد يستاهله."
+ },
+ {
+  "id": "c6adc780",
+  "tag": "npc3:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-2%",
+  "rate": "-4%",
+  "volume": "+0%",
+  "text": "هلا بالمجاهد، والله ماكو شغل، بس تفضّل.",
+  "shown": "هلا بالمجاهد... والله ماكو شغل، بس تفضّل."
+ },
+ {
+  "id": "72116719",
+  "tag": "npc3:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-2%",
+  "rate": "-4%",
+  "volume": "+0%",
+  "text": "أهلين، شنسوي، البيع واگف بس إنت على راسي.",
+  "shown": "أهلين، شنسوي، البيع واگف بس إنت على راسي."
+ },
+ {
+  "id": "6e4a54a1",
+  "tag": "npc3:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-2%",
+  "rate": "-4%",
+  "volume": "+0%",
+  "text": "يا جماعة البيع واگف، تعالوا!",
+  "shown": "يا جماعة البيع واگف... تعالوا!"
+ },
+ {
+  "id": "81f69fd1",
+  "tag": "npc3:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-2%",
+  "rate": "-4%",
+  "volume": "+0%",
+  "text": "أرخّصلكم، بس اشتروا!",
+  "shown": "أرخّصلكم، بس اشتروا!"
+ },
+ {
+  "id": "8382497b",
+  "tag": "npc3:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-2%",
+  "rate": "-4%",
+  "volume": "+0%",
+  "text": "كلشي بنص السعر اليوم!",
+  "shown": "كلشي بنص السعر اليوم!"
+ },
+ {
+  "id": "1170fb79",
+  "tag": "npc3:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-2%",
+  "rate": "-4%",
+  "volume": "+0%",
+  "text": "هم هذا ناقصنا!",
+  "shown": "هم هذا ناقصنا!"
+ },
+ {
+  "id": "66d8d4a5",
+  "tag": "npc3:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-2%",
+  "rate": "-4%",
+  "volume": "+0%",
+  "text": "يابه منو داير الحرب هنا؟!",
+  "shown": "يابه منو داير الحرب هنا؟!"
+ },
+ {
+  "id": "6b4e3caa",
+  "tag": "npc3:calm",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-2%",
+  "rate": "-4%",
+  "volume": "+0%",
+  "text": "الله يستر من الجاي.",
+  "shown": "الله يستر من الجاي."
+ },
+ {
+  "id": "6d248a50",
+  "tag": "npc3:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-2%",
+  "rate": "-4%",
+  "volume": "+0%",
+  "text": "تدري، البارحة ما بعت ولا شي.",
+  "shown": "تدري، البارحة ما بعت ولا شي."
+ },
+ {
+  "id": "99c1989d",
+  "tag": "npc3:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-2%",
+  "rate": "-4%",
+  "volume": "+0%",
+  "text": "إجاني واحد ساوم ساعة كاملة، وبالأخير اشترى ولاعة!",
+  "shown": "إجاني واحد ساوم ساعة كاملة، وبالأخير اشترى ولاعة!"
+ },
+ {
+  "id": "c31bbb8c",
+  "tag": "npc3:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-2%",
+  "rate": "-4%",
+  "volume": "+0%",
+  "text": "شنسوي، الرزق على الله.",
+  "shown": "شنسوي... الرزق على الله."
+ },
+ {
+  "id": "5734ebd5",
+  "tag": "npc4:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-1%",
+  "rate": "-4%",
+  "volume": "+0%",
+  "text": "هلا بالمجاهد، خذلك شتلة ريحان تذكّرك بالخير.",
+  "shown": "هلا بالمجاهد، خذلك شتلة ريحان تذكّرك بالخير."
+ },
+ {
+  "id": "3c2f4199",
+  "tag": "npc4:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-1%",
+  "rate": "-4%",
+  "volume": "+0%",
+  "text": "يا هلا، الورد للأبطال.",
+  "shown": "يا هلا، الورد للأبطال."
+ },
+ {
+  "id": "7cb9e6fa",
+  "tag": "npc4:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-1%",
+  "rate": "-4%",
+  "volume": "+0%",
+  "text": "ورد جوري! شتلات!",
+  "shown": "ورد جوري! شتلات!"
+ },
+ {
+  "id": "f629a832",
+  "tag": "npc4:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-1%",
+  "rate": "-4%",
+  "volume": "+0%",
+  "text": "ريحان ومشموم!",
+  "shown": "ريحان ومشموم!"
+ },
+ {
+  "id": "fa038971",
+  "tag": "npc4:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-1%",
+  "rate": "-4%",
+  "volume": "+0%",
+  "text": "سنادين بكل الأحجام!",
+  "shown": "سنادين بكل الأحجام!"
+ },
+ {
+  "id": "1713c347",
+  "tag": "npc4:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-1%",
+  "rate": "-4%",
+  "volume": "+0%",
+  "text": "الورد! انتبهوا عالورد!",
+  "shown": "الورد! انتبهوا عالورد!"
+ },
+ {
+  "id": "b890e1fa",
+  "tag": "npc4:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-1%",
+  "rate": "-4%",
+  "volume": "+0%",
+  "text": "يا الله سلّم!",
+  "shown": "يا الله سلّم!"
+ },
+ {
+  "id": "27e97df0",
+  "tag": "npc4:calm",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-1%",
+  "rate": "-4%",
+  "volume": "+0%",
+  "text": "الحمد لله، الشتلات سالمة.",
+  "shown": "الحمد لله، الشتلات سالمة."
+ },
+ {
+  "id": "bec0092f",
+  "tag": "npc4:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-1%",
+  "rate": "-4%",
+  "volume": "+0%",
+  "text": "الورد مثل البشر ابني، يحتاج ماي وحنيّة.",
+  "shown": "الورد مثل البشر ابني، يحتاج ماي وحنيّة."
+ },
+ {
+  "id": "3161c664",
+  "tag": "npc4:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-1%",
+  "rate": "-4%",
+  "volume": "+0%",
+  "text": "إذا تسگيه بالغصب يذبل، وإذا تحچي وياه يزهر.",
+  "shown": "إذا تسگيه بالغصب يذبل، وإذا تحچي وياه يزهر."
+ },
+ {
+  "id": "7a63ae8c",
+  "tag": "npc4:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-1%",
+  "rate": "-4%",
+  "volume": "+0%",
+  "text": "الناس يضحكون عليّ لأن أسولف ويّا الشتلات، بس شوفهن شگد حلوات!",
+  "shown": "الناس يضحكون عليّ لأن أسولف ويّا الشتلات... بس شوفهن شگد حلوات!"
+ },
+ {
+  "id": "4b567381",
+  "tag": "npc4:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-1%",
+  "rate": "-4%",
+  "volume": "+0%",
+  "text": "هالريحان أخذت بذرته من حديقة جدّي.",
+  "shown": "هالريحان أخذت بذرته من حديقة جدّي."
+ },
+ {
+  "id": "31d9ca55",
+  "tag": "npc4:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-1%",
+  "rate": "-4%",
+  "volume": "+0%",
+  "text": "جدّي چان يگول: اللي يزرع ريحان، بيته ما يدخله الهمّ.",
+  "shown": "جدّي چان يگول: اللي يزرع ريحان، بيته ما يدخله الهمّ."
+ },
+ {
+  "id": "986bbfae",
+  "tag": "npc4:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-1%",
+  "rate": "-4%",
+  "volume": "+0%",
+  "text": "فصرت أزرعه بكل سندانة، بلكي الهمّ يبتعد عن الناس.",
+  "shown": "فصرت أزرعه بكل سندانة... بلكي الهمّ يبتعد عن الناس."
+ },
+ {
+  "id": "349d443d",
+  "tag": "npc5:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-10%",
+  "rate": "-6%",
+  "volume": "+0%",
+  "text": "يا هلا بالمجاهد، الله يحميك ويسدّد رميك.",
+  "shown": "يا هلا بالمجاهد، الله يحميك ويسدّد رميك."
+ },
+ {
+  "id": "4a509e79",
+  "tag": "npc5:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-10%",
+  "rate": "-6%",
+  "volume": "+0%",
+  "text": "تفضّل ابني، الله كريم، والرزق على الله.",
+  "shown": "تفضّل ابني، الله كريم، والرزق على الله."
+ },
+ {
+  "id": "ec31d622",
+  "tag": "npc5:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-10%",
+  "rate": "-6%",
+  "volume": "+0%",
+  "text": "سترات واقية، الله يحفظكم!",
+  "shown": "سترات واقية، الله يحفظكم!"
+ },
+ {
+  "id": "2bd2e3e3",
+  "tag": "npc5:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-10%",
+  "rate": "-6%",
+  "volume": "+0%",
+  "text": "خوذة زينة، تحمي الراس!",
+  "shown": "خوذة زينة، تحمي الراس!"
+ },
+ {
+  "id": "b68c6915",
+  "tag": "npc5:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-10%",
+  "rate": "-6%",
+  "volume": "+0%",
+  "text": "تعالوا، الرزق على الله!",
+  "shown": "تعالوا، الرزق على الله!"
+ },
+ {
+  "id": "c42dc631",
+  "tag": "npc5:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-10%",
+  "rate": "-6%",
+  "volume": "+0%",
+  "text": "حسبي الله ونعم الوكيل!",
+  "shown": "حسبي الله ونعم الوكيل!"
+ },
+ {
+  "id": "318c2e04",
+  "tag": "npc5:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-10%",
+  "rate": "-6%",
+  "volume": "+0%",
+  "text": "يا الله سلّم سلّم!",
+  "shown": "يا الله سلّم سلّم!"
+ },
+ {
+  "id": "9bde0988",
+  "tag": "npc5:calm",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-10%",
+  "rate": "-6%",
+  "volume": "+0%",
+  "text": "الحمد لله على السلامة.",
+  "shown": "الحمد لله على السلامة."
+ },
+ {
+  "id": "b6f8e37b",
+  "tag": "npc5:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-10%",
+  "rate": "-6%",
+  "volume": "+0%",
+  "text": "ابني الكبير يدرس طب ببغداد.",
+  "shown": "ابني الكبير يدرس طب ببغداد."
+ },
+ {
+  "id": "7799399a",
+  "tag": "npc5:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-10%",
+  "rate": "-6%",
+  "volume": "+0%",
+  "text": "كل ما يتّصل يگول: بابا لا تتعب نفسك.",
+  "shown": "كل ما يتّصل يگول: بابا لا تتعب نفسك."
+ },
+ {
+  "id": "c155721e",
+  "tag": "npc5:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-10%",
+  "rate": "-6%",
+  "volume": "+0%",
+  "text": "شلون ما أتعب؟ حتى يتخرّج ويصير دكتور يداوي الناس.",
+  "shown": "شلون ما أتعب؟ حتى يتخرّج ويصير دكتور يداوي الناس."
+ },
+ {
+  "id": "5b46ac22",
+  "tag": "npc6:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+2%",
+  "rate": "+4%",
+  "volume": "+0%",
+  "text": "هلا بالبطل! لا تنسى تمرّ علينا بعد ما تخلّص!",
+  "shown": "هلا بالبطل! لا تنسى تمرّ علينا بعد ما تخلّص!"
+ },
+ {
+  "id": "264b9ef9",
+  "tag": "npc6:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+2%",
+  "rate": "+4%",
+  "volume": "+0%",
+  "text": "يا هلا، إنت المجاهد اللي يحچون عليه؟ ها ها ها،",
+  "shown": "يا هلا، إنت المجاهد اللي يحچون عليه؟ هههه"
+ },
+ {
+  "id": "11cd347f",
+  "tag": "npc6:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+2%",
+  "rate": "+4%",
+  "volume": "+0%",
+  "text": "تعال اشتري قبل لا أغيّر رأيي!",
+  "shown": "تعال اشتري قبل لا أغيّر رأيي!"
+ },
+ {
+  "id": "f3973ddb",
+  "tag": "npc6:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+2%",
+  "rate": "+4%",
+  "volume": "+0%",
+  "text": "بضاعة تضحّك الوجه!",
+  "shown": "بضاعة تضحّك الوجه!"
+ },
+ {
+  "id": "97ff9a14",
+  "tag": "npc6:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+2%",
+  "rate": "+4%",
+  "volume": "+0%",
+  "text": "اشتري ثنين، الثالث ببلاش، لا تصدّگ ها ها ها،",
+  "shown": "اشتري ثنين، الثالث ببلاش... لا تصدّگ هههه!"
+ },
+ {
+  "id": "26e4a891",
+  "tag": "npc6:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+2%",
+  "rate": "+4%",
+  "volume": "+0%",
+  "text": "ولك بعدني ما تغدّيت!",
+  "shown": "ولك بعدني ما تغدّيت!"
+ },
+ {
+  "id": "11e3e03c",
+  "tag": "npc6:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+2%",
+  "rate": "+4%",
+  "volume": "+0%",
+  "text": "شنو هاي، عرس لو حرب؟!",
+  "shown": "شنو هاي، عرس لو حرب؟!"
+ },
+ {
+  "id": "ddc9463c",
+  "tag": "npc6:calm",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+2%",
+  "rate": "+4%",
+  "volume": "+0%",
+  "text": "هدأت؟ زين، رجّعولي گلبي.",
+  "shown": "هدأت؟ زين، رجّعولي گلبي."
+ },
+ {
+  "id": "5205b07d",
+  "tag": "npc6:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+2%",
+  "rate": "+4%",
+  "volume": "+0%",
+  "text": "مرّة واحد إجاني يريد يرجّع مسدس.",
+  "shown": "مرّة واحد إجاني يريد يرجّع مسدس."
+ },
+ {
+  "id": "e66a9db9",
+  "tag": "npc6:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+2%",
+  "rate": "+4%",
+  "volume": "+0%",
+  "text": "گلتله ليش عيني؟ گال: ما يصيب!",
+  "shown": "گلتله ليش عيني؟ گال: ما يصيب!"
+ },
+ {
+  "id": "0243d3f6",
+  "tag": "npc6:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+2%",
+  "rate": "+4%",
+  "volume": "+0%",
+  "text": "گلتله: يا بعد روحي، العيب مو بالمسدس، العيب بالإيد! ها ها ها،",
+  "shown": "گلتله: يا بعد روحي، العيب مو بالمسدس، العيب بالإيد! هههه"
+ },
+ {
+  "id": "c3f85b1d",
+  "tag": "npc7:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-4%",
+  "rate": "+3%",
+  "volume": "+0%",
+  "text": "أهلاً بالمجاهد، بضاعتي أصلي مية بالمية.",
+  "shown": "أهلاً بالمجاهد، بضاعتي أصلي مية بالمية."
+ },
+ {
+  "id": "66b39058",
+  "tag": "npc7:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-4%",
+  "rate": "+3%",
+  "volume": "+0%",
+  "text": "تفضّل، شوف وجرّب، ما أبيع شي ما أرضاه لنفسي.",
+  "shown": "تفضّل، شوف وجرّب، ما أبيع شي ما أرضاه لنفسي."
+ },
+ {
+  "id": "1290045e",
+  "tag": "npc7:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-4%",
+  "rate": "+3%",
+  "volume": "+0%",
+  "text": "مسدسات أصلية، مضمونة!",
+  "shown": "مسدسات أصلية، مضمونة!"
+ },
+ {
+  "id": "74394aad",
+  "tag": "npc7:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-4%",
+  "rate": "+3%",
+  "volume": "+0%",
+  "text": "جرّب قبل لا تشتري!",
+  "shown": "جرّب قبل لا تشتري!"
+ },
+ {
+  "id": "16c9c1b1",
+  "tag": "npc7:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-4%",
+  "rate": "+3%",
+  "volume": "+0%",
+  "text": "شغل نظيف، ما بيه عيب!",
+  "shown": "شغل نظيف، ما بيه عيب!"
+ },
+ {
+  "id": "2cac2ce6",
+  "tag": "npc7:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-4%",
+  "rate": "+3%",
+  "volume": "+0%",
+  "text": "دير بالك على البضاعة!",
+  "shown": "دير بالك على البضاعة!"
+ },
+ {
+  "id": "a4d1ccef",
+  "tag": "npc7:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-4%",
+  "rate": "+3%",
+  "volume": "+0%",
+  "text": "انبطحوا يا جماعة!",
+  "shown": "انبطحوا يا جماعة!"
+ },
+ {
+  "id": "0e22a010",
+  "tag": "npc7:calm",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-4%",
+  "rate": "+3%",
+  "volume": "+0%",
+  "text": "زين، ماكو شي انكسر.",
+  "shown": "زين، ماكو شي انكسر."
+ },
+ {
+  "id": "06ac2751",
+  "tag": "npc7:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-4%",
+  "rate": "+3%",
+  "volume": "+0%",
+  "text": "آني من أربعين سنة بهالسوق.",
+  "shown": "آني من أربعين سنة بهالسوق."
+ },
+ {
+  "id": "b093b241",
+  "tag": "npc7:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-4%",
+  "rate": "+3%",
+  "volume": "+0%",
+  "text": "شفت ناس اغتنت، وناس افتقرت.",
+  "shown": "شفت ناس اغتنت، وناس افتقرت."
+ },
+ {
+  "id": "74aea3d9",
+  "tag": "npc7:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-4%",
+  "rate": "+3%",
+  "volume": "+0%",
+  "text": "بس اللي بقى بالسوق هو اللي صادگ ويّا الناس.",
+  "shown": "بس اللي بقى بالسوق هو اللي صادگ ويّا الناس."
+ },
+ {
+  "id": "366315aa",
+  "tag": "npc8:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+0%",
+  "rate": "-2%",
+  "volume": "+0%",
+  "text": "هلا بيك، الله يقوّيك يا مجاهد.",
+  "shown": "هلا بيك، الله يقوّيك يا مجاهد."
+ },
+ {
+  "id": "aca51861",
+  "tag": "npc8:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+0%",
+  "rate": "-2%",
+  "volume": "+0%",
+  "text": "تعال استريح شويّة، الدنيا حر.",
+  "shown": "تعال استريح شويّة، الدنيا حر."
+ },
+ {
+  "id": "dc5e2506",
+  "tag": "npc8:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+0%",
+  "rate": "-2%",
+  "volume": "+0%",
+  "text": "عتاد ومخازن، تعالوا!",
+  "shown": "عتاد ومخازن، تعالوا!"
+ },
+ {
+  "id": "2f6302cd",
+  "tag": "npc8:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+0%",
+  "rate": "-2%",
+  "volume": "+0%",
+  "text": "كل الأحجام موجودة!",
+  "shown": "كل الأحجام موجودة!"
+ },
+ {
+  "id": "a2a1ec98",
+  "tag": "npc8:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+0%",
+  "rate": "-2%",
+  "volume": "+0%",
+  "text": "عدنا اللي تريده!",
+  "shown": "عدنا اللي تريده!"
+ },
+ {
+  "id": "6b947343",
+  "tag": "npc8:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+0%",
+  "rate": "-2%",
+  "volume": "+0%",
+  "text": "يا ستّار يا رب!",
+  "shown": "يا ستّار يا رب!"
+ },
+ {
+  "id": "5d25e9bf",
+  "tag": "npc8:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+0%",
+  "rate": "-2%",
+  "volume": "+0%",
+  "text": "اركضوا اركضوا!",
+  "shown": "اركضوا اركضوا!"
+ },
+ {
+  "id": "ee3966e4",
+  "tag": "npc8:calm",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+0%",
+  "rate": "-2%",
+  "volume": "+0%",
+  "text": "الحمد لله، هدأت.",
+  "shown": "الحمد لله، هدأت."
+ },
+ {
+  "id": "191aad4e",
+  "tag": "npc9:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-12%",
+  "rate": "-8%",
+  "volume": "+0%",
+  "text": "يا هلا ويا مرحبا بالمجاهدين.",
+  "shown": "يا هلا ويا مرحبا بالمجاهدين."
+ },
+ {
+  "id": "6667dcd0",
+  "tag": "npc9:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-12%",
+  "rate": "-8%",
+  "volume": "+0%",
+  "text": "الله يحفظكم يا شباب، إنتو سندنا.",
+  "shown": "الله يحفظكم يا شباب، إنتو سندنا."
+ },
+ {
+  "id": "1c38447b",
+  "tag": "npc9:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-12%",
+  "rate": "-8%",
+  "volume": "+0%",
+  "text": "بضاعة اليوم وصلت!",
+  "shown": "بضاعة اليوم وصلت!"
+ },
+ {
+  "id": "9752c11a",
+  "tag": "npc9:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-12%",
+  "rate": "-8%",
+  "volume": "+0%",
+  "text": "تعالوا ولدي!",
+  "shown": "تعالوا ولدي!"
+ },
+ {
+  "id": "002e71c2",
+  "tag": "npc9:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-12%",
+  "rate": "-8%",
+  "volume": "+0%",
+  "text": "سعر العشيرة إلكم!",
+  "shown": "سعر العشيرة إلكم!"
+ },
+ {
+  "id": "80863078",
+  "tag": "npc9:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-12%",
+  "rate": "-8%",
+  "volume": "+0%",
+  "text": "يا الله!",
+  "shown": "يا الله!"
+ },
+ {
+  "id": "67f505a9",
+  "tag": "npc9:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-12%",
+  "rate": "-8%",
+  "volume": "+0%",
+  "text": "الله أكبر، شنو صاير؟!",
+  "shown": "الله أكبر، شنو صاير؟!"
+ },
+ {
+  "id": "5f6c1146",
+  "tag": "npc9:calm",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-12%",
+  "rate": "-8%",
+  "volume": "+0%",
+  "text": "عدّت، الحمد لله.",
+  "shown": "عدّت، الحمد لله."
+ },
+ {
+  "id": "0abaf04f",
+  "tag": "npc10:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+6%",
+  "rate": "+6%",
+  "volume": "+0%",
+  "text": "هلا هلا! نوّرت السوق يا مجاهد!",
+  "shown": "هلا هلا! نوّرت السوق يا مجاهد!"
+ },
+ {
+  "id": "c5b870f3",
+  "tag": "npc10:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+6%",
+  "rate": "+6%",
+  "volume": "+0%",
+  "text": "إي والله هذا اللي نريده، شباب بيها حيل!",
+  "shown": "إي والله هذا اللي نريده، شباب بيها حيل!"
+ },
+ {
+  "id": "720c6065",
+  "tag": "npc10:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+6%",
+  "rate": "+6%",
+  "volume": "+0%",
+  "text": "يلّا يلّا، الحگ قبل لا يخلص!",
+  "shown": "يلّا يلّا، الحگ قبل لا يخلص!"
+ },
+ {
+  "id": "8ba70b60",
+  "tag": "npc10:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+6%",
+  "rate": "+6%",
+  "volume": "+0%",
+  "text": "عرض اليوم ما يتكرّر!",
+  "shown": "عرض اليوم ما يتكرّر!"
+ },
+ {
+  "id": "4d9b931e",
+  "tag": "npc10:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+6%",
+  "rate": "+6%",
+  "volume": "+0%",
+  "text": "تعالوا تعالوا!",
+  "shown": "تعالوا تعالوا!"
+ },
+ {
+  "id": "67984479",
+  "tag": "npc10:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+6%",
+  "rate": "+6%",
+  "volume": "+0%",
+  "text": "يابه دير بالك!",
+  "shown": "يابه دير بالك!"
+ },
+ {
+  "id": "b296ae1a",
+  "tag": "npc10:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+6%",
+  "rate": "+6%",
+  "volume": "+0%",
+  "text": "منو داير يرمي؟!",
+  "shown": "منو داير يرمي؟!"
+ },
+ {
+  "id": "066e3e45",
+  "tag": "npc10:calm",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+6%",
+  "rate": "+6%",
+  "volume": "+0%",
+  "text": "زين زين، رجعنا.",
+  "shown": "زين زين، رجعنا."
+ },
+ {
+  "id": "56fad46d",
+  "tag": "npc10:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+6%",
+  "rate": "+6%",
+  "volume": "+0%",
+  "text": "تعرف أبو صباح؟ جارنا.",
+  "shown": "تعرف أبو صباح؟ جارنا."
+ },
+ {
+  "id": "fa59224a",
+  "tag": "npc10:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+6%",
+  "rate": "+6%",
+  "volume": "+0%",
+  "text": "طلّع الصوبة بتمّوز يجرّبها!",
+  "shown": "طلّع الصوبة بتمّوز يجرّبها!"
+ },
+ {
+  "id": "5fa99076",
+  "tag": "npc10:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+6%",
+  "rate": "+6%",
+  "volume": "+0%",
+  "text": "والمحلّة كلها صارت تضحك عليه، وهو يگول: الاحتياط واجب! ها ها ها،",
+  "shown": "والمحلّة كلها صارت تضحك عليه، وهو يگول: الاحتياط واجب! هههه"
+ },
+ {
+  "id": "70b27feb",
+  "tag": "npc11:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-3%",
+  "rate": "+0%",
+  "volume": "+0%",
+  "text": "هلا بيك، تفضّل، المحل محلّك.",
+  "shown": "هلا بيك، تفضّل، المحل محلّك."
+ },
+ {
+  "id": "7418057d",
+  "tag": "npc11:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-3%",
+  "rate": "+0%",
+  "volume": "+0%",
+  "text": "الله يوفّقك يا مجاهد.",
+  "shown": "الله يوفّقك يا مجاهد."
+ },
+ {
+  "id": "aa67dde5",
+  "tag": "npc11:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-3%",
+  "rate": "+0%",
+  "volume": "+0%",
+  "text": "منظارات ومناظير!",
+  "shown": "منظارات ومناظير!"
+ },
+ {
+  "id": "abb8c4bb",
+  "tag": "npc11:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-3%",
+  "rate": "+0%",
+  "volume": "+0%",
+  "text": "شي يقرّب البعيد!",
+  "shown": "شي يقرّب البعيد!"
+ },
+ {
+  "id": "1fadb502",
+  "tag": "npc11:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-3%",
+  "rate": "+0%",
+  "volume": "+0%",
+  "text": "تعالوا شوفوا!",
+  "shown": "تعالوا شوفوا!"
+ },
+ {
+  "id": "44e65709",
+  "tag": "npc11:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-3%",
+  "rate": "+0%",
+  "volume": "+0%",
+  "text": "اگعدوا وطّوا روسكم!",
+  "shown": "اگعدوا وطّوا روسكم!"
+ },
+ {
+  "id": "d9c5186f",
+  "tag": "npc11:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-3%",
+  "rate": "+0%",
+  "volume": "+0%",
+  "text": "يا ساتر!",
+  "shown": "يا ساتر!"
+ },
+ {
+  "id": "113e51b6",
+  "tag": "npc11:calm",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-3%",
+  "rate": "+0%",
+  "volume": "+0%",
+  "text": "الله ستر.",
+  "shown": "الله ستر."
+ },
+ {
+  "id": "9d608f45",
+  "tag": "npc11:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-3%",
+  "rate": "+0%",
+  "volume": "+0%",
+  "text": "هالمنظار يشوف لحد الضفّة الثانية.",
+  "shown": "هالمنظار يشوف لحد الضفّة الثانية."
+ },
+ {
+  "id": "a04a7490",
+  "tag": "npc11:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-3%",
+  "rate": "+0%",
+  "volume": "+0%",
+  "text": "البارحة شفت بيه عرس بالكرخ، والناس داترگص!",
+  "shown": "البارحة شفت بيه عرس بالكرخ، والناس داترگص!"
+ },
+ {
+  "id": "7cf1f6c0",
+  "tag": "npc11:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-3%",
+  "rate": "+0%",
+  "volume": "+0%",
+  "text": "صار عندي عرس ببلاش! ها ها ها،",
+  "shown": "صار عندي عرس ببلاش! هههه"
+ },
+ {
+  "id": "0a1d2b67",
+  "tag": "npc12:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+1%",
+  "rate": "+5%",
+  "volume": "+0%",
+  "text": "يا هلا بالمجاهد، عدنا فشك جديد اليوم!",
+  "shown": "يا هلا بالمجاهد، عدنا فشك جديد اليوم!"
+ },
+ {
+  "id": "3d1f9a40",
+  "tag": "npc12:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+1%",
+  "rate": "+5%",
+  "volume": "+0%",
+  "text": "تعال حبيبي، أسعاري أرخص من الكل.",
+  "shown": "تعال حبيبي، أسعاري أرخص من الكل."
+ },
+ {
+  "id": "5f0d7752",
+  "tag": "npc12:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+1%",
+  "rate": "+5%",
+  "volume": "+0%",
+  "text": "فشك جديد وصل!",
+  "shown": "فشك جديد وصل!"
+ },
+ {
+  "id": "c19261cf",
+  "tag": "npc12:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+1%",
+  "rate": "+5%",
+  "volume": "+0%",
+  "text": "صناديق كاملة!",
+  "shown": "صناديق كاملة!"
+ },
+ {
+  "id": "97398c66",
+  "tag": "npc12:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+1%",
+  "rate": "+5%",
+  "volume": "+0%",
+  "text": "أرخص من الكل، تعال!",
+  "shown": "أرخص من الكل، تعال!"
+ },
+ {
+  "id": "5d35a131",
+  "tag": "npc12:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+1%",
+  "rate": "+5%",
+  "volume": "+0%",
+  "text": "هاي رمّانة لو رصاص؟!",
+  "shown": "هاي رمّانة لو رصاص؟!"
+ },
+ {
+  "id": "3aad0448",
+  "tag": "npc12:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+1%",
+  "rate": "+5%",
+  "volume": "+0%",
+  "text": "دخيل الله، انبطحوا!",
+  "shown": "دخيل الله، انبطحوا!"
+ },
+ {
+  "id": "01ddae7f",
+  "tag": "npc12:calm",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+1%",
+  "rate": "+5%",
+  "volume": "+0%",
+  "text": "خلص، الحمد لله.",
+  "shown": "خلص، الحمد لله."
+ },
+ {
+  "id": "da9c7103",
+  "tag": "npc13:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-16%",
+  "rate": "-12%",
+  "volume": "+0%",
+  "text": "هلا ابني، الله يسلّمك ويسلّم إيدك.",
+  "shown": "هلا ابني، الله يسلّمك ويسلّم إيدك."
+ },
+ {
+  "id": "365eb0e8",
+  "tag": "npc13:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-16%",
+  "rate": "-12%",
+  "volume": "+0%",
+  "text": "يا مجاهد، دير بالك على نفسك.",
+  "shown": "يا مجاهد، دير بالك على نفسك."
+ },
+ {
+  "id": "d660c0eb",
+  "tag": "npc13:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-16%",
+  "rate": "-12%",
+  "volume": "+0%",
+  "text": "سيوف وخناجر قديمة!",
+  "shown": "سيوف وخناجر قديمة!"
+ },
+ {
+  "id": "270d68ed",
+  "tag": "npc13:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-16%",
+  "rate": "-12%",
+  "volume": "+0%",
+  "text": "شغل أجدادنا!",
+  "shown": "شغل أجدادنا!"
+ },
+ {
+  "id": "5db04727",
+  "tag": "npc13:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-16%",
+  "rate": "-12%",
+  "volume": "+0%",
+  "text": "تعالوا ولدي!",
+  "shown": "تعالوا ولدي!"
+ },
+ {
+  "id": "299985ab",
+  "tag": "npc13:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-16%",
+  "rate": "-12%",
+  "volume": "+0%",
+  "text": "يا ربّي، بعد هالعمر؟!",
+  "shown": "يا ربّي... بعد هالعمر؟!"
+ },
+ {
+  "id": "b409592e",
+  "tag": "npc13:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-16%",
+  "rate": "-12%",
+  "volume": "+0%",
+  "text": "لا إله إلا الله!",
+  "shown": "لا إله إلا الله!"
+ },
+ {
+  "id": "721cab39",
+  "tag": "npc13:calm",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-16%",
+  "rate": "-12%",
+  "volume": "+0%",
+  "text": "الله يحفظ الشباب.",
+  "shown": "الله يحفظ الشباب."
+ },
+ {
+  "id": "38b5c49f",
+  "tag": "npc14:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+3%",
+  "rate": "+4%",
+  "volume": "+0%",
+  "text": "هلا بالمجاهد، تفضّل.",
+  "shown": "هلا بالمجاهد، تفضّل."
+ },
+ {
+  "id": "998b2b5e",
+  "tag": "npc14:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+3%",
+  "rate": "+4%",
+  "volume": "+0%",
+  "text": "يا هلا بالغالي، عدنا خضرة طازجة.",
+  "shown": "يا هلا بالغالي، عدنا خضرة طازجة."
+ },
+ {
+  "id": "f0781c3c",
+  "tag": "npc14:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+3%",
+  "rate": "+4%",
+  "volume": "+0%",
+  "text": "خضرة طازجة!",
+  "shown": "خضرة طازجة!"
+ },
+ {
+  "id": "79af0a5e",
+  "tag": "npc14:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+3%",
+  "rate": "+4%",
+  "volume": "+0%",
+  "text": "طماطة وخيار، تعالوا!",
+  "shown": "طماطة وخيار، تعالوا!"
+ },
+ {
+  "id": "7faaba18",
+  "tag": "npc14:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+3%",
+  "rate": "+4%",
+  "volume": "+0%",
+  "text": "يا جماعة وطّوا!",
+  "shown": "يا جماعة وطّوا!"
+ },
+ {
+  "id": "62ed6c1c",
+  "tag": "npc14:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+3%",
+  "rate": "+4%",
+  "volume": "+0%",
+  "text": "يا ستّار!",
+  "shown": "يا ستّار!"
+ },
+ {
+  "id": "d8b3d98e",
+  "tag": "npc14:calm",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+3%",
+  "rate": "+4%",
+  "volume": "+0%",
+  "text": "الحمد لله.",
+  "shown": "الحمد لله."
+ },
+ {
+  "id": "134cb87e",
+  "tag": "npc15:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-5%",
+  "rate": "+0%",
+  "volume": "+0%",
+  "text": "الله يحفظك يا مجاهد.",
+  "shown": "الله يحفظك يا مجاهد."
+ },
+ {
+  "id": "99e5a5e9",
+  "tag": "npc15:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-5%",
+  "rate": "+0%",
+  "volume": "+0%",
+  "text": "هلا بيك، شلون الجبهة اليوم؟",
+  "shown": "هلا بيك، شلون الجبهة اليوم؟"
+ },
+ {
+  "id": "d9fe1eb9",
+  "tag": "npc15:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-5%",
+  "rate": "+0%",
+  "volume": "+0%",
+  "text": "باذنجان ونومي بصرة!",
+  "shown": "باذنجان ونومي بصرة!"
+ },
+ {
+  "id": "a4296b20",
+  "tag": "npc15:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-5%",
+  "rate": "+0%",
+  "volume": "+0%",
+  "text": "كلشي طازج!",
+  "shown": "كلشي طازج!"
+ },
+ {
+  "id": "300c653f",
+  "tag": "npc15:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-5%",
+  "rate": "+0%",
+  "volume": "+0%",
+  "text": "شنو هالرمي؟!",
+  "shown": "شنو هالرمي؟!"
+ },
+ {
+  "id": "04c8939e",
+  "tag": "npc15:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-5%",
+  "rate": "+0%",
+  "volume": "+0%",
+  "text": "اركضوا!",
+  "shown": "اركضوا!"
+ },
+ {
+  "id": "76dd7b21",
+  "tag": "npc15:calm",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-5%",
+  "rate": "+0%",
+  "volume": "+0%",
+  "text": "هدأت، الحمد لله.",
+  "shown": "هدأت، الحمد لله."
+ },
+ {
+  "id": "fb117a12",
+  "tag": "npc16:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+9%",
+  "rate": "+11%",
+  "volume": "+0%",
+  "text": "هلا بالبطل! صوّرني وياك ها ها ها،",
+  "shown": "هلا بالبطل! صوّرني وياك هههه!"
+ },
+ {
+  "id": "35f9ca90",
+  "tag": "npc16:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+9%",
+  "rate": "+11%",
+  "volume": "+0%",
+  "text": "يا مجاهد، باچر آني هم أجي وياكم!",
+  "shown": "يا مجاهد، باچر آني هم أجي وياكم!"
+ },
+ {
+  "id": "27e8cb11",
+  "tag": "npc16:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+9%",
+  "rate": "+11%",
+  "volume": "+0%",
+  "text": "رگي رگي! بارد وحلو!",
+  "shown": "رگي رگي! بارد وحلو!"
+ },
+ {
+  "id": "0acac1c0",
+  "tag": "npc16:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+9%",
+  "rate": "+11%",
+  "volume": "+0%",
+  "text": "رگي بالسچّينة!",
+  "shown": "رگي بالسچّينة!"
+ },
+ {
+  "id": "c87f1123",
+  "tag": "npc16:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+9%",
+  "rate": "+11%",
+  "volume": "+0%",
+  "text": "يابه خفت!",
+  "shown": "يابه خفت!"
+ },
+ {
+  "id": "fe153c63",
+  "tag": "npc16:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+9%",
+  "rate": "+11%",
+  "volume": "+0%",
+  "text": "ولك هذا قريب!",
+  "shown": "ولك هذا قريب!"
+ },
+ {
+  "id": "99644f66",
+  "tag": "npc16:calm",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+9%",
+  "rate": "+11%",
+  "volume": "+0%",
+  "text": "ها ها ها، خلص، رجعت ضلوعي.",
+  "shown": "هههه خلص، رجعت ضلوعي."
+ },
+ {
+  "id": "cf007fd7",
+  "tag": "npc17:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-3%",
+  "rate": "+2%",
+  "volume": "+0%",
+  "text": "يا هلا بالمجاهد، استكانك جاهز، على حسابي!",
+  "shown": "يا هلا بالمجاهد، استكانك جاهز، على حسابي!"
+ },
+ {
+  "id": "950f4c12",
+  "tag": "npc17:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-3%",
+  "rate": "+2%",
+  "volume": "+0%",
+  "text": "تدلّل يا بطل، الچاي للمجاهدين ببلاش.",
+  "shown": "تدلّل يا بطل، الچاي للمجاهدين ببلاش."
+ },
+ {
+  "id": "5d1acab4",
+  "tag": "npc17:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-3%",
+  "rate": "+2%",
+  "volume": "+0%",
+  "text": "چاي حار! چاي مهيّل!",
+  "shown": "چاي حار! چاي مهيّل!"
+ },
+ {
+  "id": "41558340",
+  "tag": "npc17:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-3%",
+  "rate": "+2%",
+  "volume": "+0%",
+  "text": "يلّا استكان يعدّل المزاج!",
+  "shown": "يلّا استكان يعدّل المزاج!"
+ },
+ {
+  "id": "3089c0e6",
+  "tag": "npc17:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-3%",
+  "rate": "+2%",
+  "volume": "+0%",
+  "text": "چاي عالفحم!",
+  "shown": "چاي عالفحم!"
+ },
+ {
+  "id": "a0df1aa9",
+  "tag": "npc17:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-3%",
+  "rate": "+2%",
+  "volume": "+0%",
+  "text": "الاستكانات! يا ستّار!",
+  "shown": "الاستكانات! يا ستّار!"
+ },
+ {
+  "id": "4a231f7e",
+  "tag": "npc17:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-3%",
+  "rate": "+2%",
+  "volume": "+0%",
+  "text": "وطّوا روسكم يا جماعة!",
+  "shown": "وطّوا روسكم يا جماعة!"
+ },
+ {
+  "id": "092366b3",
+  "tag": "npc17:calm",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-3%",
+  "rate": "+2%",
+  "volume": "+0%",
+  "text": "الحمد لله، والچاي بعده حار.",
+  "shown": "الحمد لله، والچاي بعده حار."
+ },
+ {
+  "id": "7728829b",
+  "tag": "npc18:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-15%",
+  "rate": "-12%",
+  "volume": "+0%",
+  "text": "هلا ابني، اگعد يمّنا اسمع سوالفنا.",
+  "shown": "هلا ابني، اگعد يمّنا اسمع سوالفنا."
+ },
+ {
+  "id": "a5841696",
+  "tag": "npc18:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-15%",
+  "rate": "-12%",
+  "volume": "+0%",
+  "text": "الله يرضى عليك يا مجاهد.",
+  "shown": "الله يرضى عليك يا مجاهد."
+ },
+ {
+  "id": "1caf1786",
+  "tag": "npc18:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-15%",
+  "rate": "-12%",
+  "volume": "+0%",
+  "text": "الله يستر، هذا يذكّرني بأيام زمان.",
+  "shown": "الله يستر، هذا يذكّرني بأيام زمان."
+ },
+ {
+  "id": "9024ecd3",
+  "tag": "npc18:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-15%",
+  "rate": "-12%",
+  "volume": "+0%",
+  "text": "اگعدوا اگعدوا، لا تتحرّكون!",
+  "shown": "اگعدوا اگعدوا، لا تتحرّكون!"
+ },
+ {
+  "id": "e2068dfa",
+  "tag": "npc18:calm",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-15%",
+  "rate": "-12%",
+  "volume": "+0%",
+  "text": "عدّت على خير.",
+  "shown": "عدّت على خير."
+ },
+ {
+  "id": "bfc179da",
+  "tag": "npc19:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+6%",
+  "rate": "+8%",
+  "volume": "+0%",
+  "text": "هلا بالمجاهد! لا تخاف، احنا هنا بس نشرب چاي ها ها ها،",
+  "shown": "هلا بالمجاهد! لا تخاف، احنا هنا بس نشرب چاي هههه."
+ },
+ {
+  "id": "afcf010e",
+  "tag": "npc19:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+6%",
+  "rate": "+8%",
+  "volume": "+0%",
+  "text": "يا هلا، تعال احچيلنا شصار بالجبهة.",
+  "shown": "يا هلا، تعال احچيلنا شصار بالجبهة."
+ },
+ {
+  "id": "dfbd1825",
+  "tag": "npc19:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+6%",
+  "rate": "+8%",
+  "volume": "+0%",
+  "text": "ولك چايي انگلب!",
+  "shown": "ولك چايي انگلب!"
+ },
+ {
+  "id": "e2bb34e3",
+  "tag": "npc19:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+6%",
+  "rate": "+8%",
+  "volume": "+0%",
+  "text": "يمعودين مو هنا!",
+  "shown": "يمعودين مو هنا!"
+ },
+ {
+  "id": "dc2b50f5",
+  "tag": "npc19:calm",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+6%",
+  "rate": "+8%",
+  "volume": "+0%",
+  "text": "خلص؟ أكمّل چايي.",
+  "shown": "خلص؟ أكمّل چايي."
+ },
+ {
+  "id": "0dfb37c0",
+  "tag": "npc20:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-17%",
+  "rate": "-14%",
+  "volume": "+0%",
+  "text": "يا هلا بالمجاهد، رحم الله والديك.",
+  "shown": "يا هلا بالمجاهد، رحم الله والديك."
+ },
+ {
+  "id": "24e791f3",
+  "tag": "npc20:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-17%",
+  "rate": "-14%",
+  "volume": "+0%",
+  "text": "الله يحميك ابني.",
+  "shown": "الله يحميك ابني."
+ },
+ {
+  "id": "227c6abd",
+  "tag": "npc20:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-17%",
+  "rate": "-14%",
+  "volume": "+0%",
+  "text": "يا ساتر يا رب!",
+  "shown": "يا ساتر يا رب!"
+ },
+ {
+  "id": "53f9fea4",
+  "tag": "npc20:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-17%",
+  "rate": "-14%",
+  "volume": "+0%",
+  "text": "الله أكبر!",
+  "shown": "الله أكبر!"
+ },
+ {
+  "id": "6079b01a",
+  "tag": "npc20:calm",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-17%",
+  "rate": "-14%",
+  "volume": "+0%",
+  "text": "الحمد لله على كل حال.",
+  "shown": "الحمد لله على كل حال."
+ },
+ {
+  "id": "1c7b94c6",
+  "tag": "npc21:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-12%",
+  "rate": "-8%",
+  "volume": "+0%",
+  "text": "هلا، اگعد اگعد، لا تبقى واگف.",
+  "shown": "هلا... اگعد اگعد، لا تبقى واگف."
+ },
+ {
+  "id": "4c831f8a",
+  "tag": "npc21:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-12%",
+  "rate": "-8%",
+  "volume": "+0%",
+  "text": "هلا بالمجاهد، شبيكم تأخّرتوا اليوم؟",
+  "shown": "هلا بالمجاهد، شبيكم تأخّرتوا اليوم؟"
+ },
+ {
+  "id": "f213927c",
+  "tag": "npc21:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-12%",
+  "rate": "-8%",
+  "volume": "+0%",
+  "text": "هسّه وقته هذا؟!",
+  "shown": "هسّه وقته هذا؟!"
+ },
+ {
+  "id": "babdad3a",
+  "tag": "npc21:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-12%",
+  "rate": "-8%",
+  "volume": "+0%",
+  "text": "شبيكم يا ناس؟!",
+  "shown": "شبيكم يا ناس؟!"
+ },
+ {
+  "id": "a3bcc341",
+  "tag": "npc21:calm",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-12%",
+  "rate": "-8%",
+  "volume": "+0%",
+  "text": "يلّا، رجعت الدنيا.",
+  "shown": "يلّا، رجعت الدنيا."
+ },
+ {
+  "id": "de0546f3",
+  "tag": "npc22:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-15%",
+  "rate": "-12%",
+  "volume": "+0%",
+  "text": "تعال ابني تعال، اگعد أحچيلك.",
+  "shown": "تعال ابني تعال، اگعد أحچيلك."
+ },
+ {
+  "id": "5aabf7cf",
+  "tag": "npc22:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-15%",
+  "rate": "-12%",
+  "volume": "+0%",
+  "text": "هلا بالمجاهد، الله يحفظك.",
+  "shown": "هلا بالمجاهد، الله يحفظك."
+ },
+ {
+  "id": "c76f69dc",
+  "tag": "npc22:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-15%",
+  "rate": "-12%",
+  "volume": "+0%",
+  "text": "يا ربّ سلّم!",
+  "shown": "يا ربّ سلّم!"
+ },
+ {
+  "id": "da4d06ed",
+  "tag": "npc22:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-15%",
+  "rate": "-12%",
+  "volume": "+0%",
+  "text": "ابني دير بالك!",
+  "shown": "ابني دير بالك!"
+ },
+ {
+  "id": "1ae51e8f",
+  "tag": "npc22:calm",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-15%",
+  "rate": "-12%",
+  "volume": "+0%",
+  "text": "الحمد لله، الله ستر.",
+  "shown": "الحمد لله، الله ستر."
+ },
+ {
+  "id": "1aa218fc",
+  "tag": "npc22:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-15%",
+  "rate": "-12%",
+  "volume": "+0%",
+  "text": "تعال ابني، أحچيلك عن فيضان سنة الأربعة وخمسين.",
+  "shown": "تعال ابني، أحچيلك عن فيضان سنة الأربعة وخمسين."
+ },
+ {
+  "id": "71ca3f22",
+  "tag": "npc22:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-15%",
+  "rate": "-12%",
+  "volume": "+0%",
+  "text": "دجلة طافت، والماي وصل لباب الشيخ.",
+  "shown": "دجلة طافت، والماي وصل لباب الشيخ."
+ },
+ {
+  "id": "c0d741a9",
+  "tag": "npc22:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-15%",
+  "rate": "-12%",
+  "volume": "+0%",
+  "text": "الناس كلها طلعت تسوّي سداد بالتراب والگواني.",
+  "shown": "الناس كلها طلعت تسوّي سداد بالتراب والگواني."
+ },
+ {
+  "id": "ba5a6ac8",
+  "tag": "npc22:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-15%",
+  "rate": "-12%",
+  "volume": "+0%",
+  "text": "أبوي، الله يرحمه، بقى ثلاث ليالي ما نام.",
+  "shown": "أبوي، الله يرحمه، بقى ثلاث ليالي ما نام."
+ },
+ {
+  "id": "25fcf8ae",
+  "tag": "npc22:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-15%",
+  "rate": "-12%",
+  "volume": "+0%",
+  "text": "وبالأخير الماي نزل، بس الناس بقت إيد وحدة. هاي بغداد ابني.",
+  "shown": "وبالأخير الماي نزل، بس الناس بقت إيد وحدة. هاي بغداد ابني."
+ },
+ {
+  "id": "cdf92609",
+  "tag": "npc22:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-15%",
+  "rate": "-12%",
+  "volume": "+0%",
+  "text": "تدري ابني، أول راديو بمحلّتنا چان عند أبو جاسم الحلّاق.",
+  "shown": "تدري ابني، أول راديو بمحلّتنا چان عند أبو جاسم الحلّاق."
+ },
+ {
+  "id": "df40d307",
+  "tag": "npc22:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-15%",
+  "rate": "-12%",
+  "volume": "+0%",
+  "text": "چانت المحلّة كلها تتجمّع يمّه تسمع أم كلثوم.",
+  "shown": "چانت المحلّة كلها تتجمّع يمّه تسمع أم كلثوم."
+ },
+ {
+  "id": "57e88103",
+  "tag": "npc22:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-15%",
+  "rate": "-12%",
+  "volume": "+0%",
+  "text": "وإذا انقطع الصوت، أبو جاسم يضرب الراديو بإيده ويرجع يشتغل!",
+  "shown": "وإذا انقطع الصوت، أبو جاسم يضرب الراديو بإيده ويرجع يشتغل!"
+ },
+ {
+  "id": "d6c98024",
+  "tag": "npc22:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-15%",
+  "rate": "-12%",
+  "volume": "+0%",
+  "text": "هسّه كل واحد بجيبه تلفون، وماكو واحد يسولف ويّا الثاني.",
+  "shown": "هسّه كل واحد بجيبه تلفون، وماكو واحد يسولف ويّا الثاني."
+ },
+ {
+  "id": "1d1b8896",
+  "tag": "npc22:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-15%",
+  "rate": "-12%",
+  "volume": "+0%",
+  "text": "بشبابي چنت أبيع چرزات بالكورنيش.",
+  "shown": "بشبابي چنت أبيع چرزات بالكورنيش."
+ },
+ {
+  "id": "1492e356",
+  "tag": "npc22:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-15%",
+  "rate": "-12%",
+  "volume": "+0%",
+  "text": "حب عبّاد الشمس ولب البطّيخ، بالفلس والعانة.",
+  "shown": "حب عبّاد الشمس ولب البطّيخ، بالفلس والعانة."
+ },
+ {
+  "id": "31e9006c",
+  "tag": "npc22:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-15%",
+  "rate": "-12%",
+  "volume": "+0%",
+  "text": "مرّة إجاني واحد لابس قاط، اشترى بفلس وگال: احفظ هالفلس.",
+  "shown": "مرّة إجاني واحد لابس قاط، اشترى بفلس وگال: احفظ هالفلس."
+ },
+ {
+  "id": "5b4f7dba",
+  "tag": "npc22:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-15%",
+  "rate": "-12%",
+  "volume": "+0%",
+  "text": "تدري منو طلع؟ صار مدير مدرستي بعدين! ها ها ها،",
+  "shown": "تدري منو طلع؟ صار مدير مدرستي بعدين! هههه"
+ },
+ {
+  "id": "0271f879",
+  "tag": "npc22:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-15%",
+  "rate": "-12%",
+  "volume": "+0%",
+  "text": "الدنيا صغيرة ابني، احترم الكل.",
+  "shown": "الدنيا صغيرة ابني، احترم الكل."
+ },
+ {
+  "id": "ecb4e3ab",
+  "tag": "npc23:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-13%",
+  "rate": "-10%",
+  "volume": "+0%",
+  "text": "هلا بيك يا مجاهد، شوف دجلة شگد حلوة.",
+  "shown": "هلا بيك يا مجاهد، شوف دجلة شگد حلوة."
+ },
+ {
+  "id": "6baff409",
+  "tag": "npc23:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-13%",
+  "rate": "-10%",
+  "volume": "+0%",
+  "text": "الله يسلّمك ابني.",
+  "shown": "الله يسلّمك ابني."
+ },
+ {
+  "id": "af5aa674",
+  "tag": "npc23:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-13%",
+  "rate": "-10%",
+  "volume": "+0%",
+  "text": "يا ستّار!",
+  "shown": "يا ستّار!"
+ },
+ {
+  "id": "73fe3f4e",
+  "tag": "npc23:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-13%",
+  "rate": "-10%",
+  "volume": "+0%",
+  "text": "اللهم احفظنا!",
+  "shown": "اللهم احفظنا!"
+ },
+ {
+  "id": "c87fb45f",
+  "tag": "npc23:calm",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-13%",
+  "rate": "-10%",
+  "volume": "+0%",
+  "text": "رجع الهدوء، الحمد لله.",
+  "shown": "رجع الهدوء، الحمد لله."
+ },
+ {
+  "id": "1a4892d6",
+  "tag": "npc23:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-13%",
+  "rate": "-10%",
+  "volume": "+0%",
+  "text": "شوف دجلة ابني، چانت أعرض من هيچ.",
+  "shown": "شوف دجلة ابني، چانت أعرض من هيچ."
+ },
+ {
+  "id": "e1699423",
+  "tag": "npc23:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-13%",
+  "rate": "-10%",
+  "volume": "+0%",
+  "text": "چنّا نسبح من هالضفّة لذيچ الضفّة، وأمّهاتنا يصيحن علينا.",
+  "shown": "چنّا نسبح من هالضفّة لذيچ الضفّة، وأمّهاتنا يصيحن علينا."
+ },
+ {
+  "id": "f9479689",
+  "tag": "npc23:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-13%",
+  "rate": "-10%",
+  "volume": "+0%",
+  "text": "مرّة صاحبي حمّودي سحبه التيار، وآني لزمته من شعره!",
+  "shown": "مرّة صاحبي حمّودي سحبه التيار، وآني لزمته من شعره!"
+ },
+ {
+  "id": "80f18260",
+  "tag": "npc23:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-13%",
+  "rate": "-10%",
+  "volume": "+0%",
+  "text": "هسّه بعده يگولّي: لولاك چان رحت، بس كل مرّة يعاتبني على الشعر! ها ها ها،",
+  "shown": "هسّه بعده يگولّي: لولاك چان رحت... بس كل مرّة يعاتبني على الشعر! هههه"
+ },
+ {
+  "id": "87050ee2",
+  "tag": "npc23:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-13%",
+  "rate": "-10%",
+  "volume": "+0%",
+  "text": "المسگوف الصدگ يحتاج خشب طرفة، مو فحم.",
+  "shown": "المسگوف الصدگ يحتاج خشب طرفة، مو فحم."
+ },
+ {
+  "id": "590944a1",
+  "tag": "npc23:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-13%",
+  "rate": "-10%",
+  "volume": "+0%",
+  "text": "تشگ السمچة من ظهرها، وتملّحها، وتگعدها يم النار ساعة.",
+  "shown": "تشگ السمچة من ظهرها، وتملّحها، وتگعدها يم النار ساعة."
+ },
+ {
+  "id": "cb2996b4",
+  "tag": "npc23:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-13%",
+  "rate": "-10%",
+  "volume": "+0%",
+  "text": "وتاكلها بالإيد، ويّا خبز التنّور والطماطة.",
+  "shown": "وتاكلها بالإيد، ويّا خبز التنّور والطماطة."
+ },
+ {
+  "id": "c9e9a7e2",
+  "tag": "npc23:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-13%",
+  "rate": "-10%",
+  "volume": "+0%",
+  "text": "اللي ياكل المسگوف بالچطل ما يعرف شي! ها ها ها،",
+  "shown": "اللي ياكل المسگوف بالچطل ما يعرف شي! هههه"
+ },
+ {
+  "id": "44179da2",
+  "tag": "npc23:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-13%",
+  "rate": "-10%",
+  "volume": "+0%",
+  "text": "چان أكو بلّام اسمه أبو خليل، يعبّر الناس بالبلم.",
+  "shown": "چان أكو بلّام اسمه أبو خليل، يعبّر الناس بالبلم."
+ },
+ {
+  "id": "b0f94e5d",
+  "tag": "npc23:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-13%",
+  "rate": "-10%",
+  "volume": "+0%",
+  "text": "بالعانة يعبّرك، وإذا ما عندك يعبّرك ببلاش.",
+  "shown": "بالعانة يعبّرك، وإذا ما عندك يعبّرك ببلاش."
+ },
+ {
+  "id": "2c0a5271",
+  "tag": "npc23:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-13%",
+  "rate": "-10%",
+  "volume": "+0%",
+  "text": "يگول: دجلة مو ملكي حتى أبيعها.",
+  "shown": "يگول: دجلة مو ملكي حتى أبيعها."
+ },
+ {
+  "id": "1962c49a",
+  "tag": "npc23:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-13%",
+  "rate": "-10%",
+  "volume": "+0%",
+  "text": "الله يرحمه، چان كريم مثل هالنهر.",
+  "shown": "الله يرحمه، چان كريم مثل هالنهر."
+ },
+ {
+  "id": "c7e9ddc0",
+  "tag": "npc24:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-7%",
+  "rate": "-4%",
+  "volume": "+0%",
+  "text": "هلا بالمجاهد! اليوم الصيد زين.",
+  "shown": "هلا بالمجاهد! اليوم الصيد زين."
+ },
+ {
+  "id": "363d265e",
+  "tag": "npc24:greet",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-7%",
+  "rate": "-4%",
+  "volume": "+0%",
+  "text": "يا هلا، تريد سمچة للعشا؟",
+  "shown": "يا هلا، تريد سمچة للعشا؟"
+ },
+ {
+  "id": "71d934be",
+  "tag": "npc24:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-7%",
+  "rate": "-4%",
+  "volume": "+0%",
+  "text": "سمچ دجلة! بنّي حي!",
+  "shown": "سمچ دجلة! بنّي حي!"
+ },
+ {
+  "id": "edcdfe0a",
+  "tag": "npc24:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-7%",
+  "rate": "-4%",
+  "volume": "+0%",
+  "text": "گطان وشبّوط!",
+  "shown": "گطان وشبّوط!"
+ },
+ {
+  "id": "aa2fb38f",
+  "tag": "npc24:call",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-7%",
+  "rate": "-4%",
+  "volume": "+0%",
+  "text": "تعالوا للمسگوف!",
+  "shown": "تعالوا للمسگوف!"
+ },
+ {
+  "id": "7ec58a6f",
+  "tag": "npc24:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-7%",
+  "rate": "-4%",
+  "volume": "+0%",
+  "text": "يا ستّار! السنّارة وگعت!",
+  "shown": "يا ستّار! السنّارة وگعت!"
+ },
+ {
+  "id": "be4bc3d7",
+  "tag": "npc24:react",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-7%",
+  "rate": "-4%",
+  "volume": "+0%",
+  "text": "انبطحوا!",
+  "shown": "انبطحوا!"
+ },
+ {
+  "id": "0763255a",
+  "tag": "npc24:calm",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-7%",
+  "rate": "-4%",
+  "volume": "+0%",
+  "text": "الحمد لله، رجع الهدوء على دجلة.",
+  "shown": "الحمد لله، رجع الهدوء على دجلة."
+ },
+ {
+  "id": "c1349ea0",
+  "tag": "npc24:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-7%",
+  "rate": "-4%",
+  "volume": "+0%",
+  "text": "البارحة طلعتلي سمچة بنّي، يمعود چانت بطولي!",
+  "shown": "البارحة طلعتلي سمچة بنّي، يمعود چانت بطولي!"
+ },
+ {
+  "id": "77df8673",
+  "tag": "npc24:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-7%",
+  "rate": "-4%",
+  "volume": "+0%",
+  "text": "سحبتها ساعة، والشبچة كلها تشلّعت.",
+  "shown": "سحبتها ساعة، والشبچة كلها تشلّعت."
+ },
+ {
+  "id": "46be4d5c",
+  "tag": "npc24:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-7%",
+  "rate": "-4%",
+  "volume": "+0%",
+  "text": "وبالأخير، فلتت منّي ورجعت لدجلة.",
+  "shown": "وبالأخير... فلتت منّي ورجعت لدجلة."
+ },
+ {
+  "id": "5b418c19",
+  "tag": "npc24:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-7%",
+  "rate": "-4%",
+  "volume": "+0%",
+  "text": "بس مو مشكلة، باچر أرجع ألزمها. هي تعرفني وآني أعرفها! ها ها ها،",
+  "shown": "بس مو مشكلة، باچر أرجع ألزمها. هي تعرفني وآني أعرفها! هههه"
+ },
+ {
+  "id": "e66525f1",
+  "tag": "npc24:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-7%",
+  "rate": "-4%",
+  "volume": "+0%",
+  "text": "تدري ليش أحب الصيد؟",
+  "shown": "تدري ليش أحب الصيد؟"
+ },
+ {
+  "id": "5d46c4d7",
+  "tag": "npc24:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-7%",
+  "rate": "-4%",
+  "volume": "+0%",
+  "text": "لأن دجلة ما تسألك شنو شغلك ولا منو عشيرتك.",
+  "shown": "لأن دجلة ما تسألك شنو شغلك ولا منو عشيرتك."
+ },
+ {
+  "id": "b07bd013",
+  "tag": "npc24:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-7%",
+  "rate": "-4%",
+  "volume": "+0%",
+  "text": "تگعد يمها، وتنطيك رزقك، وتسكت.",
+  "shown": "تگعد يمها، وتنطيك رزقك، وتسكت."
+ },
+ {
+  "id": "4d812989",
+  "tag": "npc24:story",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-7%",
+  "rate": "-4%",
+  "volume": "+0%",
+  "text": "هذا هو الهدوء ابني، وين نلگاه هسّه؟",
+  "shown": "هذا هو الهدوء ابني، وين نلگاه هسّه؟"
+ },
+ {
+  "id": "29eb953c",
+  "tag": "grp:0-1",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+4%",
+  "rate": "+9%",
+  "volume": "+0%",
+  "text": "أبو هادي! شگد بعت اليوم؟",
+  "shown": "أبو هادي! شگد بعت اليوم؟"
+ },
+ {
+  "id": "20d06e4f",
+  "tag": "grp:0-1",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-6%",
+  "rate": "+0%",
+  "volume": "+0%",
+  "text": "عيوني، استفتاح بس، والحمد لله.",
+  "shown": "عيوني، استفتاح بس، والحمد لله."
+ },
+ {
+  "id": "734adf22",
+  "tag": "grp:0-1",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+4%",
+  "rate": "+9%",
+  "volume": "+0%",
+  "text": "آني بعت ثلاث قطع، والرابعة بالطريق!",
+  "shown": "آني بعت ثلاث قطع، والرابعة بالطريق!"
+ },
+ {
+  "id": "c5796dc5",
+  "tag": "grp:0-1",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-6%",
+  "rate": "+0%",
+  "volume": "+0%",
+  "text": "إنت لسانك يبيع الحجر يا أبو سيف.",
+  "shown": "إنت لسانك يبيع الحجر يا أبو سيف."
+ },
+ {
+  "id": "ba4d4487",
+  "tag": "grp:0-1",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+4%",
+  "rate": "+9%",
+  "volume": "+0%",
+  "text": "هذا الشغل عيوني، الحچي الحلو نص البيع!",
+  "shown": "هذا الشغل عيوني، الحچي الحلو نص البيع!"
+ },
+ {
+  "id": "a889cfbe",
+  "tag": "grp:0-1",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-6%",
+  "rate": "+0%",
+  "volume": "+0%",
+  "text": "أبو سيف، سمعت إن الكهرباء راح تتحسّن؟",
+  "shown": "أبو سيف، سمعت إن الكهرباء راح تتحسّن؟"
+ },
+ {
+  "id": "eafa1224",
+  "tag": "grp:0-1",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+4%",
+  "rate": "+9%",
+  "volume": "+0%",
+  "text": "منو گال؟ نفس اللي گال السنة الفاتت؟",
+  "shown": "منو گال؟ نفس اللي گال السنة الفاتت؟"
+ },
+ {
+  "id": "a7e3a0be",
+  "tag": "grp:0-1",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-6%",
+  "rate": "+0%",
+  "volume": "+0%",
+  "text": "ها ها ها، عيوني خلّينا نتأمّل.",
+  "shown": "هههه، عيوني خلّينا نتأمّل."
+ },
+ {
+  "id": "37877ed0",
+  "tag": "grp:0-1",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+4%",
+  "rate": "+9%",
+  "volume": "+0%",
+  "text": "تأمّل، بس اشتري مولّدة احتياط!",
+  "shown": "تأمّل، بس اشتري مولّدة احتياط!"
+ },
+ {
+  "id": "9143b011",
+  "tag": "grp:8-9",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-12%",
+  "rate": "-8%",
+  "volume": "+0%",
+  "text": "أبو مهند، ابنك نجح؟",
+  "shown": "أبو مهند، ابنك نجح؟"
+ },
+ {
+  "id": "653d3af7",
+  "tag": "grp:8-9",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+0%",
+  "rate": "-2%",
+  "volume": "+0%",
+  "text": "إي حجي، نجح وجاب معدّل زين.",
+  "shown": "إي حجي، نجح وجاب معدّل زين."
+ },
+ {
+  "id": "dc58c460",
+  "tag": "grp:8-9",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-12%",
+  "rate": "-8%",
+  "volume": "+0%",
+  "text": "مبروك! لازم تذبحلنا ذبيحة.",
+  "shown": "مبروك! لازم تذبحلنا ذبيحة."
+ },
+ {
+  "id": "e5983af7",
+  "tag": "grp:8-9",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+0%",
+  "rate": "-2%",
+  "volume": "+0%",
+  "text": "حاضر حجي، الجمعة الغدا عدنا.",
+  "shown": "حاضر حجي، الجمعة الغدا عدنا."
+ },
+ {
+  "id": "9917ad4d",
+  "tag": "grp:8-9",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-12%",
+  "rate": "-8%",
+  "volume": "+0%",
+  "text": "الله يبارك بيه ويخلّيه إلك.",
+  "shown": "الله يبارك بيه ويخلّيه إلك."
+ },
+ {
+  "id": "8ef61c7c",
+  "tag": "grp:8-9",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+0%",
+  "rate": "-2%",
+  "volume": "+0%",
+  "text": "حجي، صاحب المحل زاد الإيجار علينا.",
+  "shown": "حجي، صاحب المحل زاد الإيجار علينا."
+ },
+ {
+  "id": "e7a2e508",
+  "tag": "grp:8-9",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-12%",
+  "rate": "-8%",
+  "volume": "+0%",
+  "text": "صاحب الملك ما يخاف الله.",
+  "shown": "صاحب الملك ما يخاف الله."
+ },
+ {
+  "id": "5b35bcb7",
+  "tag": "grp:8-9",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+0%",
+  "rate": "-2%",
+  "volume": "+0%",
+  "text": "يگول الأسعار غلت، شنسوي؟",
+  "shown": "يگول الأسعار غلت، شنسوي؟"
+ },
+ {
+  "id": "2c9367a5",
+  "tag": "grp:8-9",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-12%",
+  "rate": "-8%",
+  "volume": "+0%",
+  "text": "اصبر ابني، الصبر مفتاح الفرج.",
+  "shown": "اصبر ابني، الصبر مفتاح الفرج."
+ },
+ {
+  "id": "c47f6500",
+  "tag": "grp:12-13",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+1%",
+  "rate": "+5%",
+  "volume": "+0%",
+  "text": "حجي ستّار، شلون صحّتك اليوم؟",
+  "shown": "حجي ستّار، شلون صحّتك اليوم؟"
+ },
+ {
+  "id": "f00059c7",
+  "tag": "grp:12-13",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-16%",
+  "rate": "-12%",
+  "volume": "+0%",
+  "text": "الحمد لله ابني، بس الركبة تعبانة.",
+  "shown": "الحمد لله ابني، بس الركبة تعبانة."
+ },
+ {
+  "id": "80e3c866",
+  "tag": "grp:12-13",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+1%",
+  "rate": "+5%",
+  "volume": "+0%",
+  "text": "روح للدكتور حجي، لا تبقى تتحمّل.",
+  "shown": "روح للدكتور حجي، لا تبقى تتحمّل."
+ },
+ {
+  "id": "04b6fadc",
+  "tag": "grp:12-13",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-16%",
+  "rate": "-12%",
+  "volume": "+0%",
+  "text": "الدكتور يگول امشي، وآني گاعد بالمحل من الصبح للمغرب! ها ها ها،",
+  "shown": "الدكتور يگول امشي، وآني گاعد بالمحل من الصبح للمغرب! هههه"
+ },
+ {
+  "id": "1578400e",
+  "tag": "grp:12-13",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-16%",
+  "rate": "-12%",
+  "volume": "+0%",
+  "text": "أبو سعد، تتذكّر أبوك الله يرحمه؟",
+  "shown": "أبو سعد، تتذكّر أبوك الله يرحمه؟"
+ },
+ {
+  "id": "10a41ab0",
+  "tag": "grp:12-13",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+1%",
+  "rate": "+5%",
+  "volume": "+0%",
+  "text": "شلون ما أتذكّره حجي؟",
+  "shown": "شلون ما أتذكّره حجي؟"
+ },
+ {
+  "id": "e35a6399",
+  "tag": "grp:12-13",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-16%",
+  "rate": "-12%",
+  "volume": "+0%",
+  "text": "چان أطيب واحد بالسوق، ما يرد محتاج.",
+  "shown": "چان أطيب واحد بالسوق، ما يرد محتاج."
+ },
+ {
+  "id": "8966ebb9",
+  "tag": "grp:12-13",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+1%",
+  "rate": "+5%",
+  "volume": "+0%",
+  "text": "الله يرحمه، وآني أحاول أمشي على طريقه.",
+  "shown": "الله يرحمه، وآني أحاول أمشي على طريقه."
+ },
+ {
+  "id": "aad4ca08",
+  "tag": "grp:12-13",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-16%",
+  "rate": "-12%",
+  "volume": "+0%",
+  "text": "إنت ابن أبوك، الله يحفظك.",
+  "shown": "إنت ابن أبوك، الله يحفظك."
+ },
+ {
+  "id": "9569c670",
+  "tag": "grp:14-15-16",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+9%",
+  "rate": "+11%",
+  "volume": "+0%",
+  "text": "عمّي أبو عمر، الطماطة اليوم بيش؟",
+  "shown": "عمّي أبو عمر، الطماطة اليوم بيش؟"
+ },
+ {
+  "id": "630715f9",
+  "tag": "grp:14-15-16",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+3%",
+  "rate": "+4%",
+  "volume": "+0%",
+  "text": "بألفين، وما راح تنزل.",
+  "shown": "بألفين، وما راح تنزل."
+ },
+ {
+  "id": "da45597a",
+  "tag": "grp:14-15-16",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-5%",
+  "rate": "+0%",
+  "volume": "+0%",
+  "text": "آني بألف وخمسمية، تعال اشتري منّي! ها ها ها،",
+  "shown": "آني بألف وخمسمية، تعال اشتري منّي! هههه"
+ },
+ {
+  "id": "626dff25",
+  "tag": "grp:14-15-16",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+3%",
+  "rate": "+4%",
+  "volume": "+0%",
+  "text": "أبو فراس، لا تخرّب السوق علينا!",
+  "shown": "أبو فراس، لا تخرّب السوق علينا!"
+ },
+ {
+  "id": "84166e27",
+  "tag": "grp:14-15-16",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-5%",
+  "rate": "+0%",
+  "volume": "+0%",
+  "text": "المنافسة شريفة يا أبو عمر!",
+  "shown": "المنافسة شريفة يا أبو عمر!"
+ },
+ {
+  "id": "3427d177",
+  "tag": "grp:14-15-16",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-5%",
+  "rate": "+0%",
+  "volume": "+0%",
+  "text": "أبو كرّار، ليش متأخّر اليوم؟",
+  "shown": "أبو كرّار، ليش متأخّر اليوم؟"
+ },
+ {
+  "id": "b18abebc",
+  "tag": "grp:14-15-16",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+9%",
+  "rate": "+11%",
+  "volume": "+0%",
+  "text": "عمّي، الستوتة عطلت بالطريق.",
+  "shown": "عمّي، الستوتة عطلت بالطريق."
+ },
+ {
+  "id": "a11d1731",
+  "tag": "grp:14-15-16",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+3%",
+  "rate": "+4%",
+  "volume": "+0%",
+  "text": "كل يوم عطلانة هالستوتة!",
+  "shown": "كل يوم عطلانة هالستوتة!"
+ },
+ {
+  "id": "2b4a248f",
+  "tag": "grp:14-15-16",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+9%",
+  "rate": "+11%",
+  "volume": "+0%",
+  "text": "هي كبيرة بالعمر مثلك عمّي! ها ها ها،",
+  "shown": "هي كبيرة بالعمر مثلك عمّي! هههه"
+ },
+ {
+  "id": "8ae764c8",
+  "tag": "grp:14-15-16",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+3%",
+  "rate": "+4%",
+  "volume": "+0%",
+  "text": "ولك أبو كرّار! زين زين، اشتغل.",
+  "shown": "ولك أبو كرّار! زين زين، اشتغل."
+ },
+ {
+  "id": "674320a6",
+  "tag": "grp:14-15-16",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+3%",
+  "rate": "+4%",
+  "volume": "+0%",
+  "text": "شباب، الجمعة نطلع لأبو نؤاس؟",
+  "shown": "شباب، الجمعة نطلع لأبو نؤاس؟"
+ },
+ {
+  "id": "be8765c5",
+  "tag": "grp:14-15-16",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+9%",
+  "rate": "+11%",
+  "volume": "+0%",
+  "text": "أكيد، والمسگوف عليّ!",
+  "shown": "أكيد، والمسگوف عليّ!"
+ },
+ {
+  "id": "263ccdf4",
+  "tag": "grp:14-15-16",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-5%",
+  "rate": "+0%",
+  "volume": "+0%",
+  "text": "منين إلك فلوس؟ البارحة دتطلب منّي ألف!",
+  "shown": "منين إلك فلوس؟ البارحة دتطلب منّي ألف!"
+ },
+ {
+  "id": "3aba0cf2",
+  "tag": "grp:14-15-16",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+9%",
+  "rate": "+11%",
+  "volume": "+0%",
+  "text": "ها ها ها، فضحتني يا أبو فراس.",
+  "shown": "هههه، فضحتني يا أبو فراس."
+ },
+ {
+  "id": "59363173",
+  "tag": "grp:17-18-19",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-15%",
+  "rate": "-12%",
+  "volume": "+0%",
+  "text": "اسمعوا منّي، أحچيلكم شصار بعرس ابن أبو جاسم.",
+  "shown": "اسمعوا منّي، أحچيلكم شصار بعرس ابن أبو جاسم."
+ },
+ {
+  "id": "8280a9e1",
+  "tag": "grp:17-18-19",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+6%",
+  "rate": "+8%",
+  "volume": "+0%",
+  "text": "يلّا حجي، بس بالمختصر.",
+  "shown": "يلّا حجي، بس بالمختصر."
+ },
+ {
+  "id": "2282128b",
+  "tag": "grp:17-18-19",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-15%",
+  "rate": "-12%",
+  "volume": "+0%",
+  "text": "بالمختصر المفيد، العريس نسى يجيب المحبس!",
+  "shown": "بالمختصر المفيد... العريس نسى يجيب المحبس!"
+ },
+ {
+  "id": "3c5c9c27",
+  "tag": "grp:17-18-19",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-3%",
+  "rate": "+2%",
+  "volume": "+0%",
+  "text": "يا بعد عيني! ولعد شسوّوا؟",
+  "shown": "يا بعد عيني! ولعد شسوّوا؟"
+ },
+ {
+  "id": "2ac5bfa0",
+  "tag": "grp:17-18-19",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-15%",
+  "rate": "-12%",
+  "volume": "+0%",
+  "text": "أخوه ركض للصاغة بنص الليل، وطلّع الصايغ من فراشه!",
+  "shown": "أخوه ركض للصاغة بنص الليل، وطلّع الصايغ من فراشه!"
+ },
+ {
+  "id": "00c32421",
+  "tag": "grp:17-18-19",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+6%",
+  "rate": "+8%",
+  "volume": "+0%",
+  "text": "ها ها ها، هذا مو مختصر حجي، هذا مسلسل!",
+  "shown": "هههه، هذا مو مختصر حجي، هذا مسلسل!"
+ },
+ {
+  "id": "23f9c5eb",
+  "tag": "grp:17-18-19",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-3%",
+  "rate": "+2%",
+  "volume": "+0%",
+  "text": "تفضّلوا، استكانات جديدة، چاي مهيّل.",
+  "shown": "تفضّلوا، استكانات جديدة، چاي مهيّل."
+ },
+ {
+  "id": "bb386dcd",
+  "tag": "grp:17-18-19",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+6%",
+  "rate": "+8%",
+  "volume": "+0%",
+  "text": "عاشت إيدك أبو سلام، بس شكره زيادة.",
+  "shown": "عاشت إيدك أبو سلام، بس شكره زيادة."
+ },
+ {
+  "id": "cc8ab7a7",
+  "tag": "grp:17-18-19",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-3%",
+  "rate": "+2%",
+  "volume": "+0%",
+  "text": "تدلّل، بس الشكر غلى.",
+  "shown": "تدلّل، بس الشكر غلى."
+ },
+ {
+  "id": "b6f2f648",
+  "tag": "grp:17-18-19",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-15%",
+  "rate": "-12%",
+  "volume": "+0%",
+  "text": "أيام زمان الشكر چان بالكيس، والچاي بالقوطية.",
+  "shown": "أيام زمان الشكر چان بالكيس، والچاي بالقوطية."
+ },
+ {
+  "id": "8419e4f9",
+  "tag": "grp:17-18-19",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+6%",
+  "rate": "+8%",
+  "volume": "+0%",
+  "text": "وأيام زمان حجي كريم چان شاب! ها ها ها،",
+  "shown": "وأيام زمان حجي كريم چان شاب! هههه"
+ },
+ {
+  "id": "259a8ad0",
+  "tag": "grp:17-18-19",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-15%",
+  "rate": "-12%",
+  "volume": "+0%",
+  "text": "ولك أبو ياسر، الشباب بالگلب!",
+  "shown": "ولك أبو ياسر، الشباب بالگلب!"
+ },
+ {
+  "id": "711f126c",
+  "tag": "grp:17-18-19",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+6%",
+  "rate": "+8%",
+  "volume": "+0%",
+  "text": "تدرون شصار بيّه البارحة؟",
+  "shown": "تدرون شصار بيّه البارحة؟"
+ },
+ {
+  "id": "b71a4d96",
+  "tag": "grp:17-18-19",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-3%",
+  "rate": "+2%",
+  "volume": "+0%",
+  "text": "خير يا بعد عيني؟",
+  "shown": "خير يا بعد عيني؟"
+ },
+ {
+  "id": "0010064c",
+  "tag": "grp:17-18-19",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+6%",
+  "rate": "+8%",
+  "volume": "+0%",
+  "text": "مرتي دزّتني أشتري خبز، رجعت ومعاي بطّيخ!",
+  "shown": "مرتي دزّتني أشتري خبز، رجعت ومعاي بطّيخ!"
+ },
+ {
+  "id": "bc6e8752",
+  "tag": "grp:17-18-19",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-15%",
+  "rate": "-12%",
+  "volume": "+0%",
+  "text": "ليش ابني؟",
+  "shown": "ليش ابني؟"
+ },
+ {
+  "id": "9bd22168",
+  "tag": "grp:17-18-19",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+6%",
+  "rate": "+8%",
+  "volume": "+0%",
+  "text": "التلفون رن بالطريق، ونسيت شگالتلي! ها ها ها،",
+  "shown": "التلفون رن بالطريق، ونسيت شگالتلي! هههه"
+ },
+ {
+  "id": "7a1f3a4b",
+  "tag": "grp:17-18-19",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-3%",
+  "rate": "+2%",
+  "volume": "+0%",
+  "text": "الله يعينها عليك!",
+  "shown": "الله يعينها عليك!"
+ },
+ {
+  "id": "9a9fa5ac",
+  "tag": "grp:17-18-19",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-15%",
+  "rate": "-12%",
+  "volume": "+0%",
+  "text": "باچر المباراة، منو تشجّعون؟",
+  "shown": "باچر المباراة، منو تشجّعون؟"
+ },
+ {
+  "id": "2a1dc142",
+  "tag": "grp:17-18-19",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+6%",
+  "rate": "+8%",
+  "volume": "+0%",
+  "text": "آني ويّا الزوراء للموت!",
+  "shown": "آني ويّا الزوراء للموت!"
+ },
+ {
+  "id": "cf413f4c",
+  "tag": "grp:17-18-19",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-3%",
+  "rate": "+2%",
+  "volume": "+0%",
+  "text": "وآني ويّا الشرطة، والچاي على اللي يخسر.",
+  "shown": "وآني ويّا الشرطة، والچاي على اللي يخسر."
+ },
+ {
+  "id": "6e763410",
+  "tag": "grp:17-18-19",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-15%",
+  "rate": "-12%",
+  "volume": "+0%",
+  "text": "خلّوني بالحياد، آني بس أشرب ببلاش! ها ها ها،",
+  "shown": "خلّوني بالحياد، آني بس أشرب ببلاش! هههه"
+ },
+ {
+  "id": "c29f0cae",
+  "tag": "grp:20-21",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-17%",
+  "rate": "-14%",
+  "volume": "+0%",
+  "text": "جبّار، تتذكّر سينما الخيّام؟",
+  "shown": "جبّار، تتذكّر سينما الخيّام؟"
+ },
+ {
+  "id": "2f163181",
+  "tag": "grp:20-21",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-12%",
+  "rate": "-8%",
+  "volume": "+0%",
+  "text": "إي والله، أوّل فلم شفته هناك ويّاك.",
+  "shown": "إي والله، أوّل فلم شفته هناك ويّاك."
+ },
+ {
+  "id": "17743e8e",
+  "tag": "grp:20-21",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-17%",
+  "rate": "-14%",
+  "volume": "+0%",
+  "text": "وطردونا لأن ضحكنا بصوت عالي!",
+  "shown": "وطردونا لأن ضحكنا بصوت عالي!"
+ },
+ {
+  "id": "9f4e2de7",
+  "tag": "grp:20-21",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-12%",
+  "rate": "-8%",
+  "volume": "+0%",
+  "text": "إنت ضحكت، آني بس انطردت ويّاك!",
+  "shown": "إنت ضحكت، آني بس انطردت ويّاك!"
+ },
+ {
+  "id": "c0512774",
+  "tag": "grp:20-21",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-17%",
+  "rate": "-14%",
+  "volume": "+0%",
+  "text": "ها ها ها، الصاحب ساحب يا جبّار.",
+  "shown": "هههه، الصاحب ساحب يا جبّار."
+ },
+ {
+  "id": "cead0b6e",
+  "tag": "grp:20-21",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-12%",
+  "rate": "-8%",
+  "volume": "+0%",
+  "text": "عباس، الدوا اللي گالي عليه الدكتور ما لگيته.",
+  "shown": "عباس، الدوا اللي گالي عليه الدكتور ما لگيته."
+ },
+ {
+  "id": "1aa12b76",
+  "tag": "grp:20-21",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-17%",
+  "rate": "-14%",
+  "volume": "+0%",
+  "text": "روح للصيدلية اللي بالشارع الثاني، أبو علي عنده كلشي.",
+  "shown": "روح للصيدلية اللي بالشارع الثاني، أبو علي عنده كلشي."
+ },
+ {
+  "id": "a8f7d2ea",
+  "tag": "grp:20-21",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-12%",
+  "rate": "-8%",
+  "volume": "+0%",
+  "text": "أبو علي؟ هذا يحچي ساعة قبل لا ينطيك الحبّة.",
+  "shown": "أبو علي؟ هذا يحچي ساعة قبل لا ينطيك الحبّة."
+ },
+ {
+  "id": "5d79be9a",
+  "tag": "grp:20-21",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-17%",
+  "rate": "-14%",
+  "volume": "+0%",
+  "text": "ولعد إنت شتسوّي هسّه؟ مو دتحچي ساعة؟ ها ها ها،",
+  "shown": "ولعد إنت شتسوّي هسّه؟ مو دتحچي ساعة؟ هههه"
+ },
+ {
+  "id": "d09196f5",
+  "tag": "grp:20-21",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-17%",
+  "rate": "-14%",
+  "volume": "+0%",
+  "text": "ابني رجع من السفر، يريد ياخذني وياه.",
+  "shown": "ابني رجع من السفر، يريد ياخذني وياه."
+ },
+ {
+  "id": "e119402b",
+  "tag": "grp:20-21",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-12%",
+  "rate": "-8%",
+  "volume": "+0%",
+  "text": "وين؟ لبرّه؟",
+  "shown": "وين؟ لبرّه؟"
+ },
+ {
+  "id": "0ae42ed2",
+  "tag": "grp:20-21",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-17%",
+  "rate": "-14%",
+  "volume": "+0%",
+  "text": "إي، بس آني گلتله: هنا ولدت وهنا أموت.",
+  "shown": "إي، بس آني گلتله: هنا ولدت وهنا أموت."
+ },
+ {
+  "id": "a16a5e25",
+  "tag": "grp:20-21",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-12%",
+  "rate": "-8%",
+  "volume": "+0%",
+  "text": "صدگت، وين نروح نلگى چاي مثل چاي أبو سلام؟",
+  "shown": "صدگت، وين نروح نلگى چاي مثل چاي أبو سلام؟"
+ },
+ {
+  "id": "e2f3ed97",
+  "tag": "grp:20-21",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-12%",
+  "rate": "-8%",
+  "volume": "+0%",
+  "text": "شوف هالشباب، شگد تعبانين.",
+  "shown": "شوف هالشباب، شگد تعبانين."
+ },
+ {
+  "id": "c0349021",
+  "tag": "grp:20-21",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-17%",
+  "rate": "-14%",
+  "volume": "+0%",
+  "text": "الله يحفظهم، هذولة ولد البلد.",
+  "shown": "الله يحفظهم، هذولة ولد البلد."
+ },
+ {
+  "id": "26d82ed8",
+  "tag": "grp:20-21",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-12%",
+  "rate": "-8%",
+  "volume": "+0%",
+  "text": "بس يا ريت يرجعون لأهلهم سالمين.",
+  "shown": "بس يا ريت يرجعون لأهلهم سالمين."
+ },
+ {
+  "id": "07ec3d06",
+  "tag": "grp:20-21",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-17%",
+  "rate": "-14%",
+  "volume": "+0%",
+  "text": "آمين يا ربّ العالمين.",
+  "shown": "آمين يا ربّ العالمين."
+ },
+ {
+  "id": "fce41dea",
+  "tag": "intro",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-4%",
+  "rate": "-3%",
+  "volume": "+0%",
+  "text": "يا جماعة، الأكل دايبرد، خلّونا نسمّي بالله ونبدي.",
+  "shown": "يا جماعة، الأكل دايبرد... خلّونا نسمّي بالله ونبدي."
+ },
+ {
+  "id": "f1b6de28",
+  "tag": "intro",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+8%",
+  "rate": "+9%",
+  "volume": "+0%",
+  "text": "شلون آكل خبز وملح ويّا ناس إيدهم بيها دم أهلنا؟",
+  "shown": "شلون آكل خبز وملح ويّا ناس إيدهم بيها دم أهلنا؟"
+ },
+ {
+  "id": "88cbed25",
+  "tag": "intro",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-12%",
+  "rate": "-5%",
+  "volume": "+0%",
+  "text": "شتقصد يا محمد؟ احچي عدل.",
+  "shown": "شتقصد يا محمد؟ احچي عدل."
+ },
+ {
+  "id": "573634db",
+  "tag": "intro",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+8%",
+  "rate": "+9%",
+  "volume": "+0%",
+  "text": "أقصد إنتو، جماعة التجمّع، تكريت كلها تدري إنكم چنتوا ويّا العصائب.",
+  "shown": "أقصد إنتو، جماعة التجمّع... تكريت كلها تدري إنكم چنتوا ويّا العصائب."
+ },
+ {
+  "id": "c163fb06",
+  "tag": "intro",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-9%",
+  "rate": "-14%",
+  "volume": "+0%",
+  "text": "ولك انتبه لحچيك، هذا اتهام ما ينسكت عليه.",
+  "shown": "ولك انتبه لحچيك... هذا اتهام ما ينسكت عليه."
+ },
+ {
+  "id": "a12d713c",
+  "tag": "intro",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-4%",
+  "rate": "-3%",
+  "volume": "+0%",
+  "text": "محمد، اهدأ. احنا جايين ناكل زاد، مو نفتح جروح.",
+  "shown": "محمد، اهدأ. احنا جايين ناكل زاد، مو نفتح جروح."
+ },
+ {
+  "id": "1e7ff265",
+  "tag": "intro",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+8%",
+  "rate": "+9%",
+  "volume": "+0%",
+  "text": "خالد، نسيت ابن عمّك؟ نسيت منو چان يدگ الأبواب بنص الليل؟",
+  "shown": "خالد، نسيت ابن عمّك؟ نسيت منو چان يدگ الأبواب بنص الليل؟"
+ },
+ {
+  "id": "c39bafe1",
+  "tag": "intro",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-4%",
+  "rate": "-3%",
+  "volume": "+0%",
+  "text": "ما نسيت، بس ما أحچي بلا دليل.",
+  "shown": "ما نسيت... بس ما أحچي بلا دليل."
+ },
+ {
+  "id": "1a5cfca9",
+  "tag": "intro",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-12%",
+  "rate": "-5%",
+  "volume": "+0%",
+  "text": "احنا تكارتة مثلكم، ودمّنا من دمّكم. اللي يگول غير هيچ، يجيب دليله.",
+  "shown": "احنا تكارتة مثلكم، ودمّنا من دمّكم. اللي يگول غير هيچ... يجيب دليله."
+ },
+ {
+  "id": "c2103187",
+  "tag": "intro",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-9%",
+  "rate": "-14%",
+  "volume": "+0%",
+  "text": "واللي يرمي التهم بالمضايف، يتحمّل جوابها.",
+  "shown": "واللي يرمي التهم بالمضايف... يتحمّل جوابها."
+ },
+ {
+  "id": "33d387e5",
+  "tag": "intro",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-19%",
+  "rate": "-18%",
+  "volume": "+0%",
+  "text": "السلام عليكم، شبيكم يا ولدي؟ أصواتكم واصلة للشارع!",
+  "shown": "السلام عليكم... شبيكم يا ولدي؟ أصواتكم واصلة للشارع!"
+ },
+ {
+  "id": "dee63b23",
+  "tag": "intro",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-4%",
+  "rate": "-3%",
+  "volume": "+0%",
+  "text": "وعليكم السلام شيخنا، تفضّل، المجلس مجلسك.",
+  "shown": "وعليكم السلام شيخنا، تفضّل... المجلس مجلسك."
+ },
+ {
+  "id": "7d4fa1ba",
+  "tag": "intro",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-19%",
+  "rate": "-18%",
+  "volume": "+0%",
+  "text": "اگعدوا اگعدوا. آني لمّيتكم الليلة على هالزاد، حتى نطوي صفحة، مو نفتح باب.",
+  "shown": "اگعدوا اگعدوا. آني لمّيتكم الليلة على هالزاد، حتى نطوي صفحة... مو نفتح باب."
+ },
+ {
+  "id": "c3289c0a",
+  "tag": "intro",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-19%",
+  "rate": "-18%",
+  "volume": "+0%",
+  "text": "تكريت تعبت يا ولدي. الدم ما يجيب غير الدم.",
+  "shown": "تكريت تعبت يا ولدي. الدم ما يجيب غير الدم."
+ },
+ {
+  "id": "d68c5d09",
+  "tag": "intro",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+8%",
+  "rate": "+9%",
+  "volume": "+0%",
+  "text": "شيخنا، احنا ما نريد دم، نريد حق.",
+  "shown": "شيخنا، احنا ما نريد دم... نريد حق."
+ },
+ {
+  "id": "65414671",
+  "tag": "intro",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-19%",
+  "rate": "-18%",
+  "volume": "+0%",
+  "text": "والحق ما يجي بالصياح يابا. الحق بالعدل، وبالشهود، وبالقضاء.",
+  "shown": "والحق ما يجي بالصياح يابا. الحق بالعدل، وبالشهود، وبالقضاء."
+ },
+ {
+  "id": "288e1520",
+  "tag": "intro",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-12%",
+  "rate": "-5%",
+  "volume": "+0%",
+  "text": "على راسي شيخنا. احنا جينا احتراماً إلك.",
+  "shown": "على راسي شيخنا. احنا جينا احتراماً إلك."
+ },
+ {
+  "id": "9972f7ba",
+  "tag": "intro",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-9%",
+  "rate": "-14%",
+  "volume": "+0%",
+  "text": "بس ما نقبل أحد يسمّينا خونة بوجهنا.",
+  "shown": "بس ما نقبل أحد يسمّينا خونة بوجهنا."
+ },
+ {
+  "id": "26f083e8",
+  "tag": "intro",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "+8%",
+  "rate": "+15%",
+  "volume": "+25%",
+  "text": "ولعد شنسمّيكم؟ الناس شافت سياراتكم ويّاهم!",
+  "shown": "ولعد شنسمّيكم؟ الناس شافت سياراتكم ويّاهم!"
+ },
+ {
+  "id": "abe9e557",
+  "tag": "intro",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-12%",
+  "rate": "+1%",
+  "volume": "+25%",
+  "text": "الناس تحچي، والحچي ما يصير حكم!",
+  "shown": "الناس تحچي، والحچي ما يصير حكم!"
+ },
+ {
+  "id": "6ca33abb",
+  "tag": "intro",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-4%",
+  "rate": "+3%",
+  "volume": "+25%",
+  "text": "يا جماعة كافي! بوجه الشيخ؟!",
+  "shown": "يا جماعة كافي! بوجه الشيخ؟!"
+ },
+ {
+  "id": "e400ea0c",
+  "tag": "intro",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-19%",
+  "rate": "-12%",
+  "volume": "+25%",
+  "text": "بسّ! والله ما يطلع واحد من هالمضيف، إلا وإيده بإيد أخوه.",
+  "shown": "بسّ! والله ما يطلع واحد من هالمضيف... إلا وإيده بإيد أخوه."
+ },
+ {
+  "id": "208c5487",
+  "tag": "intro",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-19%",
+  "rate": "-12%",
+  "volume": "+25%",
+  "text": "رمّانة!!",
+  "shown": "رمّانة!!"
+ },
+ {
+  "id": "6c83dc85",
+  "tag": "intro",
+  "voice": "ar-IQ-BasselNeural",
+  "pitch": "-4%",
+  "rate": "+3%",
+  "volume": "+25%",
+  "text": "انبطحوا!!",
+  "shown": "انبطحوا!!"
+ }
+]

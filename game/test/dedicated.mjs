@@ -12,7 +12,7 @@ await S.goto('file://' + path.resolve('dist/server.html') + BR);
 await S.waitForFunction(() => window.__srv && window.__srv() && window.__srv().link && window.__srv().link.mqs.length > 0, null, { timeout: 15000 });
 const room = await S.evaluate(() => window.__srv().room); console.log('room', room);
 const P = await (await b.newContext({ viewport: { width: 640, height: 360 } })).newPage(); P.on('pageerror', e => errs.push('cli ' + e.message));
-await P.addInitScript(() => localStorage.setItem('rafidain.settings.v2', JSON.stringify({ quality: 'low', fps: 0, name: 'خالد' })));
+await P.addInitScript(() => localStorage.setItem('rafidain.intro.v1', '1'), localStorage.setItem('rafidain.settings.v2', JSON.stringify({ quality: 'low', fps: 0, name: 'خالد' })));
 await P.goto('file://' + path.resolve('dist/index.html') + BR); await P.waitForTimeout(2500);
 await P.evaluate(r => { window.__R.UI.open('friends'); document.querySelector('.srvjoin').open = true; document.querySelector('#srvCode').value = r; document.querySelector('#srvGo').click(); }, room);
 await P.waitForTimeout(8000);

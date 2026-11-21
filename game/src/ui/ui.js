@@ -381,7 +381,8 @@ export const UI = {
       row('مجال الرؤية', rng('fov', 70, 110, 1)) +
       row('الطقس الافتراضي', chips('weather', WEATHER_OPTIONS.map(o => ({ id: o.id, label: o.label }))));
     else h = row('الصوت العام', rng('volume', 0, 1, 0.05, 1)) + row('الموسيقى التراثية', rng('music', 0, 1, 0.05, 1)) + row('أصوات أهل السوق', rng('talk', 0, 1, 0.05, 1), 'يرحّبون بك ويتسولفون بالبغدادي حين تقترب — صفر لإسكاتهم')
-      + `<div class="note credits">الموسيقى التراثية مؤلّفة آلياً داخل اللعبة (مقامات بيات وحجاز بالعود والناي والإيقاع). نماذج «فانوس الشارع الخشبي» و«السمكة» من مستودع Khronos glTF-Sample-Assets برخصة CC0 (الملك العام).</div>`;
+      + `<div class="note credits">الموسيقى التراثية مؤلّفة آلياً داخل اللعبة (مقامات بيات وحجاز بالعود والناي والإيقاع). نماذج «فانوس الشارع الخشبي» و«السمكة» من مستودع Khronos glTF-Sample-Assets برخصة CC0 (الملك العام). أصوات أهل السوق والمقدّمة بصوت عراقي عصبي (Azure ar-IQ).</div>`
+      + `<div style="margin-top:10px"><button class="btn" onclick="window.__R && window.__R.playIntro()">🎬 شاهد المقدّمة من جديد</button></div>`;
     el.innerHTML = h;
     el.querySelectorAll('.chips').forEach(c => c.addEventListener('click', e => { const b = e.target.closest('.chip'); if (!b) return; const v = b.dataset.v; setSetting(c.dataset.k, isNaN(+v) || v === '' ? v : +v); this.buildSettings(); HUD.layout(); }));
     el.querySelectorAll('select').forEach(s => s.addEventListener('change', () => { const v = s.value; setSetting(s.dataset.k, isNaN(+v) ? v : +v); }));

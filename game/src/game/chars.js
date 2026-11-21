@@ -68,7 +68,7 @@ const teamMats = [new THREE.MeshStandardMaterial({ color: 0xf0a83a, emissive: 0x
 
 // حل ذراع بعظمتين (عضد + ساعد) في فضاء الجذع
 const _q = new THREE.Quaternion(), _q2 = new THREE.Quaternion(), DOWN = V(0, -1, 0);
-function solveArm(upper, fore, S, T, pole, a, b) {
+export function solveArm(upper, fore, S, T, pole, a, b) {
   const dir = T.clone().sub(S); let d = dir.length(); d = Math.min(Math.max(d, Math.abs(a - b) + 0.01), (a + b) * 0.999); dir.normalize();
   const cosA = (a * a + d * d - b * b) / (2 * a * d), sinA = Math.sqrt(Math.max(0, 1 - cosA * cosA));
   const pp = pole.clone().sub(dir.clone().multiplyScalar(pole.dot(dir))).normalize();

@@ -13,7 +13,7 @@ const errs = [];
 const mk = async (name, settings) => {
   const ctx = await b.newContext({ viewport: { width: 640, height: 360 } });
   const p = await ctx.newPage();
-  if (settings) await p.addInitScript(s => localStorage.setItem('rafidain.settings.v1', JSON.stringify(s)), settings);
+  if (settings) await p.addInitScript(s => localStorage.setItem('rafidain.intro.v1', '1'), localStorage.setItem('rafidain.settings.v1', JSON.stringify(s)), settings);
   p.on('pageerror', e => errs.push(name + ': ' + e.message + '\n' + e.stack));
   p.on('console', m => { if (m.type() === 'error' || m.type() === 'warning') errs.push(name + ' console: ' + m.text()); });
   return p;

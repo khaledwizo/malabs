@@ -16,14 +16,25 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      # أصوات عراقية حقيقية (Azure ar-IQ) — تُضاف في Settings › Secrets › Actions
+      AZ_KEY: ${{ secrets.AZURE_SPEECH_KEY }}
+      AZ_REGION: ${{ secrets.AZURE_SPEECH_REGION }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Generate Iraqi voice lines (Azure ar-IQ, incremental)
+        if: ${{ env.AZ_KEY != '' }}
+        continue-on-error: true
+        run: python3 game/tools/gen_voices.py game/voice/lines.json game/voice
 
       - name: Copy the game and server pages
         run: |
           mkdir -p app/src/main/assets server/src/main/assets
           cp game/index.html app/src/main/assets/index.html
           cp game/server.html server/src/main/assets/server.html
+          if [ -f game/voice/manifest.js ]; then mkdir -p app/src/main/assets/voice && cp game/voice/manifest.js app/src/main/assets/voice/ && (cp game/voice/*.ogg app/src/main/assets/voice/ 2>/dev/null || true); echo "voices: $(ls app/src/main/assets/voice | wc -l)"; fi
 
       - name: Bundle fonts for offline use
         continue-on-error: true
@@ -65,6 +76,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -f -A apk
+          git add -A game/voice 2>/dev/null || true
           git commit -m "APK build #${{ github.run_number }} [skip ci]"
           for i in 1 2 3; do git pull --rebase origin rafidain-game && git push origin HEAD:rafidain-game && break; sleep 5; done
 

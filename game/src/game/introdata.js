@@ -1,0 +1,48 @@
+// المقدّمة السينمائية: عشاء في مضيف الشيخ إبراهيم الهاشمي بتكريت — كل الأسماء والجماعات خيالية
+// تُعرض عند أول فتح للعبة. who: المتكلّم، shot: لقطة الكاميرا، act: حدث مرافق، hold: ثوانٍ إضافية بعد السطر
+
+export const CAST = {
+  khaled: { name: 'خالد', v: 'b', p: -4, r: -3, char: 'khaled' },
+  mohammed: { name: 'محمد', v: 'b', p: 8, r: 9, char: 'mohammed' },
+  ibrahim: { name: 'إبراهيم', v: 'b', p: -12, r: -5, char: 'ibrahim' },
+  saif: { name: 'سيف', v: 'b', p: -9, r: -14, char: 'saif' },
+  sheikh: { name: 'الشيخ إبراهيم الهاشمي', v: 'b', p: -19, r: -18 },
+};
+
+export const SCRIPT = [
+  { card: 'تكريت... ليلة من ليالي الشتاء', shot: 'out', hold: 3.2 },
+  { card: 'مضيف الشيخ إبراهيم الهاشمي', shot: 'wide', hold: 3.4 },
+  { shot: 'wide2', hold: 2.4 },
+  { who: 'khaled', shot: 'khaled', text: 'يا جماعة، الأكل دايبرد... خلّونا نسمّي بالله ونبدي.' },
+  { who: 'mohammed', shot: 'mohammed', text: 'شلون آكل خبز وملح ويّا ناس إيدهم بيها دم أهلنا؟' },
+  { who: 'ibrahim', shot: 'ibrahim', text: 'شتقصد يا محمد؟ احچي عدل.' },
+  { who: 'mohammed', shot: 'mohammed', text: 'أقصد إنتو، جماعة التجمّع... تكريت كلها تدري إنكم چنتوا ويّا العصائب.' },
+  { who: 'saif', shot: 'saif', text: 'ولك انتبه لحچيك... هذا اتهام ما ينسكت عليه.', hold: 0.6 },
+  { who: 'khaled', shot: 'khaled', text: 'محمد، اهدأ. احنا جايين ناكل زاد، مو نفتح جروح.' },
+  { who: 'mohammed', shot: 'mohammed2', text: 'خالد، نسيت ابن عمّك؟ نسيت منو چان يدگ الأبواب بنص الليل؟', hold: 0.8 },
+  { who: 'khaled', shot: 'khaled2', text: 'ما نسيت... بس ما أحچي بلا دليل.', hold: 0.6 },
+  { who: 'ibrahim', shot: 'ibrahim', text: 'احنا تكارتة مثلكم، ودمّنا من دمّكم. اللي يگول غير هيچ... يجيب دليله.' },
+  { who: 'saif', shot: 'saif2', text: 'واللي يرمي التهم بالمضايف... يتحمّل جوابها.', hold: 1.0 },
+  { shot: 'door', act: 'door', hold: 2.4 },
+  { who: 'sheikh', shot: 'door', text: 'السلام عليكم... شبيكم يا ولدي؟ أصواتكم واصلة للشارع!' },
+  { who: 'khaled', shot: 'wideStand', act: 'stand', text: 'وعليكم السلام شيخنا، تفضّل... المجلس مجلسك.' },
+  { who: 'sheikh', shot: 'sheikh', act: 'sheikhSeat', text: 'اگعدوا اگعدوا. آني لمّيتكم الليلة على هالزاد، حتى نطوي صفحة... مو نفتح باب.' },
+  { who: 'sheikh', shot: 'sheikh2', text: 'تكريت تعبت يا ولدي. الدم ما يجيب غير الدم.', hold: 0.8 },
+  { who: 'mohammed', shot: 'mohammed', text: 'شيخنا، احنا ما نريد دم... نريد حق.' },
+  { who: 'sheikh', shot: 'sheikh', text: 'والحق ما يجي بالصياح يابا. الحق بالعدل، وبالشهود، وبالقضاء.' },
+  { who: 'ibrahim', shot: 'ibrahim', text: 'على راسي شيخنا. احنا جينا احتراماً إلك.' },
+  { who: 'saif', shot: 'saif', text: 'بس ما نقبل أحد يسمّينا خونة بوجهنا.' },
+  { who: 'mohammed', shot: 'mohammed2', loud: true, text: 'ولعد شنسمّيكم؟ الناس شافت سياراتكم ويّاهم!' },
+  { who: 'ibrahim', shot: 'ibrahim2', loud: true, text: 'الناس تحچي، والحچي ما يصير حكم!' },
+  { who: 'khaled', shot: 'khaled', loud: true, text: 'يا جماعة كافي! بوجه الشيخ؟!' },
+  { who: 'sheikh', shot: 'sheikhClose', act: 'sheikhHand', loud: true, text: 'بسّ! والله ما يطلع واحد من هالمضيف... إلا وإيده بإيد أخوه.', hold: 0.6 },
+  { shot: 'hands', act: 'handshake', hold: 3.2 },
+  { shot: 'shadow', act: 'pin', hold: 1.6 },
+  { shot: 'grenade', act: 'grenade', hold: 2.2 },
+  { who: 'sheikh', shot: 'sheikhClose', loud: true, text: 'رمّانة!!', hold: 0.1 },
+  { who: 'khaled', shot: 'wideLow', loud: true, text: 'انبطحوا!!', hold: 0.2 },
+  { shot: 'wideLow', act: 'boom', hold: 3.0 },
+  { card: 'منو رمى الرمّانة؟... محّد يدري.', shot: 'black', hold: 3.4 },
+  { card: 'ومن ذيچ الليلة... انقسمت المدينة، وبدأت الحرب.', shot: 'black', hold: 4.0 },
+  { title: true, shot: 'black', hold: 3.2 },
+];
