@@ -239,6 +239,13 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void saveId(String data) { getSharedPreferences("rafidain", MODE_PRIVATE).edit().putString("social", data).apply(); }
 
+        // نسخة احتياطية لبيانات اللعبة (المحفظة والمخزون) خارج تخزين الصفحة
+        @JavascriptInterface
+        public String loadKV(String key) { return getSharedPreferences("rafidain", MODE_PRIVATE).getString("kv_" + key, ""); }
+
+        @JavascriptInterface
+        public void saveKV(String key, String data) { getSharedPreferences("rafidain", MODE_PRIVATE).edit().putString("kv_" + key, data).apply(); }
+
         @JavascriptInterface
         public void share(final String text) {
             runOnUiThread(() -> {
