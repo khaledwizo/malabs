@@ -31,12 +31,15 @@ export const HUD_HTML = `
   <div id="cross"><i></i><i></i><i></i><i></i><b></b></div>
   <div id="hitm"><i></i><i></i><i></i><i></i></div>
   <div id="dmgdirs"></div>
+  <div id="nadeWarn"><i></i><b>!</b><span>قنبلة قريبة</span></div>
+  <div id="nvgov"></div>
   <div id="topbar">
-    <div class="tscore"><span class="t0"><em>الصقور</em><b id="sc0">0</b></span><span id="timer">0:00</span><span class="t1"><b id="sc1">0</b><em>الحُرّاس</em></span></div>
+    <div class="tscore"><span class="t0"><em id="tn0">الفريق</em><b id="sc0">0</b></span><span id="timer">0:00</span><span class="t1"><b id="sc1">0</b><em id="tn1">الفريق</em></span></div>
     <div id="phase"></div>
+    <div id="domBar"></div>
     <div id="compass"><div id="compassStrip"></div><i class="needle"></i><span id="bearing">0</span></div>
   </div>
-  <div id="tl"><div class="hb" id="hPause">${I.pause}</div><div class="hb" id="hScore">${I.score}</div><div id="fps"></div><div id="net"></div></div>
+  <div id="tl"><div class="hb" id="hPause">${I.pause}</div><div class="hb" id="hScore">${I.score}</div><div class="hb" id="hNvg">NV</div><div id="fps"></div><div id="net"></div></div>
   <div id="feed"></div>
   <div id="mini"><canvas id="minimap" width="256" height="256"></canvas><span class="mlab">الخريطة</span></div>
   <div id="banner"><b></b><small></small></div>
@@ -79,6 +82,7 @@ export const HUD = {
     const slotAt = (x, y) => { const b = [...slotsEl.querySelectorAll('[data-slot]')].find(b => { const r = b.getBoundingClientRect(); return x >= r.left - 4 && x <= r.right + 4 && y >= r.top - 8 && y <= r.bottom + 8; }); if (b) game.queueSlot(+b.dataset.slot); };
     const controls = [
       C('hPause', { round: false, tapUp: true, pad: 12, tap: () => game.pause() }),
+      C('hNvg', { round: false, tapUp: true, pad: 10, tap: () => game.toggleNvg() }),
       C('hScore', { round: false, tapUp: true, pad: 12, tap: () => { this.showScore(!this.scoreOn); } }),
       C('mini', { round: false, tapUp: true, tap: () => ui.openMap() }),
       C('rsLoad', { round: false, tapUp: true, tap: () => ui.open('loadout') }),
@@ -101,7 +105,7 @@ export const HUD = {
     this.controls = controls;
     Input.bindTouch($('touch'), controls, $('stick'), $('knob'));
     // الفأرة على سطح المكتب
-    for (const id of ['hPause', 'hScore', 'mini', 'rsLoad', 'warmLoad']) $(id).addEventListener('click', e => { if (Input.isTouch) return; e.stopPropagation(); controls.find(c => c.id === id).tap(); });
+    for (const id of ['hPause', 'hNvg', 'hScore', 'mini', 'rsLoad', 'warmLoad']) $(id).addEventListener('click', e => { if (Input.isTouch) return; e.stopPropagation(); controls.find(c => c.id === id).tap(); });
     slotsEl.addEventListener('click', e => { if (Input.isTouch) return; const b = e.target.closest('[data-slot]'); if (b) game.queueSlot(+b.dataset.slot); });
     this.layout();
     addEventListener('resize', () => this.layout());
@@ -140,10 +144,13 @@ export const HUD = {
     const fmt = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
     $('timer').textContent = sim.phase === 'live' ? fmt(t) : sim.phase === 'buy' ? fmt(t) : sim.phase === 'end' || sim.phase === 'over' ? 'انتهى' : '—';
     $('timer').classList.toggle('low', sim.phase === 'live' && t <= 30);
+    if (this.tnFor !== me.team) { this.tnFor = me.team; $('tn0').textContent = me.team === 0 ? 'نحن' : 'الأعداء'; $('tn1').textContent = me.team === 1 ? 'نحن' : 'الأعداء'; }
     if (this.sc0 !== sim.score[0]) { this.sc0 = sim.score[0]; $('sc0').textContent = sim.score[0]; this.pop('sc0'); }
     if (this.sc1 !== sim.score[1]) { this.sc1 = sim.score[1]; $('sc1').textContent = sim.score[1]; this.pop('sc1'); }
-    const tdm = sim.rules ? sim.rules === 'tdm' : sim.tdm;
-    $('phase').textContent = sim.phase === 'live' ? (tdm ? 'الأقل موتاً يفوز عند انتهاء الوقت' : 'الجولة ' + sim.round) : '';
+    const tdm = sim.rules ? sim.rules !== 'rounds' : sim.tdm, dom = sim.rules === 'dom' || sim.dom;
+    $('phase').textContent = sim.phase === 'live' ? (dom ? 'سيطر على النقاط — كل ثانية نقطة' : tdm ? 'الأكثر قتلات يفوز عند انتهاء الوقت' : 'الجولة ' + sim.round) : '';
+    this.domHud(sim, me); this.nadeWarn(sim, me, g.yaw);
+    const nv = !!(g.nvgAvail && g.nvgAvail()); $('hNvg').classList.toggle('on', nv); $('hNvg').classList.toggle('act', !!g.nvgOn);
     this.compass(g.yaw);
     // الإحماء / الإحياء
     const warm = sim.phase === 'buy';
@@ -203,6 +210,23 @@ export const HUD = {
     $('bAds').classList.toggle('on', Input.ads && me.slot <= 2);
     // اللوحة إن كانت مفتوحة
     if (this.scoreOn && (this.boardT = (this.boardT || 0) - dt) <= 0) { this.boardT = 0.5; this.ui.renderScore($('board'), sim, me); }
+  },
+  // نقاط السيطرة أعلى الشاشة
+  domHud(sim, me) {
+    const el = $('domBar'), C = sim.cps || [];
+    if (!C.length) { if (this.domKey) { el.innerHTML = ''; this.domKey = ''; } return; }
+    const key = C.map(c => c.owner + ':' + Math.round(c.prog * 20) + ':' + (c.contest ? 1 : 0)).join('|') + ':' + me.team;
+    if (key === this.domKey) return; this.domKey = key;
+    el.innerHTML = C.map(c => { const mine = c.owner === me.team, foe = c.owner >= 0 && !mine, toMe = me.team === 0 ? c.prog < 0 : c.prog > 0; return `<i class="cp ${mine ? 'mine' : foe ? 'foe' : ''} ${c.contest ? 'cont' : ''}" style="--p:${Math.abs(c.prog).toFixed(2)}" data-to="${toMe ? 'me' : 'foe'}"><b>${c.name}</b></i>`; }).join('');
+  },
+  // تحذير قنبلة قريبة (مثل ببجي): سهم باتجاهها ويرجف أكثر كلما قربت
+  nadeWarn(sim, me, yaw) {
+    let best = null, bd = 7.5;
+    if (me.alive) for (const n of sim.nades || []) { if (n.kind !== 'frag' && n.kind !== 'molotov') continue; const d = Math.hypot(n.pos[0] - me.pos[0], n.pos[2] - me.pos[2]); if (d < bd && Math.abs(n.pos[1] - me.pos[1]) < 4) { bd = d; best = n; } }
+    const el = $('nadeWarn'); el.classList.toggle('on', !!best);
+    if (!best) return;
+    const a = Math.atan2(-(best.pos[0] - me.pos[0]), -(best.pos[2] - me.pos[2])) - yaw;
+    el.style.setProperty('--a', (-a) + 'rad'); el.classList.toggle('near', bd < 3.5);
   },
   pop(id) { const e = $(id); e.classList.remove('pop'); void e.offsetWidth; e.classList.add('pop'); },
   showScore(on) { this.scoreOn = on; $('board').classList.toggle('hidden', !on); if (on && this.game.sim) { this.boardT = 0; this.ui.renderScore($('board'), this.game.sim, this.game.mp); } },

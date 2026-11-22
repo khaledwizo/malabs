@@ -250,6 +250,7 @@ const SOUNDS = {
   invite: (A, pos, t) => { const o = A.out(null, 0.5); [784, 988, 1175].forEach((f, i) => A.osc(o, t + i * 0.09, 0.3, f, f, 'sine', 0.35)); },
   roundWin: (A, pos, t) => { const o = A.out(null, 0.5); [523, 659, 784, 1046].forEach((f, i) => A.osc(o, t + i * 0.13, 0.5, f, f, 'triangle', 0.4)); },
   roundLose: (A, pos, t) => { const o = A.out(null, 0.5); [392, 349, 311].forEach((f, i) => A.osc(o, t + i * 0.18, 0.5, f, f * 0.98, 'triangle', 0.4)); },
+  buy: (A, pos, t) => { const o = A.out(null, 0.5); A.osc(o, t, 0.06, 1500, 1500, 'triangle', 0.35); A.osc(o, t + 0.07, 0.12, 2200, 2200, 'triangle', 0.3); A.nz(o, t, 0.08, 6000, 3000, 2, 'bandpass', 0.15, 0.002); }, // صوت عدّ فلوس
   ui: (A, pos, t) => { const o = A.out(null, 0.3); A.osc(o, t, 0.05, 1200, 1500, 'sine', 0.4); },
   uiBack: (A, pos, t) => { const o = A.out(null, 0.3); A.osc(o, t, 0.06, 900, 700, 'sine', 0.4); },
   heart: (A, pos, t) => { const o = A.out(null, 0.5); A.osc(o, t, 0.12, 60, 40, 'sine', 0.8); A.osc(o, t + 0.18, 0.1, 55, 38, 'sine', 0.6); },

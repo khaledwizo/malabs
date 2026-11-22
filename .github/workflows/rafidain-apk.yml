@@ -162,7 +162,8 @@ jobs:
   # تطبيق آيفون (‎.ipa‎ غير موقّع رسمياً — يُثبَّت عبر Sideloadly أو AltStore بحساب Apple)
   ios:
     needs: build
-    if: ${{ !cancelled() && needs.build.result == 'success' }}
+    # موقوف مؤقتاً (المستخدم طلب APK فقط بالمراحل الحالية) — غيّرها لـ true لإعادة بناء الآيفون
+    if: ${{ false && !cancelled() && needs.build.result == 'success' }}
     runs-on: macos-latest
     timeout-minutes: 30
     steps:

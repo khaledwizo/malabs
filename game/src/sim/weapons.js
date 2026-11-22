@@ -23,6 +23,7 @@ export const WEAPONS = {
   // ---------- قنّاصات ----------
   saqr: { name: 'AWM', cls: 'sniper', slot: 1, dmg: 150, head: 2.5, rpm: 40, mag: 5, reserve: 25, reload: 3.6, spread: 0.0003, hip: 0.08, moveSpread: 0.1, airSpread: 0.3, recoil: [0.07, 0.01], climb: 1, recover: 3, range: 0.997, pen: 2.6, speed: 0.86, auto: false, bolt: true, ads: 0.36, armorPen: 0.8, att: ['muzzle', 'mag'], scopes: ['x6', 'x4', 'x8'], snd: 'sniper', model: 'awm', desc: 'ملك القنّاصات: طلقة واحدة في الجسد تُسقط أي خصم تقريباً.' },
   uqab: { name: 'Kar98k', cls: 'sniper', slot: 1, dmg: 105, head: 2.5, rpm: 48, mag: 5, reserve: 30, reload: 2.9, spread: 0.0005, hip: 0.06, moveSpread: 0.04, airSpread: 0.08, recoil: [0.055, 0.01], climb: 1, recover: 4, range: 0.995, pen: 2.1, speed: 0.95, auto: false, bolt: true, ads: 0.3, armorPen: 0.6, att: ['muzzle'], scopes: ['x6', 'iron', 'x2', 'x4', 'x8'], snd: 'sniper', model: 'kar', desc: 'قنّاصة كلاسيكية خشبية: الرأس بطلقة، والجسد باثنتين.' },
+  tabuk: { name: 'تبوك', cls: 'sniper', slot: 1, dmg: 92, head: 2.45, rpm: 150, mag: 10, reserve: 30, reload: 3.1, spread: 0.0005, hip: 0.07, moveSpread: 0.07, airSpread: 0.22, recoil: [0.05, 0.012], climb: 1, recover: 4.5, range: 0.995, pen: 2.3, speed: 0.9, auto: false, ads: 0.32, armorPen: 0.65, att: ['muzzle'], scopes: ['x6', 'x4', 'x8'], snd: 'sniperSemi', model: 'dmr', desc: 'قنّاصة تبوك العراقية نصف الآلية: عشر طلقات سريعة بمنظار ×6.' },
   // ---------- مسدسات ----------
   dijla: { name: 'Glock 17', cls: 'pistol', slot: 2, dmg: 26, head: 2.1, rpm: 420, mag: 15, reserve: 75, reload: 1.7, spread: 0.0035, hip: 0.012, moveSpread: 0.025, airSpread: 0.07, recoil: [0.022, 0.006], climb: 1, recover: 9, range: 0.9, pen: 1, speed: 1.02, auto: false, ads: 0.14, armorPen: 0.2, att: [], scopes: ['iron', 'dot'], snd: 'pistol', model: 'glock', desc: 'مسدس موثوق بمخزن كبير.' },
   nisr: { name: 'Desert Eagle', cls: 'pistol', slot: 2, dmg: 55, head: 2.1, rpm: 220, mag: 7, reserve: 35, reload: 2.1, spread: 0.0035, hip: 0.02, moveSpread: 0.05, airSpread: 0.11, recoil: [0.06, 0.012], climb: 1, recover: 5, range: 0.93, pen: 1.8, speed: 1.0, auto: false, ads: 0.17, armorPen: 0.4, att: [], scopes: ['iron', 'dot'], snd: 'pistolHeavy', model: 'deagle', desc: 'مسدس ثقيل: طلقة رأس قاتلة.' },
@@ -65,23 +66,22 @@ export const ATTACH = {
 };
 
 export const NADES = {
-  frag: { name: 'رمّانة', fuse: 2.4, radius: 7.5, dmg: 140, desc: 'تنفجر بعد ثانيتين ونصف.' },
-  smoke: { name: 'دخانية', fuse: 1.6, radius: 4.8, life: 18, desc: 'تحجب الرؤية 18 ثانية.' },
-  flash: { name: 'صاعقة', fuse: 1.5, radius: 26, desc: 'تعمي من يراها.' },
-  molotov: { name: 'مولوتوف', fuse: 2.2, radius: 3.4, life: 8, dps: 22, desc: 'تشعل الأرض 8 ثوانٍ.' },
+  frag: { name: 'رمّانة', fuse: 4, radius: 4.6, dmg: 150, desc: 'تنفجر بعد 4 ثوانٍ تقريباً — مداها قصير وتگدر تهرب منها.' },
+  smoke: { name: 'دخانية', fuse: 2, radius: 4.8, life: 18, desc: 'تحجب الرؤية 18 ثانية.' },
+  flash: { name: 'صاعقة', fuse: 2.5, radius: 16, desc: 'تعمي من يراها.' },
+  molotov: { name: 'مولوتوف', fuse: 2.2, radius: 2.6, life: 8, dps: 22, desc: 'تشعل الأرض 8 ثوانٍ.' },
 };
 
-const PRIM_ALL = ['saif556', 'rafid', 'battar', 'shihab', 'zawba', 'asifa', 'raad', 'iasar', 'tufan', 'mirsad', 'nadhur', 'saqr', 'uqab'];
+const PRIM_ALL = ['saif556', 'rafid', 'battar', 'shihab', 'zawba', 'asifa', 'raad', 'iasar', 'tufan', 'mirsad', 'nadhur', 'tabuk', 'saqr', 'uqab'];
 export const SECONDARIES = ['dijla', 'nisr', 'zaeem', 'furat'];
 // أوضاع اللعب: كلها على خريطة سوق المجاهدين
 // rules: tdm = إحياء بعد السقوط والفائز الأقل موتاً عند انتهاء الوقت · rounds = جولات بلا إحياء
 export const MODES = {
-  tdm: { name: 'اشتباك الفرق', sub: 'إحياء فوري · 10 دقائق', desc: 'تعود للحياة بعد سقوطك. بعد انتهاء الوقت يفوز الفريق الأقل موتاً.', rules: 'tdm', time: 600, primaries: PRIM_ALL, icon: 'tdm' },
-  rounds: { name: 'الجولات التكتيكية', sub: 'بلا إحياء · أول من يفوز بـ 5', desc: 'حياة واحدة في كل جولة. خطّط مع فريقك واستعمل القنابل بذكاء.', rules: 'rounds', primaries: PRIM_ALL, icon: 'rounds' },
-  snipers: { name: 'حرب القنّاصة', sub: 'إحياء · 10 دقائق', desc: 'قنّاصات وبنادق دقيقة فقط على أسطح السوق ومآذنه.', rules: 'tdm', time: 600, primaries: ['saqr', 'uqab', 'mirsad', 'nadhur'], icon: 'sniper' },
-  pistols: { name: 'مبارزة المسدسات', sub: 'إحياء · 5 دقائق', desc: 'مسدسات وخناجر فقط. مهارة خالصة.', rules: 'tdm', time: 300, primaries: [], icon: 'pistol' },
+  tdm: { name: 'اشتباك الفرق', sub: 'إحياء فوري · الأكثر قتلات يفوز', desc: 'تعود للحياة بعد سقوطك. عند انتهاء الوقت يفوز الفريق اللي أسقط أعداءه أكثر.', rules: 'tdm', time: 600, primaries: PRIM_ALL, icon: 'tdm' },
+  dom: { name: 'السيطرة', sub: 'إحياء · نقاط سيطرة', desc: 'ثلاث نقاط بالخريطة تتغيّر كل قيم (نقطة وحدة إذا 2 ضد 2 أو أقل). قف بالدائرة حتى تسيطر عليها؛ كل ثانية سيطرة نقطة، والأكثر نقاطاً يفوز.', rules: 'dom', time: 600, primaries: PRIM_ALL, icon: 'tdm' },
+  rounds: { name: 'الجولات التكتيكية', sub: 'بلا إحياء · جولات', desc: 'حياة واحدة في كل جولة. خطّط مع فريقك واستعمل القنابل بذكاء.', rules: 'rounds', primaries: PRIM_ALL, icon: 'rounds' },
 };
-export const MODE_ORDER = ['tdm', 'rounds', 'snipers', 'pistols'];
+export const MODE_ORDER = ['tdm', 'dom', 'rounds'];
 
 const NADE_KINDS = ['frag', 'smoke', 'flash', 'molotov'];
 const pick = (a, rng) => a[Math.floor(rng() * a.length)];
@@ -102,11 +102,22 @@ export function validLoadout(l, mode) {
   const out = { primary: P.includes(l.primary) ? l.primary : (P[0] || null), secondary: SECONDARIES.includes(l.secondary) ? l.secondary : 'dijla', nades: [], att: {} };
   const wd = out.primary ? WEAPONS[out.primary] : null;
   const sc = wd ? wd.scopes : [];
-  out.scope = sc.includes(l.scope) ? l.scope : wd && wd.cls === 'sniper' ? 'x6' : (sc.includes('dot') ? 'dot' : sc[0] || null);
+  out.scope = sc.includes(l.scope) ? l.scope : wd && wd.cls === 'sniper' ? 'x6' : wd && wd.cls === 'dmr' ? 'x4' : (sc.includes('dot') ? 'dot' : sc[0] || null);
   if (wd) for (const k of wd.att) { const v = l.att && l.att[k]; out.att[k] = ATTACH[k][v] ? v : Object.keys(ATTACH[k])[0]; }
   for (const n of (l.nades || []).slice(0, 2)) if (NADES[n]) out.nades.push(n);
+  if (l.supply) out.supply = cleanSupply(l.supply);
   return out;
 }
+// مخزون القيم المرسل من اللاعب (عتاد بأنواعه، قنابل، مواد صحية)
+const AMMO_T = ['auto', 'shot', 'pist', 'dmr', 'snip'];
+export function cleanSupply(s) {
+  const n = v => Math.max(0, Math.min(99999, Math.floor(+v || 0)));
+  const o = { ammo: {}, nades: {}, meds: { b: n(s.meds && s.meds.b), s: n(s.meds && s.meds.s) } };
+  for (const t of AMMO_T) o.ammo[t] = n(s.ammo && s.ammo[t]);
+  for (const k of Object.keys(NADES)) o.nades[k] = n(s.nades && s.nades[k]);
+  return o;
+}
+export const CLS_AMMO = { rifle: 'auto', smg: 'auto', lmg: 'auto', shotgun: 'shot', pistol: 'pist', dmr: 'dmr', sniper: 'snip' };
 // خصائص السلاح بعد الملحقات
 export function withAtt(id, att) {
   const wd = WEAPONS[id]; if (!wd || !att) return wd;

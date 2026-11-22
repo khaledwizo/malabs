@@ -33,7 +33,8 @@ export class NetSim {
     else if (e.t === 'npcDie') { const st = mini.npcs[e.id]; if (st && st.alive) { st.alive = false; const w = this.w.npcs[e.id]; if (w && w.box >= 0) this.w.disable(w.box); } }
     else if (e.t === 'reset') mini.resetWorld(false);
   }
-  get tdm() { return this.rules === 'tdm'; }
+  get tdm() { return this.rules !== 'rounds'; }
+  get dom() { return this.rules === 'dom'; }
   // ---------- الاتصال ----------
   // نجرّب الوسطاء بالترتيب حتى يردّ السيرفر (السيرفر يستمع على كل الوسطاء معاً)
   async connect() {
@@ -127,7 +128,7 @@ export class NetSim {
       const sample = m.t - tl;
       if (this.offset === null || Math.abs(sample - this.offset) > 1.5) this.offset = sample;
       else this.offset += (sample - this.offset) * (sample > this.offset ? 0.25 : 0.03);
-      this.phase = m.ph; this.phaseT = m.pt; this.round = m.r; this.score = m.sc; this.matchOver = !!m.ov; this.roundsToWin = m.rw;
+      this.phase = m.ph; this.phaseT = m.pt; this.round = m.r; this.score = m.sc; this.cps = (m.cp || []).map(c => ({ x: c[0], y: c[1], z: c[2], r: c[3], owner: c[4], prog: c[5], name: c[6], contest: c[7] })); this.matchOver = !!m.ov; this.roundsToWin = m.rw;
       if (m.mo !== this.mode) { this.mode = m.mo; this.mini.mode = m.mo; }
       const P = new Map(); for (const a of m.p) P.set(a[0], a);
       const N = new Map(); for (const n of m.n) N.set(n[0], n);

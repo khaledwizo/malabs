@@ -47,6 +47,7 @@ export function encSnap(sim, acks, events) {
     k: 's', t: r3(sim.t), ph: sim.phase, pt: r2(sim.phaseT), r: sim.round, sc: sim.score, mo: sim.mode, rw: sim.roundsToWin, ov: sim.matchOver ? 1 : 0, ac: acks,
     p: [...sim.players.values()].map(p => encPlayer(p, sim.t)),
     n: sim.nades.map(n => [n.id, n.kind, r2(n.pos[0]), r2(n.pos[1]), r2(n.pos[2])]),
+    cp: (sim.cps || []).map(c => [r2(c.x), r2(c.y), r2(c.z), c.r, c.owner, r2(c.prog), c.name, c.contest ? 1 : 0]),
     sm: sim.smokes.map(s => [r2(s.x), r2(s.y), r2(s.z), s.r, r2(s.t), s.life]),
     f: sim.fires.map(f => [r2(f.x), r2(f.y), r2(f.z), f.r, r2(f.t), f.life, f.owner]),
     e: events,

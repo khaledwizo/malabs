@@ -166,3 +166,20 @@ STAGE 4.5 (Nov 2026) — iOS build + Khaled's face
 - JS for iOS: wrapper injects RAFIDAIN_IOS / RAFIDAIN_VOICE_EXT='m4a' and a RafidainAndroid-compatible bridge
   (copy/share/vibrate). Voices on iOS play through Web Audio (XHR + decodeAudioData + gain) because
   HTMLMediaElement.volume is read-only on iOS. Audio.init resumes 'interrupted' contexts; window.__R.Audio exposed.
+
+PHASE 1 of the big plan (Nov 2026) — economy, shop, ammo, grenades, aim, modes
+- src/game/economy.js: wallet in IQD (all amounts multiples of 250), owned weapons, 5 ammo types (auto/shot/pist/dmr/snip),
+  items (nades, bandage, syringe, NVG). Start kit: AKM+2000, Glock17+500, S1897+40, 5 frag, 3 molotov. Per match free:
+  ammo by type (80 auto…), 4 bandages + 2 syringes (never stored). Rewards: player kill 2500, bot kill 1750 (70%),
+  assist 500, win 10000, draw 5000, loss 3000. Saved in localStorage + RafidainAndroid.saveKV backup if present.
+- Sim: loadout.supply → p.sup per match (cleanSupply); weapons' reserve IS the pool (stash() on death/re-equip/end);
+  nades thrown consume sup.nades; meds shared object; 'supply' event per human at matchOver {sup, kh, kb, as, res};
+  client Economy.settle: new stock = min(stock, remaining) (free used first). Quit mid-match → abandon (deduct, no reward).
+- Modes: tdm (most kills wins), dom (capture points: 1 if ≤4 players else 3, picked from open nav nodes each match,
+  r 5.5m, ~5s capture, +1/s per held point; bots head to points), rounds (+ selectable round time). Host picks time.
+  Removed snipers/pistols modes. Team names per viewer: «نحن المجاهدين / هم الأعداء».
+- Weapons: Tabuk sniper (semi, x6). DMR default x4. Frag fuse 4s radius 4.6; flash 2.5s r16; molotov r2.6.
+- HUD: capture pills, PUBG-like grenade warning (arrow+badge), NVG button (night only, CSS filter + vignette),
+  world ring/column/letter markers for points, points on minimap/map. Aim assist stronger (cone 0.11, pull 0.75/0.45).
+- UI: wallet chip, shop screen (weapons/ammo/nades/meds/gear), loadout shows owned weapons + stock, end-screen reward.
+- iOS job paused (if: false) while user wants APK only.

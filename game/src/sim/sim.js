@@ -1,11 +1,14 @@
 // محاكاة اللعبة المرجعية (السيرفر): الأوضاع، الإطلاق، الإصابات، القنابل، الإحياء، النقاط
 // لا رسوميات هنا — نفس الكود يعمل على هاتف المضيف (في الخلفية) وفي اللعب المحلي ضد البوتات
+import { CLS_AMMO, cleanSupply } from './weapons.js';
 import { WEAPONS, NADES, MODES, validLoadout, defaultLoadout, withAtt } from './weapons.js';
 import { PH, stepMove, eyeHeight } from './move.js';
 import { raySphere, rayBox, F, MAT } from '../world/collide.js';
 import { Bot } from './bot.js';
 
-export const TEAMS = [{ id: 0, name: 'الصقور', color: '#f0b04a' }, { id: 1, name: 'الحُرّاس', color: '#4ad8f0' }];
+export const TEAMS = [{ id: 0, name: 'الفريق الأول', color: '#f0b04a' }, { id: 1, name: 'الفريق الثاني', color: '#4ad8f0' }];
+// كل لاعب يرى فريقه «نحن المجاهدين» والآخر «هم الأعداء»
+export const teamName = (t, my) => my == null || my < 0 ? TEAMS[t].name : t === my ? 'نحن المجاهدين' : 'هم الأعداء';
 const PEN_COST = { [MAT.wood]: 0.9, [MAT.cloth]: 0.25, [MAT.plaster]: 1.6, [MAT.glass]: 0.2, [MAT.metal]: 3, [MAT.brick]: 3.5, [MAT.stone]: 5, [MAT.tile]: 3 };
 export const LEAN = 0.4;
 export const MAX_HP = 150;
@@ -21,7 +24,7 @@ export class Sim {
     this.timeLimit = opt.timeLimit || M.time || 600;
     this.roundsToWin = opt.roundsToWin || 5;
     this.roundTime = opt.roundTime || 115;
-    this.buyTime = opt.buyTime ?? (this.rules === 'tdm' ? 5 : 9);
+    this.buyTime = opt.buyTime ?? (this.rules !== 'rounds' ? 5 : 9);
     this.respawnDelay = opt.respawnDelay ?? 4;
     this.difficulty = opt.difficulty || 'normal';
     this.players = new Map(); this.nades = []; this.smokes = []; this.fires = [];
@@ -59,7 +62,8 @@ export class Sim {
     st.hp -= dmg; this.events.push({ t: 'npcHit', id: i, p: at });
     if (st.hp <= 0) { st.alive = false; const w = this.w.npcs[i]; if (w && w.box >= 0) this.w.disable(w.box); this.events.push({ t: 'npcDie', id: i, k: att ? att.id : -1, d: dir ? [dir[0], dir[1], dir[2]] : null }); }
   }
-  get tdm() { return this.rules === 'tdm'; }
+  get tdm() { return this.rules !== 'rounds'; } // إحياء (اشتباك + سيطرة)
+  get dom() { return this.rules === 'dom'; }
   // ---------- اللاعبون ----------
   addPlayer(o) {
     const id = o.id ?? this.nid++;
@@ -71,6 +75,9 @@ export class Sim {
       kills: 0, deaths: 0, assists: 0, dmgDone: 0, hs: 0, streak: 0, flash: 0, lastAtt: -1, dmgBy: new Map(), cmd: blankCmd(), seq: 0, ping: 0,
       throwT: 0, spawnProt: 0, respawnT: 0, lastHurt: -9, lastShot: -9, lastShotQuiet: false,
     };
+    // مخزون اللاعب لهذا القيم (للبوتات لا حدود)
+    const sup = !p.bot && o.loadout && o.loadout.supply ? cleanSupply(o.loadout.supply) : null;
+    if (sup) { p.sup = sup; p.meds = sup.meds; }
     this.players.set(id, p);
     if (p.bot) p.brain = new Bot(this, p, this.difficulty);
     if (this.phase === 'buy' || this.phase === 'wait') this.spawn(p);
@@ -83,11 +90,25 @@ export class Sim {
   input(id, cmd) { const p = this.players.get(id); if (!p) return; p.cmd = cmd; p.seq = cmd.seq || p.seq; }
 
   equip(p) {
-    const L = p.loadout, inv = {};
-    const mk = (id, att) => { if (!id) return null; const wd = withAtt(id, att); return { id, att: att || null, wd, mag: wd.mag, reserve: WEAPONS[id].reserve }; };
-    inv[1] = mk(L.primary, L.att); inv[2] = mk(L.secondary); inv[3] = mk('khanjar'); inv[4] = L.nades.slice();
+    const L = p.loadout, inv = {}, S = p.sup;
+    if (S) this.stash(p, p.alive && p.shots === 0);
+    const mk = (id, att) => {
+      if (!id) return null; const wd = withAtt(id, att);
+      if (!S || !wd.mag) return { id, att: att || null, wd, mag: wd.mag, reserve: WEAPONS[id].reserve };
+      // العتاد من مخزون القيم: المخزن يُملأ منه والباقي احتياط
+      const t = CLS_AMMO[wd.cls], have = S.ammo[t] || 0, m = Math.min(wd.mag, have);
+      return { id, att: att || null, wd, mag: m, reserve: have - m, at: t };
+    };
+    inv[1] = mk(L.primary, L.att); inv[2] = mk(L.secondary); inv[3] = mk('khanjar');
+    if (S) { inv[4] = []; for (const k of L.nades) if ((S.nades[k] || 0) > inv[4].filter(x => x === k).length) inv[4].push(k); }
+    else inv[4] = L.nades.slice();
     p.inv = inv; p.slot = inv[1] ? 1 : 2; p.prevSlot = inv[1] ? 2 : 3; p.switchT = 0.4; p.reloadT = 0; p.ads = false; p.adsT = 0; p.shots = 0; p.punch = [0, 0];
     p.scope = L.scope;
+  }
+  // نرجّع عتاد الأسلحة الحالية للمخزون (المخزن يضيع عند الموت)
+  stash(p, keepMag) {
+    const S = p.sup; if (!S || !p.inv) return;
+    for (const k of [1, 2]) { const w = p.inv[k]; if (w && w.at) { S.ammo[w.at] = w.reserve + (keepMag ? w.mag : 0); w.at = null; } }
   }
   spawn(p, respawn) {
     let sp;
@@ -102,7 +123,7 @@ export class Sim {
     }
     p.pos = [sp[0] + (this.rng() - 0.5) * 0.6, sp[1] + 0.05, sp[2] + (this.rng() - 0.5) * 0.6]; p.vel = [0, 0, 0];
     p.yaw = sp[3]; p.spawnYaw = sp[3]; p.pitch = 0; p.crouch = 0; p.lean = 0; p.hp = p.maxHp = MAX_HP; p.armor = 100; p.helmet = 100; p.alive = true;
-    p.meds = { b: MEDS.b.n, s: MEDS.s.n }; p.healT = 0; p.healK = 0; p.flash = 0; p.onGround = true; p.dmgBy.clear();
+    if (p.sup) p.meds = p.sup.meds; else p.meds = { b: MEDS.b.n, s: MEDS.s.n }; p.healT = 0; p.healK = 0; p.flash = 0; p.onGround = true; p.dmgBy.clear();
     p.spawnProt = this.tdm ? 3 : 0; p.respawnT = 0; p.streak = 0; p.lastHurt = -9; this.equip(p);
     if (p.brain) p.brain.reset();
   }
@@ -135,10 +156,53 @@ export class Sim {
     return [best[0], best[1], best[2], yaw];
   }
   // ---------- الجولات والوقت ----------
+  // ---------- وضع السيطرة: نقاط تتغيّر كل قيم ----------
+  initDom() {
+    this.cps = []; if (!this.dom) return;
+    const nav = this.w.nav; if (!nav) return;
+    const n = this.players.size <= 4 ? 1 : 3, ST = this.w.tdmStart || [[], []];
+    const cen = t => { const S = ST[t] || []; if (!S.length) return null; let x = 0, z = 0; for (const a of S) { x += a[0]; z += a[2]; } return [x / S.length, z / S.length]; };
+    const c0 = cen(0), c1 = cen(1);
+    // مرشّحون: أرض مفتوحة (روابط كثيرة) على مستوى الشارع
+    const C = []; nav.nodes.forEach((a, i) => { if (a[1] < 0.3 && a[3] !== 'dead' && nav.adj[i].length >= 5) C.push(a); });
+    if (!C.length) return;
+    const bal = a => c0 && c1 ? Math.hypot(a[0] - c0[0], a[2] - c0[1]) - Math.hypot(a[0] - c1[0], a[2] - c1[1]) : 0; // سالب = أقرب للفريق الأول
+    const pickFrom = (L) => L[Math.floor(this.rng() * L.length)];
+    const mid = C.filter(a => Math.abs(bal(a)) < 10); const P = [pickFrom(mid.length ? mid : C)];
+    if (n === 3) {
+      // نقطة بجهة كل فريق، قريبة من الوسطى (نوسّع البحث تدريجياً إذا ما لقينا)
+      for (const sg of [-1, 1]) for (const R of [45, 65, 90, 400]) {
+        const L = C.filter(a => sg * bal(a) > 6 && P.every(b => Math.hypot(a[0] - b[0], a[2] - b[2]) > 20) && Math.hypot(a[0] - P[0][0], a[2] - P[0][2]) < R);
+        if (L.length) { P.push(pickFrom(L)); break; }
+      }
+    }
+    const NAMES = ['أ', 'ب', 'ج'];
+    // ترتيب من جهة الفريق الأول للثاني
+    P.sort((a, b) => bal(a) - bal(b));
+    this.cps = P.map((a, i) => ({ x: a[0], y: a[1], z: a[2], r: 5.5, owner: -1, prog: 0, name: NAMES[i] }));
+    this.domAcc = 0;
+  }
+  tickDom(dt) {
+    if (!this.cps || !this.cps.length) return;
+    for (const c of this.cps) {
+      let a = 0, b = 0;
+      for (const p of this.players.values()) if (p.alive && Math.abs(p.pos[1] - c.y) < 3 && Math.hypot(p.pos[0] - c.x, p.pos[2] - c.z) < c.r) { if (p.team === 0) a++; else b++; }
+      if (a && b) { c.contest = 1; continue; } c.contest = 0;
+      if (!a && !b) continue;
+      const t = a ? 0 : 1, k = Math.min(2, a || b), sgn = t === 0 ? -1 : 1, before = c.owner;
+      // تحييد نقطة الخصم ثم السيطرة: ~5 ثوانٍ للاعب واحد
+      c.prog = Math.max(-1, Math.min(1, c.prog + sgn * dt * 0.2 * (1 + 0.5 * (k - 1))));
+      if (c.prog <= -1) c.owner = 0; else if (c.prog >= 1) c.owner = 1; else if ((c.owner === 0 && c.prog > 0) || (c.owner === 1 && c.prog < 0)) c.owner = -1;
+      if (c.owner !== before) this.events.push({ t: 'cap', cp: c.name, owner: c.owner });
+    }
+    this.domAcc += dt;
+    while (this.domAcc >= 1) { this.domAcc -= 1; for (const c of this.cps) if (c.owner >= 0) this.score[c.owner]++; }
+  }
   start() {
     this.round = 0; this.score = [0, 0]; this.matchOver = false; this.winner = -1;
     this.resetWorld(true);
-    for (const p of this.players.values()) { p.kills = p.deaths = p.assists = p.dmgDone = p.hs = 0; }
+    for (const p of this.players.values()) { p.kills = p.deaths = p.assists = p.dmgDone = p.hs = p.kh = p.kb = 0; }
+    this.initDom();
     this.newRound();
   }
   newRound() {
@@ -167,6 +231,7 @@ export class Sim {
     if (this.phase === 'buy' && this.phaseT <= 0) { this.phase = 'live'; this.phaseT = this.tdm ? this.timeLimit : this.roundTime; this.events.push({ t: 'round', n: this.round, phase: 'live' }); }
     else if (this.phase === 'live') {
       if (this.tdm) {
+        if (this.dom) this.tickDom(dt);
         for (const p of this.players.values()) if (!p.alive && p.respawnT > 0) { p.respawnT -= dt; if (p.respawnT <= 0) { this.spawn(p, true); this.events.push({ t: 'respawn', id: p.id }); } }
         if (this.phaseT <= 0) { const [a, b] = this.score; this.endRound(a === b ? -1 : a > b ? 0 : 1, 'انتهى الوقت'); }
       } else {
@@ -174,13 +239,18 @@ export class Sim {
         if (teams.size >= 2) {
           const a = this.alive(0), b = this.alive(1);
           if (a === 0 && b === 0) this.endRound(-1, 'تعادل');
-          else if (a === 0) this.endRound(1, 'أُسقط فريق الصقور');
-          else if (b === 0) this.endRound(0, 'أُسقط فريق الحُرّاس');
+          else if (a === 0) this.endRound(1, 'أُسقط كل أفراد الفريق');
+          else if (b === 0) this.endRound(0, 'أُسقط كل أفراد الفريق');
         }
         if (this.phaseT <= 0) { const ha = this.hpSum(0), hb = this.hpSum(1); this.endRound(ha === hb ? -1 : ha > hb ? 0 : 1, 'انتهى الوقت'); }
       }
     } else if (this.phase === 'end' && this.phaseT <= 0) {
-      if (this.matchOver) { this.phase = 'over'; this.events.push({ t: 'matchOver', score: this.score.slice(), winner: this.winner }); }
+      if (this.matchOver) {
+        this.phase = 'over';
+        // حساب كل لاعب: المتبقّي من مخزونه وقتلاته (لاعبين/بوتات) ونتيجته — اللعبة تحسب الفلوس منها
+        for (const q of this.players.values()) if (q.sup) { this.stash(q, q.alive); this.events.push({ t: 'supply', id: q.id, sup: q.sup, kh: q.kh || 0, kb: q.kb || 0, as: q.assists || 0, res: this.winner < 0 ? 0 : this.winner === q.team ? 1 : -1 }); }
+        this.events.push({ t: 'matchOver', score: this.score.slice(), winner: this.winner });
+      }
       else this.newRound();
     }
     for (const p of this.players.values()) {
@@ -393,11 +463,11 @@ export class Sim {
     if (!dot || this.rng() < 0.1) this.events.push({ t: 'hit', v: q.id, a: att ? att.id : -1, dmg: Math.round(hd), hs, part, from: att ? [att.pos[0], att.pos[2]] : null, d: dir ? [dir[0], dir[1], dir[2]] : null });
     if (q.brain && att) q.brain.onHurt(att);
     if (q.hp <= 0) {
-      q.hp = 0; q.alive = false; q.deaths++; q.streak = 0;
+      q.hp = 0; q.alive = false; q.deaths++; q.streak = 0; this.stash(q, false);
       const killer = att && att !== q ? att : (q.lastAtt >= 0 ? this.players.get(q.lastAtt) : null);
-      if (killer && killer.team !== q.team) { killer.kills++; killer.streak = (killer.streak || 0) + 1; if (hs) killer.hs++; }
+      if (killer && killer.team !== q.team) { if (q.bot) killer.kb = (killer.kb || 0) + 1; else killer.kh = (killer.kh || 0) + 1; killer.kills++; killer.streak = (killer.streak || 0) + 1; if (hs) killer.hs++; }
       for (const [aid, d] of q.dmgBy) if (killer && aid !== killer.id && d >= 40) { const a = this.players.get(aid); if (a && a.team !== q.team) a.assists++; }
-      if (this.tdm && this.phase === 'live') { this.score[1 - q.team]++; q.respawnT = this.respawnDelay; }
+      if (this.tdm && this.phase === 'live') { if (!this.dom) this.score[1 - q.team]++; q.respawnT = this.respawnDelay; }
       this.events.push({ t: 'kill', v: q.id, k: killer ? killer.id : -1, w: weapon, hs, wall, pos: q.pos.slice(), d: dir ? [dir[0], dir[1], dir[2]] : null, streak: killer ? killer.streak : 0 });
     }
   }
@@ -412,7 +482,7 @@ export class Sim {
       if (!c.fire && !c.hold && p.throwT > 0.12) {
         const [ex, ey, ez] = this.eye(p), d = dirFrom(p.yaw, p.pitch + 0.08), sp = c.walk ? 9 : 17;
         const n = { id: this.nid++, kind, owner: p.id, team: p.team, pos: [ex + d[0] * 0.4, ey + d[1] * 0.4 - 0.1, ez + d[2] * 0.4], vel: [d[0] * sp + p.vel[0] * 0.6, d[1] * sp + 2 + p.vel[1] * 0.3, d[2] * sp + p.vel[2] * 0.6], t: 0, fuse: NADES[kind].fuse, rest: 0 };
-        this.nades.push(n); p.inv[4].shift(); p.throwT = 0; p.spawnProt = 0;
+        this.nades.push(n); p.inv[4].shift(); p.throwT = 0; p.spawnProt = 0; if (p.sup) p.sup.nades[kind] = Math.max(0, (p.sup.nades[kind] || 0) - 1);
         this.events.push({ t: 'throw', id: p.id, kind, nid: n.id });
         p.slot = p.inv[4].length ? 4 : (p.prevSlot && p.inv[p.prevSlot] ? p.prevSlot : 2); p.switchT = 0.45;
       }

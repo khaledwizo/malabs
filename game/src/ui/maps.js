@@ -51,6 +51,12 @@ export class MapView {
     const s = shotAt.get(p.id); if (s && !s.q && now - s.t < 3) return true;
     return false;
   }
+  cpMark(x, X, Z, r, c, my, fs) {
+    const col = c.owner < 0 ? 'rgba(240,240,240,' : c.owner === my ? 'rgba(80,190,255,' : 'rgba(255,80,80,';
+    x.fillStyle = col + '0.28)'; x.strokeStyle = col + '0.95)'; x.lineWidth = Math.max(2, fs / 6);
+    x.beginPath(); x.arc(X, Z, r, 0, Math.PI * 2); x.fill(); x.stroke();
+    x.font = `900 ${fs}px 'Cairo', sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.lineWidth = 3; x.strokeStyle = 'rgba(0,0,0,.7)'; x.strokeText(c.name, X, Z); x.fillStyle = '#fff'; x.fillText(c.name, X, Z);
+  }
   arrow(x, cx, cy, yaw, col, s) {
     x.save(); x.translate(cx, cy); x.rotate(-yaw); x.fillStyle = col; x.strokeStyle = 'rgba(0,0,0,0.6)'; x.lineWidth = 2;
     x.beginPath(); x.moveTo(0, -s * 1.3); x.lineTo(s * 0.85, s * 0.8); x.lineTo(0, s * 0.35); x.lineTo(-s * 0.85, s * 0.8); x.closePath(); x.stroke(); x.fill(); x.restore();
@@ -63,6 +69,8 @@ export class MapView {
     x.translate(S / 2, S / 2); x.scale(sc / this.k, sc / this.k); x.translate(-this.px(me.pos[0]), -this.pz(me.pos[2]));
     x.drawImage(this.bg, 0, 0);
     x.restore();
+    // نقاط السيطرة
+    for (const c of g.sim.cps || []) { const X = (c.x - me.pos[0]) * sc + S / 2, Z = (c.z - me.pos[2]) * sc + S / 2; this.cpMark(x, Math.max(9, Math.min(S - 9, X)), Math.max(9, Math.min(S - 9, Z)), Math.max(7, c.r * sc), c, me.team, 11); }
     // اللاعبون
     const now = g.t;
     for (const p of g.sim.players.values()) {
@@ -101,6 +109,7 @@ export class MapView {
       x.font = `700 ${a.big ? 30 : 22}px 'Reem Kufi', 'Cairo', sans-serif`; x.lineWidth = 6; x.strokeStyle = 'rgba(0,0,0,0.55)';
       x.strokeText(a.name, this.px(a.x), this.pz(a.z)); x.fillStyle = a.col || '#fff3d6'; x.fillText(a.name, this.px(a.x), this.pz(a.z));
     }
+    if (me) for (const c of g.sim.cps || []) this.cpMark(x, this.px(c.x), this.pz(c.z), Math.max(14, this.px(c.x + c.r) - this.px(c.x)), c, me.team, 22);
     if (me) {
       const now = g.t;
       for (const p of g.sim.players.values()) {

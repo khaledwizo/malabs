@@ -172,6 +172,12 @@ export class Bot {
       else if (recent) goalPos = this.lastSeen;
       else if (this.plan.kind === 'push') goalPos = this.plan.stage === 0 ? this.plan.via : this.plan.pos;
       else goalPos = this.plan.pos;
+      // السيطرة: يتوجّه لأقرب نقطة ليست لفريقه (أو يدافع عن نقطة متنازع عليها)
+      if (s.dom && s.cps && s.cps.length && !recent && !(this.heard && s.t - this.heardT < 4)) {
+        let best = null, bd = 1e9;
+        for (const c of s.cps) { const d = Math.hypot(c.x - p.pos[0], c.z - p.pos[2]) * (c.owner === p.team && !c.contest ? 3 : 1) + ((p.id * 7 + c.name.charCodeAt(0)) % 5) * 4; if (d < bd) { bd = d; best = c; } }
+        if (best) { if (!this.cpOff || this.cpFor !== best) { this.cpFor = best; const a = (p.id * 2.39) % 6.28; this.cpOff = [Math.cos(a) * best.r * 0.5, Math.sin(a) * best.r * 0.5]; } goalPos = [best.x + this.cpOff[0], best.y, best.z + this.cpOff[1]]; }
+      }
       // قنابل تجاه آخر موقع رآه
       this.nadeCd -= dt;
       if (recent && this.nadeCd <= 0 && p.inv[4] && p.inv[4].length && Math.random() < D.nade) {

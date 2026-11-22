@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { Settings } from '../core/settings.js';
 import { Input } from '../core/input.js';
 import { Audio } from '../core/audio.js';
-import { Sim, TEAMS, dirFrom, LEAN } from '../sim/sim.js';
+import { Sim, TEAMS, teamName, dirFrom, LEAN } from '../sim/sim.js';
 import { WEAPONS, SCOPES, MODES, defaultLoadout } from '../sim/weapons.js';
 import { eyeHeight, PH } from '../sim/move.js';
 import { CharModel } from './chars.js';
@@ -20,6 +20,7 @@ import { GameServer } from '../net/server.js';
 import { Social } from '../net/social.js';
 import { Civilian } from './civilians.js';
 import { TalkManager } from './talk.js';
+import { Economy } from './economy.js';
 
 const STEP = 1 / 60;
 const BOT_NAMES = ['يوسف', 'حيدر', 'زيد', 'عمر', 'مصطفى', 'ليث', 'أنمار', 'كرار', 'بلال', 'طارق', 'سجّاد', 'مرتضى', 'حسين', 'رعد', 'وسام', 'ياسر', 'نوفل', 'عمّار', 'قاسم', 'سلمان'];
@@ -85,7 +86,7 @@ export class Game {
   startMatch(o) {
     this.quit(true); this.wxSeed = 0; this.civNight = undefined;
     Social.presence('game');
-    const sim = this.sim = new Sim(this.world, { mode: o.mode, roundsToWin: o.roundsToWin, timeLimit: o.timeLimit, difficulty: o.difficulty, seed: Date.now() & 0xffff });
+    const sim = this.sim = new Sim(this.world, { mode: o.mode, roundsToWin: o.roundsToWin, timeLimit: o.timeLimit, roundTime: o.roundTime, difficulty: o.difficulty, seed: Date.now() & 0xffff });
     const me = sim.addPlayer({ name: o.name, team: o.team, char: o.char, loadout: o.loadout });
     this.me = me.id;
     let ni = Math.floor(Math.random() * BOT_NAMES.length);
@@ -93,7 +94,7 @@ export class Game {
     sim.start();
     this.begin(me, o.weather);
     const M = MODES[sim.mode];
-    UI.banner(M.name, sim.tdm ? `الأقل موتاً بعد ${Math.round(sim.timeLimit / 60)} دقائق يفوز` : `أول من يفوز بـ ${sim.roundsToWin} جولات`, '', 3);
+    UI.banner(M.name, sim.dom ? `سيطروا على ${sim.cps && sim.cps.length > 1 ? 'النقاط' : 'النقطة'} · ${Math.round(sim.timeLimit / 60)} دقائق` : sim.tdm ? `الأكثر قتلات بعد ${Math.round(sim.timeLimit / 60)} دقائق يفوز` : `أول من يفوز بـ ${sim.roundsToWin} جولات`, '', 3);
   }
   begin(me, weather) {
     this.yaw = me ? (me.spawnYaw ?? me.yaw) : 0; this.pitch = 0; this.acc = 0; this.paused = false; this.spec = null; this.shotAt.clear();
@@ -116,7 +117,7 @@ export class Game {
     const size = Math.max(o.size, P.vs ? Math.ceil(P.members.length / 2) : P.members.length);
     const room = 'p' + Social.id + Math.random().toString(36).slice(2, 6);
     if (this.hostSrv) { this.hostSrv.stop(); this.hostSrv = null; }
-    const srv = new GameServer(this.world, { room, cfg: { mode: o.mode, size, rounds: o.roundsToWin, time: o.timeLimit, difficulty: o.difficulty, fill: true, pref: true } });
+    const srv = new GameServer(this.world, { room, cfg: { mode: o.mode, size, rounds: o.roundsToWin, time: o.timeLimit, roundTime: o.roundTime, difficulty: o.difficulty, fill: true, pref: true } });
     await srv.start();
     this.hostSrv = srv; this.hostInfo = { room, teams, mode: o.mode, weather: wx };
     const ns = await this.joinOnline({ local: srv, room, name: o.name, char: o.char, loadout: o.loadout, team: 0 });
@@ -132,9 +133,15 @@ export class Game {
     ns.onlost = why => { this.quit(); UI.showMenu(); UI.toast2(why || 'انقطع الاتصال بالمعركة'); };
     this.sim = ns; this.me = ns.me;
     this.begin(this.mp, weather || ns.weather);
-    UI.banner(MODES[ns.mode] ? MODES[ns.mode].name : 'معركة', 'فريقك: ' + TEAMS[this.mp ? this.mp.team : 0].name, '', 2.6);
+    UI.banner(MODES[ns.mode] ? MODES[ns.mode].name : 'معركة', 'فريقك: نحن المجاهدين', '', 2.6);
   }
   quit(keep, keepSrv) {
+    // خروج قبل نهاية القيم: نخصم المصروف من المخزون (بلا مكافأة)
+    if (this.sim && !this.sim.matchOver && Economy.start && !Economy.settled) {
+      const me = this.sim.players && this.sim.players.get(this.me);
+      if (me && me.sup && this.sim.stash) { this.sim.stash(me, me.alive); Economy.abandon(me.sup); } else Economy.abandon(null);
+    }
+    this.setNvg(false);
     if (this.talk) this.talk.clear();
     if (this.sim && this.sim.online) { try { this.sim.onlost = null; this.sim.close(); } catch (e) { } }
     if (this.hostSrv && !keepSrv) { const s = this.hostSrv; this.hostSrv = null; this.hostInfo = null; setTimeout(() => s.stop(), 200); }
@@ -146,6 +153,10 @@ export class Game {
     if (this.weather && !keep) this.weather.set('menu');
     if (!keep) Audio.musicMode('menu');
   }
+  // النظارة الليلية: تشتغل بالليل فقط ولمن اشتراها
+  nvgAvail() { const W = this.weather; return !!(Economy.W.nvg && this.sim && W && W.cur && W.cur.night > 0.4); }
+  toggleNvg() { this.setNvg(!this.nvgOn && this.nvgAvail()); Audio.play('ui'); }
+  setNvg(on) { this.nvgOn = !!on; document.body.classList.toggle('nvg', this.nvgOn); }
   pause() { if (!this.sim || this.paused) return; this.paused = true; Input.exitLock(); Input.reset(); UI.open('pause'); }
   resume() { this.paused = false; UI.closeScreens(); UI.hud(true); if (!Input.isTouch) Input.requestLock(); }
   queueSlot(s) { this.queued.slot = s; }
@@ -225,7 +236,7 @@ export class Game {
     if ((this.assistT = (this.assistT || 0) - dt) <= 0) {
       this.assistT = 0.08; this.assistCand = null;
       const e = this.sim.eye(me), f = dirFrom(this.yaw + me.punch[1], this.pitch + me.punch[0]);
-      let best = 0.07 / Math.sqrt(this.magOf(me)), bq = null;
+      let best = 0.11 / Math.sqrt(this.magOf(me)), bq = null; // مخروط الجذب (مثل ببجي)
       for (const q of this.sim.players.values()) {
         if (!q.alive || q.team === me.team) continue;
         const tx = q.pos[0], ty = q.pos[1] + eyeHeight(q) - 0.35, tz = q.pos[2];
@@ -241,8 +252,8 @@ export class Game {
     if (Input.held('fire') || me.adsT > 0.5) {
       const e = this.sim.eye(me), ty = q.pos[1] + eyeHeight(q) - 0.35;
       const wy = Math.atan2(-(q.pos[0] - e[0]), -(q.pos[2] - e[2])), wp = Math.atan2(ty - e[1], Math.hypot(q.pos[0] - e[0], q.pos[2] - e[2]));
-      const pull = Math.min(1, dt * 2.2);
-      this.yaw += angTo(this.yaw + me.punch[1], wy) * pull * 0.35; this.pitch += (wp - this.pitch - me.punch[0]) * pull * 0.2;
+      const pull = Math.min(1, dt * 3.2);
+      this.yaw += angTo(this.yaw + me.punch[1], wy) * pull * 0.75; this.pitch += (wp - this.pitch - me.punch[0]) * pull * 0.45;
     }
     return 0.62;
   }
@@ -346,10 +357,11 @@ export class Game {
         case 'roundEnd': {
           const win = me && e.winner === me.team;
           if (sim.tdm) UI.banner(e.winner < 0 ? 'تعادل!' : win ? 'النصر لنا!' : 'خسرنا المعركة', 'انتهى الوقت — ' + e.score[0] + ' : ' + e.score[1], win ? 'win' : 'lose', 5);
-          else UI.banner(e.winner < 0 ? 'تعادل' : (win ? 'فزنا بالجولة' : 'خسرنا الجولة'), (e.winner >= 0 ? TEAMS[e.winner].name + ' · ' : '') + e.why + ' — ' + e.score[0] + ' : ' + e.score[1], win ? 'win' : 'lose', 4);
+          else UI.banner(e.winner < 0 ? 'تعادل' : (win ? 'فزنا بالجولة' : 'خسرنا الجولة'), (e.winner >= 0 ? teamName(e.winner, me ? me.team : -1) + ' · ' : '') + e.why + ' — ' + e.score[0] + ' : ' + e.score[1], win ? 'win' : 'lose', 4);
           Audio.play(win ? 'roundWin' : 'roundLose');
           break;
         }
+        case 'supply': if (e.id === this.me) { const r = Economy.settle(e); if (r) UI.showReward && UI.showReward(r); } break;
         case 'matchOver': setTimeout(() => { if (this.sim) { Input.exitLock(); UI.endScreen(this.sim, this.mp); } }, 400); break;
       }
     }
@@ -503,7 +515,32 @@ export class Game {
       r.autoClear = true;
     }
   }
-  updateWorldAnim(dt) { if (this.onAnim) this.onAnim(dt, this.t); this.updateCivs(dt); }
+  updateWorldAnim(dt) { if (this.onAnim) this.onAnim(dt, this.t); this.updateCivs(dt); this.updateCps(dt); }
+  // علامات نقاط السيطرة بالعالم: حلقة على الأرض بلون المسيطر وعمود ضوء خفيف وحرف فوقها
+  updateCps(dt) {
+    const C = (this.sim && this.sim.cps) || [], me = this.mp;
+    if (!this.cpG) { this.cpG = new THREE.Group(); this.scene.add(this.cpG); this.cpM = []; }
+    while (this.cpM.length > C.length) { const m = this.cpM.pop(); this.cpG.remove(m.g); }
+    C.forEach((c, i) => {
+      let m = this.cpM[i];
+      if (!m) {
+        const g = new THREE.Group(), mat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.55, depthWrite: false, side: THREE.DoubleSide });
+        const ring = new THREE.Mesh(new THREE.RingGeometry(0.93, 1, 48), mat); ring.rotation.x = -Math.PI / 2; g.add(ring);
+        const fill = new THREE.Mesh(new THREE.CircleGeometry(0.93, 48), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.08, depthWrite: false })); fill.rotation.x = -Math.PI / 2; g.add(fill);
+        const col = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1, 6, 1, true), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.35, depthWrite: false })); col.position.y = 0.5; g.add(col);
+        const cv = document.createElement('canvas'); cv.width = cv.height = 64; const tx = new THREE.CanvasTexture(cv);
+        const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: tx, depthTest: false, transparent: true })); spr.scale.set(0.9, 0.9, 1); g.add(spr);
+        this.cpG.add(g); m = this.cpM[i] = { g, ring, fill, col, spr, cv, tx, key: '' };
+      }
+      m.g.position.set(c.x, c.y + 0.04, c.z); m.ring.scale.setScalar(c.r); m.fill.scale.setScalar(c.r);
+      m.col.scale.set(1, 6, 1); m.col.position.y = 3; m.spr.position.y = 6.6;
+      const mine = me && c.owner === me.team, hex = c.owner < 0 ? 0xf2f2f2 : mine ? 0x50beff : 0xff5050;
+      m.ring.material.color.setHex(hex); m.fill.material.color.setHex(hex); m.col.material.color.setHex(hex);
+      m.ring.material.opacity = c.contest ? 0.35 + 0.4 * Math.abs(Math.sin(this.t * 6)) : 0.6;
+      const key = c.name + hex;
+      if (m.key !== key) { m.key = key; const x = m.cv.getContext('2d'); x.clearRect(0, 0, 64, 64); x.fillStyle = '#' + hex.toString(16).padStart(6, '0'); x.beginPath(); x.arc(32, 32, 28, 0, 7); x.fill(); x.fillStyle = '#111'; x.font = '900 34px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(c.name, 32, 34); m.tx.needsUpdate = true; }
+    });
+  }
   // أهل السوق: تحريك القريبين فقط، وإخفاء البعيدين، وظلال للقريبين جداً
   updateCivs(dt) {
     const cam = this.camera.position, W = this.weather;

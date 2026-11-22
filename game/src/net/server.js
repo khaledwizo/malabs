@@ -33,7 +33,7 @@ export class GameServer {
   // ---------- المحاكاة ----------
   newSim() {
     const c = this.cfg;
-    const sim = this.sim = new Sim(this.world, { mode: c.mode, roundsToWin: c.rounds, timeLimit: c.time, difficulty: c.difficulty, seed: (Date.now() & 0xffff) + 1 });
+    const sim = this.sim = new Sim(this.world, { mode: c.mode, roundsToWin: c.rounds, timeLimit: c.time, roundTime: c.roundTime, difficulty: c.difficulty, seed: (Date.now() & 0xffff) + 1 });
     sim.beforeStep = () => this.feed();
     sim.onStep = () => this.afterStep();
     this.evq.length = 0; this.overT = 0;
@@ -143,7 +143,7 @@ export class GameServer {
         if (cl.queue.length > 12) cl.queue.splice(0, cl.queue.length - 6);
         break;
       }
-      case 'lo': cl.loadout = m.l || {}; this.sim.setLoadout(cl.pid, cl.loadout); break;
+      case 'lo': cl.loadout = { ...(m.l || {}), supply: (m.l && m.l.supply) || (cl.loadout && cl.loadout.supply) }; this.sim.setLoadout(cl.pid, cl.loadout); break; // المخزون يبقى
       case 'ch': if (CHAR_ORDER.includes(m.c)) { cl.char = m.c; this.sim.setChar(cl.pid, m.c); this.sendRoster(); } break;
       case 'pi': this.link.sendTo(cid, { k: 'po', c: m.c }); cl.rtt = +m.r || 0; break;
       case 'bye': this.log('غادر: ' + cl.name); this.remove(cid); break;

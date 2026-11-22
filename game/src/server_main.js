@@ -40,7 +40,7 @@ function seg(id, items, key) {
 function buildForm() {
   seg('#fMode', Object.entries(MODES).map(([k, m]) => [k, m.name, m.desc]), 'mode');
   seg('#fSize', [[2, '2 ضد 2'], [3, '3 ضد 3'], [4, '4 ضد 4'], [5, '5 ضد 5']], 'size');
-  if (MODES[cfg.mode].rules === 'tdm') seg('#fRounds', [[300, '5 دقائق'], [600, '10 دقائق', 'الأقل موتاً يفوز'], [900, '15 دقيقة']], 'time');
+  if (MODES[cfg.mode].rules !== 'rounds') seg('#fRounds', [[300, '5 دقائق'], [600, '10 دقائق'], [900, '15 دقيقة'], [1200, '20 دقيقة']], 'time');
   else seg('#fRounds', [[3, 'قصيرة', '3 جولات للفوز'], [5, 'عادية', '5 جولات'], [7, 'طويلة', '7 جولات']], 'rounds');
   seg('#fDiff', [['easy', 'سهل'], ['normal', 'عادي'], ['hard', 'صعب']], 'difficulty');
   seg('#fFill', [[true, 'نعم', 'بوتات تكمل الفريق الناقص'], [false, 'لا', 'بشر فقط']], 'fill');
