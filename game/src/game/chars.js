@@ -4,7 +4,6 @@ import * as TX from '../gfx/tex.js';
 import { CHARS } from './chardefs.js';
 import { buildGun } from './gunmodels.js';
 import { mergeChildren } from '../gfx/geo.js';
-import khaledFace from '../assets/khaled_face.jpg';
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const geoCache = new Map();
@@ -42,9 +41,7 @@ function charMats(id) {
   const d = CHARS[id], S = 256;
   const std = (o) => new THREE.MeshStandardMaterial(Object.assign({ roughness: 0.85, metalness: 0 }, o));
   const skin = std({ color: d.skin, roughness: 0.6 });
-  let faceMap;
-  if (d.face === 'photo') { faceMap = new THREE.TextureLoader().load(khaledFace); faceMap.colorSpace = THREE.SRGBColorSpace; }
-  else faceMap = TX.face(256, Object.assign({ skin: d.skin }, d.faceOpt || {}));
+  const faceMap = TX.face(256, Object.assign({ skin: d.skin }, d.faceOpt || {}));
   const face = std({ map: faceMap, roughness: 0.6 });
   const jt = TX.fabric(S, Object.assign({}, d.jacket));
   const jacket = std({ map: jt.map, normalMap: jt.normalMap, roughness: 0.9 });
@@ -124,7 +121,7 @@ export class CharModel {
     const head = this.head = new THREE.Group(); head.position.y = 0.625; chest.add(head);
     mesh(headGeo(), M.face, 0, 0.05, 0, head).name = 'headMesh';
     for (const s of [-1, 1]) { const e = mesh(cached('ear', () => new THREE.SphereGeometry(0.028, 10, 8)), M.skin, s * 0.104, 0.05, 0.01, head); e.scale.set(0.45, 1, 0.8); }
-    if (d.face !== 'photo') { const nose = mesh(cached('nose', () => new THREE.ConeGeometry(0.018, 0.045, 8)), M.skin, 0, 0.045, -0.113, head); nose.rotation.x = -Math.PI / 2 - 0.25; nose.scale.set(1, 1, 0.8); }
+    { const nose = mesh(cached('nose', () => new THREE.ConeGeometry(0.018, 0.045, 8)), M.skin, 0, 0.045, -0.113, head); nose.rotation.x = -Math.PI / 2 - 0.25; nose.scale.set(1, 1, 0.8); }
     this.buildHair(d, M, head, mesh);
     if (d.glasses) { for (const s of [-1, 1]) mesh(roundBox(0.046, 0.028, 0.01, 0.006), M.glass, s * 0.036, 0.075, -0.112, head); mesh(roundBox(0.03, 0.006, 0.006, 0.002), M.glass, 0, 0.082, -0.114, head); }
     // الذراعان

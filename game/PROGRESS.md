@@ -153,3 +153,16 @@ STAGE 4.4 (Nov 2026) — user feedback round
 - Lanterns: every hanging lantern has a soft flame-flicker light (fl=2) and is a 'lamp' prop (hp 1, glass, THIN|NOPLAYER);
   street lamps too. Breaking: light off (lampAt), glow sprite size 0, lantern model glass emissive off per instance
   (lampOn instanced attribute), glass shards + sparks + breakGlass sound; restored each round. Duplicate lights deduped.
+
+STAGE 4.5 (Nov 2026) — iOS build + Khaled's face
+- Khaled no longer uses the user's photo: src/assets/khaled_face.jpg deleted (still present in old git history of this
+  public repo). He gets a generated face (TX.face) with a full trimmed beard (new beardTex option: hair strokes).
+- iOS: ios/App.swift (UIKit + WKWebView, scene-based, landscape, status bar hidden, AVAudioSession .playback),
+  ios/Info.plist, ios/Assets.xcassets (single 1024 icon via actool; ios/icons legacy fallback), ios/build_ipa.sh
+  (swiftc without an Xcode project → Payload/Rafidain.app/www → ad-hoc codesign → apk/rafidain-ios.ipa).
+  Workflow: build job prepares iosweb (index.html with bundled fonts + voices converted to AAC m4a) as artifact
+  'ios-www'; job 'ios' (macos-latest, needs build) builds and commits apk/rafidain-ios.ipa (reset-onto-head).
+  The IPA is unsigned for distribution: install with Sideloadly/AltStore using an Apple ID (free ID = 7-day re-sign).
+- JS for iOS: wrapper injects RAFIDAIN_IOS / RAFIDAIN_VOICE_EXT='m4a' and a RafidainAndroid-compatible bridge
+  (copy/share/vibrate). Voices on iOS play through Web Audio (XHR + decodeAudioData + gain) because
+  HTMLMediaElement.volume is read-only on iOS. Audio.init resumes 'interrupted' contexts; window.__R.Audio exposed.

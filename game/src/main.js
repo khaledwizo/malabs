@@ -87,4 +87,4 @@ Loop.start((dt, now) => {
   game.frame(dt, now);
   fpsT -= dt; if (fpsT <= 0) { fpsT = 0.5; HUD.fps(`FPS ${Math.round(Loop.fps)} · ${Loop.ms.toFixed(1)}ms · ${resText}`); }
 });
-window.__R = { playIntro, renderer, scene, camera, world, game, UI, HUD, Loop, Input, Settings, Social, THREE, buildGun, weather, stats: () => renderer.info.render };
+window.__R = { playIntro, Audio, renderer, scene, camera, world, game, UI, HUD, Loop, Input, Settings, Social, THREE, buildGun, weather, stats: () => renderer.info.render };

@@ -373,6 +373,11 @@ export function face(S, o) {
     x.fillStyle = o.beard; x.globalAlpha = o.beardA ?? 0.85;
     x.beginPath(); x.moveTo(S * 0.2, S * 0.55); x.quadraticCurveTo(S * 0.22, S * 0.95, S / 2, S * 0.98); x.quadraticCurveTo(S * 0.78, S * 0.95, S * 0.8, S * 0.55); x.lineTo(S * 0.72, S * 0.6); x.quadraticCurveTo(S / 2, S * 0.78, S * 0.28, S * 0.6); x.closePath(); x.fill();
     x.globalAlpha = 1;
+    if (o.beardTex) { // شعيرات اللحية: خطوط قصيرة فاتحة وغامقة باتجاه النمو داخل اللحية
+      x.save(); x.clip(); x.lineWidth = S * 0.006;
+      for (let i = 0; i < 1800; i++) { const px = S * (0.2 + Math.random() * 0.6), py = S * (0.55 + Math.random() * 0.43), a = Math.PI / 2 + (px / S - 0.5) * 1.2 + (Math.random() - 0.5) * 0.5, l = S * (0.012 + Math.random() * 0.02); x.strokeStyle = Math.random() < 0.5 ? 'rgba(10,6,4,0.45)' : 'rgba(110,80,60,0.3)'; x.beginPath(); x.moveTo(px, py); x.lineTo(px + Math.cos(a) * l, py + Math.sin(a) * l); x.stroke(); }
+      x.restore();
+    }
   }
   if (o.stubble) { x.fillStyle = o.stubble; for (let i = 0; i < 2600; i++) { const a = Math.random() * Math.PI, rr = S * (0.25 + Math.random() * 0.22); const px = S / 2 + Math.cos(a) * rr * 0.95, py = S * 0.55 + Math.sin(a) * rr * 0.85; if (py > S * 0.56) x.fillRect(px, py, 1.5, 1.5); } }
   if (o.mustache) { x.fillStyle = o.mustache; x.beginPath(); x.ellipse(S / 2, S * 0.655, S * 0.13, S * 0.035, 0, Math.PI, 0); x.fill(); x.fillRect(S * 0.37, S * 0.64, S * 0.26, S * 0.025); }

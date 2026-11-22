@@ -5,7 +5,7 @@ import { composeArabic } from './music.js';
 export const Audio = {
   ctx: null, master: null, sfx: null, amb: null, noise: null, listener: null, live: 0, steps: null, ambKind: '', ambNodes: [],
   init() {
-    if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
+    if (this.ctx) { if (this.ctx.state !== 'running') this.ctx.resume(); return; } // iOS: «interrupted» بعد الرجوع للتطبيق
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
     const c = this.ctx = new AC();
     this.master = c.createGain(); this.master.gain.value = Settings.volume; this.master.connect(c.destination);

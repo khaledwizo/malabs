@@ -50,6 +50,26 @@ jobs:
           python3 game/tools/apk_fonts.py app/src/main/assets index.html
           python3 game/tools/apk_fonts.py server/src/main/assets server.html
 
+      # نسخة آيفون: نفس الصفحة (بالخطوط) + الأصوات بصيغة m4a (سفاري/WKWebView ما يشغّل ogg opus بكل الإصدارات)
+      - name: Prepare iOS web bundle (m4a voices)
+        continue-on-error: true
+        run: |
+          mkdir -p iosweb/voice
+          cp app/src/main/assets/index.html iosweb/
+          if [ -d app/src/main/assets/fonts ]; then cp -r app/src/main/assets/fonts iosweb/; fi
+          if ls game/voice/*.ogg >/dev/null 2>&1; then
+            command -v ffmpeg >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg >/dev/null; }
+            cp game/voice/manifest.js iosweb/voice/
+            ls game/voice/*.ogg | xargs -P 4 -I{} sh -c 'b=$(basename "{}" .ogg); ffmpeg -loglevel error -y -i "{}" -c:a aac -b:a 32k -ac 1 -ar 24000 "iosweb/voice/$b.m4a"'
+          fi
+          echo "ios web: $(ls iosweb/voice | grep -c m4a) voices, $(du -sh iosweb | cut -f1)"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-www
+          path: iosweb
+          retention-days: 3
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -135,6 +155,43 @@ jobs:
             mkdir -p apk && cp /tmp/build-log.txt apk/build-log.txt
             git add -f apk/build-log.txt
             git commit -q -m "Build log (failed) #${{ github.run_number }} [skip ci]" || true
+            git push -q origin HEAD:rafidain-game && break
+            sleep 5
+          done
+
+  # تطبيق آيفون (‎.ipa‎ غير موقّع رسمياً — يُثبَّت عبر Sideloadly أو AltStore بحساب Apple)
+  ios:
+    needs: build
+    if: ${{ !cancelled() && needs.build.result == 'success' }}
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: ios-www
+          path: ios/www
+
+      - name: Build IPA
+        run: bash ios/build_ipa.sh ${{ github.run_number }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Rafidain-iOS
+          path: ios/rafidain-ios.ipa
+
+      - name: Commit IPA back to the branch
+        shell: bash
+        run: |
+          cp ios/rafidain-ios.ipa /tmp/rafidain-ios.ipa
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for i in 1 2 3 4; do
+            git fetch -q origin rafidain-game && git reset -q --hard FETCH_HEAD || { sleep 5; continue; }
+            mkdir -p apk && cp /tmp/rafidain-ios.ipa apk/rafidain-ios.ipa
+            git add -f apk/rafidain-ios.ipa
+            git commit -q -m "iOS build #${{ github.run_number }} [skip ci]" || true
             git push -q origin HEAD:rafidain-game && break
             sleep 5
           done

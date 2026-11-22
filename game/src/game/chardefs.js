@@ -3,9 +3,9 @@ export const CHARS = {
   khaled: {
     name: 'خالد', full: 'خالد التكريتي', tag: 'الأنيق الهادئ',
     desc: 'سترة كاروهات رمادية وقميص أسود. هادئ تحت الضغط ودقيق في التصويب.',
-    skin: '#d69670', hair: '#2a1b12', hairStyle: 'quiff', face: 'photo',
+    skin: '#d39a74', hair: '#22160f', hairStyle: 'quiff', faceOpt: { beard: '#2a1c13', beardA: 0.9, beardTex: true, stubble: 'rgba(30,20,14,0.3)', mustache: '#22170f', brow: '#170f0a', eye: '#3a2515', lip: '#8f5246' }, // وجه مولَّد: رجل بلحية كاملة مرتّبة
     jacket: { base: [104, 102, 98], plaid: { n: 6, c1: 'rgba(40,36,34,0.9)', c2: 'rgba(200,190,170,0.9)' } }, jacketOpen: true,
-    shirt: '#151516', pants: '#2b2d33', shoes: '#1b1816', beard: null, brow: '#140d08',
+    shirt: '#151516', pants: '#2b2d33', shoes: '#1b1816', brow: '#170f0a',
     coat: 0.66, leather: '#3a2a1e', bracers: true,
   },
   ibrahim: {

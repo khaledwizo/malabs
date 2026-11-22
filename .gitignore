@@ -10,3 +10,6 @@ app/src/main/assets/index.html
 app/src/main/assets/fonts/
 *.jks
 *.keystore
+ios/build/
+ios/www/
+ios/rafidain-ios.ipa
