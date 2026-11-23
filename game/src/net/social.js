@@ -45,6 +45,7 @@ export const Social = {
     m.onclose = () => { this.mqs = this.mqs.filter(q => q !== m); this.setOnline(); setTimeout(() => this.connectOne(url), 3000); };
     const me = NS + this.id;
     for (const t of ['/rq/+', '/ac/+', '/rm/+', '/in']) m.subscribe(me + t);
+    if (this.onConn) try { this.onConn(m); } catch (e) { }
     for (const f of this.friends) m.subscribe(NS + f.id + '/st');
     this.setOnline(); this.presence();
   },
@@ -55,6 +56,7 @@ export const Social = {
   me() { const P = this.prof(); return { from: this.id, name: clean(P.name), char: P.char }; },
   // ---------- الرسائل الواردة ----------
   recv(topic, d, retained, raw) {
+    if (this.ext && this.ext(topic, d, retained)) return; // السيرفر المركزي والغرف المفتوحة
     // الرسالة نفسها قد تصل من وسيطين: نتجاهل المكرّر
     const k = topic + '|' + raw, t = nowS(); if (this.seen.has(k) && t - this.seen.get(k) < 20) return; this.seen.set(k, t);
     if (this.seen.size > 300) for (const [kk, tt] of this.seen) if (t - tt > 60) this.seen.delete(kk);

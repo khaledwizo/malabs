@@ -18,7 +18,7 @@ for (const i of want) {
   console.log('beat', i, await page.evaluate(() => document.querySelector('#intro .is span').textContent || document.querySelector('#intro .ic').textContent));
 }
 await page.evaluate(() => document.querySelector('#intro .iskip').click()); await page.waitForTimeout(900);
-console.log('after skip: intro', await page.evaluate(() => !!document.querySelector('#intro')), 'seen', await page.evaluate(() => localStorage.getItem('rafidain.intro.v1')), 'home visible', await page.evaluate(() => getComputedStyle(document.querySelector('.scr.on') || document.body).visibility));
+console.log('after skip: intro', await page.evaluate(() => !!document.querySelector('#intro')), 'seen', await page.evaluate(() => localStorage.getItem('rafidain.intro.v2')), 'home visible', await page.evaluate(() => getComputedStyle(document.querySelector('.scr.on') || document.body).visibility));
 await page.screenshot({ path: 'test/shots/i_after.png' });
 console.log('errors', errs.length, errs.slice(0, 4).join('\n'));
 await b.close();

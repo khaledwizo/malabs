@@ -16,7 +16,9 @@ import { HUD } from '../ui/hud.js';
 import { MapView } from '../ui/maps.js';
 import { F } from '../world/collide.js';
 import { NetSim } from '../net/client.js';
-import { GameServer } from '../net/server.js';
+import { GameServer, MAX_TEAM } from '../net/server.js';
+import { Central } from '../net/central.js';
+import { encPlayer } from '../net/proto.js';
 import { Social } from '../net/social.js';
 import { Civilian } from './civilians.js';
 import { TalkManager } from './talk.js';
@@ -165,8 +167,9 @@ export class Game {
   async hostParty(o) {
     const P = Social.party; if (!P || P.host !== Social.id) return;
     const wx = this.weather ? this.weather.pick(o.weather) : o.weather;
-    const teams = {}; P.members.forEach((m, i) => { teams[m.id] = P.vs ? i % 2 : 0; });
-    const size = Math.max(o.size, P.vs ? Math.ceil(P.members.length / 2) : P.members.length);
+    // حد ثابت: 5 بكل فريق (10 بالمعركة). فرقة أكبر من 5 تنقسم فريقين تلقائياً
+    const split = P.vs || P.members.length > MAX_TEAM, teams = {}; P.members.forEach((m, i) => { teams[m.id] = split ? i % 2 : 0; });
+    const size = Math.min(MAX_TEAM, Math.max(o.size, split ? Math.ceil(P.members.length / 2) : P.members.length));
     const room = 'p' + Social.id + Math.random().toString(36).slice(2, 6);
     if (this.hostSrv) { this.hostSrv.stop(); this.hostSrv = null; }
     const srv = new GameServer(this.world, { room, cfg: { mode: o.mode, size, rounds: o.roundsToWin, time: o.timeLimit, roundTime: o.roundTime, difficulty: o.difficulty, fill: true, pref: true } });
@@ -175,15 +178,42 @@ export class Game {
     const ns = await this.joinOnline({ local: srv, room, name: o.name, char: o.char, loadout: o.loadout, team: 0 });
     Social.partyStart(room, this.hostInfo);
     Social.inMatch = () => !!this.hostSrv;
-    Social.lateJoin = id => { const h = this.hostInfo; if (!h) return; if (h.teams[id] === undefined) h.teams[id] = Social.party && Social.party.vs ? Object.keys(h.teams).length % 2 : 0; Social.send(id, { k: 'start', room: h.room, team: h.teams[id], mode: h.mode, weather: h.weather }); };
+    Social.lateJoin = id => { const h = this.hostInfo; if (!h) return; if (h.teams[id] === undefined) { const n0 = Object.values(h.teams).filter(t => t === 0).length; h.teams[id] = (Social.party && Social.party.vs) || n0 >= MAX_TEAM ? (n0 >= MAX_TEAM ? 1 : Object.keys(h.teams).length % 2) : 0; } Social.send(id, { k: 'start', room: h.room, team: h.teams[id], mode: h.mode, weather: h.weather }); };
     this.startOnline(ns, wx);
+  }
+  // «معركة أونلاين»: السيرفر المركزي إن كان شغّال، وإلا (أو إذا امتلأ) غرفة مفتوحة على هاتف لاعب، وإلا نفتح معركة على هاتفنا
+  async onlineMatch(o, say = () => { }) {
+    const mode = o.mode, wx = this.weather ? this.weather.pick(o.weather) : o.weather;
+    const base = { name: o.name, char: o.char, loadout: o.loadout, team: 0, onStatus: say };
+    if (Central.isOnline()) {
+      say('السيرفر المركزي شغّال — نطلب معركة…');
+      const r = await Central.request(mode, o.name);
+      if (r && r.room) {
+        say('لگينا معركة — ندخل…');
+        try { const ns = await this.joinOnline({ ...base, room: r.room }); ns.central = true; this.startOnline(ns, wx); return 'central'; }
+        catch (e) { say('تعذّر دخول معركة السيرفر — ننتقل لوضع المضيف'); }
+      } else say(r && r.why ? 'السيرفر ممتلئ (' + r.why + ') — ننتقل لوضع المضيف' : 'السيرفر ما ردّ — ننتقل لوضع المضيف');
+    }
+    say('ندوّر على معركة مفتوحة…');
+    for (const a of await Central.findOpen(mode)) {
+      try { const ns = await this.joinOnline({ ...base, room: a.room }); ns.open = true; this.startOnline(ns, wx); return 'open'; } catch (e) { }
+    }
+    say('ما في معارك مفتوحة — نفتح معركة على هاتفك وتكمّلها البوتات…');
+    const A = 'abcdefghjkmnpqrstuvwxyz23456789'; let room = 'h'; for (let i = 0; i < 6; i++) room += A[Math.floor(Math.random() * A.length)];
+    if (this.hostSrv) { this.hostSrv.stop(); this.hostSrv = null; }
+    const srv = new GameServer(this.world, { room, name: o.name, adv: true, reportLive: true, cfg: { mode, size: MAX_TEAM, rounds: o.roundsToWin, time: o.timeLimit, roundTime: o.roundTime, difficulty: o.difficulty, fill: true } });
+    await srv.start();
+    this.hostSrv = srv; this.hostInfo = { room, teams: {}, mode, weather: wx };
+    const ns = await this.joinOnline({ ...base, local: srv, room }); ns.open = true;
+    this.startOnline(ns, wx);
+    return 'host';
   }
   // استضافة على نفس الشبكة (واي فاي أو نقطة اتصال) — تشتغل حتى بلا إنترنت
   async hostLan(o) {
     const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let room = ''; for (let i = 0; i < 5; i++) room += A[Math.floor(Math.random() * A.length)];
     const wx = this.weather ? this.weather.pick(o.weather) : o.weather;
     if (this.hostSrv) { this.hostSrv.stop(); this.hostSrv = null; }
-    const srv = new GameServer(this.world, { room, name: o.name, cfg: { mode: o.mode, size: Math.max(2, o.size || 2), rounds: o.roundsToWin, time: o.timeLimit, roundTime: o.roundTime, difficulty: o.difficulty, fill: true } });
+    const srv = new GameServer(this.world, { room, name: o.name, cfg: { mode: o.mode, size: Math.min(MAX_TEAM, Math.max(2, o.size || 2)), rounds: o.roundsToWin, time: o.timeLimit, roundTime: o.roundTime, difficulty: o.difficulty, fill: true } });
     await srv.start();
     this.hostSrv = srv; this.hostInfo = { room, teams: {}, mode: o.mode, weather: wx };
     const ns = await this.joinOnline({ local: srv, room, name: o.name, char: o.char, loadout: o.loadout, team: 0 });
@@ -199,20 +229,25 @@ export class Game {
     if (!room || !humans.includes(ns.me)) return fail();
     this.migrating = true;
     const base = { room, name: Settings.name, char: Settings.char, loadout: UI.matchLoadout(mode), team: myTeam };
+    // الحالة الكاملة من آخر لقطة: الصحة والعتاد والمواقع والأسلحة والنقاط والوقت والنتيجة
+    const R = { mid: ns.hostMid, score, round: ns.round, phase: ns.phase, phaseT: ns.phaseT, cps: (ns.cps || []).map(c => [c.owner, c.prog]), pl: {}, bots: [] };
+    try { for (const p of ns.players.values()) { const r = ns.roster.get(p.id); if (!r) continue; const a = encPlayer(p, ns.t); if (r.bot) R.bots.push({ name: r.name, team: p.team, char: p.char, a }); else R.pl[r.name] = { a }; } } catch (e) { }
+    const open = !!(ns.central || ns.open);
+    if (this.sess && this.sess.central) this.sess = { room, t: Date.now(), mo: mode, central: false }; // بعد الانتقال صارت المعركة على هاتف لاعب: جلسة تُسجَّل للمزامنة
     try {
       if (humans[0] === ns.me) {
         UI.toast2('المضيف طلع — صرت إنت المضيف، نكمّل المعركة…');
         this.quit(true, true);
-        const srv = new GameServer(this.world, { room, name: Settings.name, cfg: { mode, size: cfg.size || 2, rounds: cfg.rounds || ns.roundsToWin, time: cfg.time || ns.timeLimit, roundTime: cfg.roundTime, difficulty: cfg.difficulty || Settings.difficulty, fill: true } });
-        srv.resume = { score }; await srv.start(); this.hostSrv = srv; this.hostInfo = { room, teams: {}, mode };
-        const n2 = await this.joinOnline({ ...base, local: srv }); this.migrating = false; this.startOnline(n2);
+        const srv = new GameServer(this.world, { room, name: Settings.name, adv: open, reportLive: true, mid: ns.hostMid, cfg: { mode, size: Math.min(MAX_TEAM, cfg.size || 2), rounds: cfg.rounds || ns.roundsToWin, time: cfg.time || ns.timeLimit, roundTime: cfg.roundTime, difficulty: cfg.difficulty || Settings.difficulty, fill: true, pref: true } });
+        srv.resume = R; await srv.start(); this.hostSrv = srv; this.hostInfo = { room, teams: {}, mode };
+        const n2 = await this.joinOnline({ ...base, local: srv }); n2.open = open; this.migrating = false; this.startOnline(n2);
       } else {
         UI.toast2('المضيف طلع — ننقل الاستضافة لـ ' + ((ns.roster.get(humans[0]) || {}).name || 'لاعب') + '…');
         this.quit(true, true);
         let n2 = null;
         for (let k = 0; k < 4 && !n2; k++) { await new Promise(r => setTimeout(r, 2500)); try { n2 = await this.joinOnline(base); } catch (e) { } }
         this.migrating = false;
-        if (n2) this.startOnline(n2); else fail('ما گدرنا ننقل الاستضافة — انقطعت المعركة');
+        if (n2) { n2.open = open; this.startOnline(n2); } else fail('ما گدرنا ننقل الاستضافة — انقطعت المعركة');
       }
     } catch (e) { this.migrating = false; fail('تعذّر نقل الاستضافة'); }
   }
@@ -221,14 +256,24 @@ export class Game {
     this.wxSeed = [...String(ns.room || '')].reduce((a, c) => (a * 31 + c.charCodeAt(0)) & 0xffff, 7);
     Social.presence('game');
     ns.onlost = why => this.migrate(ns, why);
+    // جلسة اللاعب (تُسجَّل للسيرفر المركزي إذا كانت المعركة على هاتف لاعب) — نقل الاستضافة يكمّل نفس الجلسة
+    if (!this.sess || this.sess.room !== ns.room) this.sess = { room: ns.room, t: Date.now(), mo: ns.mode, central: !!ns.central };
     this.sim = ns; this.me = ns.me;
     this.begin(this.mp, weather || ns.weather);
     UI.banner(MODES[ns.mode] ? MODES[ns.mode].name : 'معركة', 'فريقك: نحن المجاهدين', '', 2.6);
   }
+  endSession() {
+    const S = this.sess, sim = this.sim; this.sess = null; if (!S) return;
+    const me = sim.players && sim.players.get(this.me), du = Math.round((Date.now() - S.t) / 1000);
+    if (S.central || du < 20) return; // معارك السيرفر يسجّلها السيرفر بنفسه
+    Central.record({ ty: 'ses', t: S.t, du, mo: S.mo, room: S.room, mid: sim.hostMid || '', host: this.hostSrv ? 1 : 0, n: Settings.name, k: me ? me.kills : 0, d: me ? me.deaths : 0, win: this.sessRes ?? null, hum: [...(sim.roster || new Map()).values()].filter(r => !r.bot).length });
+    this.sessRes = null;
+  }
   quit(keep, keepSrv) {
     if (this.drone) { this.drone.stop(); this.drone.seen.clear(); this.drone.cdUntil = -1; }
     // خروج قبل نهاية القيم: نخصم المصروف من المخزون (بلا مكافأة)
-    if (this.sim && !this.sim.matchOver && Economy.start && !Economy.settled) {
+    if (this.sim && this.sim.online && this.sess && !this.migrating) this.endSession();
+    if (this.sim && !this.sim.matchOver && Economy.start && !Economy.settled && !this.migrating) {
       const me = this.sim.players && this.sim.players.get(this.me);
       if (me && me.sup && this.sim.stash) { this.sim.stash(me, me.alive); Economy.abandon(me.sup); } else Economy.abandon(null);
     }
@@ -464,7 +509,7 @@ export class Game {
           Audio.play(win ? 'roundWin' : 'roundLose');
           break;
         }
-        case 'supply': if (e.id === this.me) { const r = Economy.settle(e); if (r) UI.showReward && UI.showReward(r); if (this.sim && this.sim.online) setTimeout(() => { if (this.sim && this.sim.online && this.sim.setLoadout) { const L = UI.matchLoadout(this.sim.mode); this.sim.setLoadout(this.me, L); } }, 1500); } break; // القيم الجاي بنفس الجلسة: مخزون جديد
+        case 'supply': if (e.id === this.me) { if (e.res != null) this.sessRes = e.res; const r = Economy.settle(e); if (r) UI.showReward && UI.showReward(r); if (this.sim && this.sim.online) setTimeout(() => { if (this.sim && this.sim.online && this.sim.setLoadout) { const L = UI.matchLoadout(this.sim.mode); this.sim.setLoadout(this.me, L); } }, 1500); } break; // القيم الجاي بنفس الجلسة: مخزون جديد
         case 'matchOver': setTimeout(() => { if (this.sim) { Input.exitLock(); UI.endScreen(this.sim, this.mp); } }, 400); break;
       }
     }

@@ -26,9 +26,10 @@ const out = tpl.replace('/*__CSS__*/', () => css)
   .replace('<!--__PROGRESS__-->', () => notes ? '<!--\n' + notes.replace(/--/g, '—') + '\n-->' : '');
 fs.writeFileSync(path.join(root, 'dist', 'index.html'), out);
 console.log('built index.html', (out.length / 1024 / 1024).toFixed(2) + ' MB', minify ? '(min)' : '(dev)');
-// السيرفر
-const sjs = await bundle('server_main.js');
-const stpl = fs.readFileSync(path.join(root, 'src', 'server.html'), 'utf8');
-const sout = stpl.replace('/*__JS__*/', () => safe(sjs));
-fs.writeFileSync(path.join(root, 'dist', 'server.html'), sout);
-console.log('built server.html', (sout.length / 1024).toFixed(0) + ' KB');
+// السيرفر المركزي (تطبيق «سيرفر الرافدين»): لوحة الإدارة + المحرك، وكود عامل المعركة مضمّن كنص
+const wjs = await bundle('hub_worker.js');
+const hjs = await bundle('hub_main.js');
+const htpl = fs.readFileSync(path.join(root, 'src', 'hub.html'), 'utf8');
+const hout = htpl.replace('/*__WORKER__*/', () => safe(wjs)).replace('/*__JS__*/', () => safe(hjs));
+fs.writeFileSync(path.join(root, 'dist', 'server.html'), hout);
+console.log('built server.html', (hout.length / 1024).toFixed(0) + ' KB', '(worker ' + (wjs.length / 1024).toFixed(0) + ' KB)');

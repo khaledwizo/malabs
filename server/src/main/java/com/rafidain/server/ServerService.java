@@ -13,45 +13,61 @@ import android.os.Build;
 import android.os.IBinder;
 import android.os.PowerManager;
 
-/** خدمة أمامية تبقي السيرفر حياً: تمنع النظام من إيقاف التطبيق وتبقي المعالج والواي فاي مستيقظين. */
-public class KeepAlive extends Service {
+/**
+ * خدمة أمامية تبقي السيرفر شغّال والشاشة مطفأة: إشعار دائم + قفل المعالج + قفل الواي فاي.
+ * START_STICKY: إذا قتل النظام التطبيق يرجّعه، والصفحة ترجع تشغّل السيرفر لوحدها.
+ * ملاحظة صادقة: إطفاء الهاتف بالكامل أو نفاد البطارية أو «إيقاف إجباري» يوقف السيرفر — وقتها اللعبة تشتغل بنظام المضيف.
+ */
+public class ServerService extends Service {
     private static final String CH = "rafidain_server";
+    static volatile boolean alive = false;
+    private static String last = "يدير المعارك";
     private PowerManager.WakeLock cpu;
     private WifiManager.WifiLock wifi;
 
-    static void start(Context c, String room) {
-        Intent i = new Intent(c, KeepAlive.class).putExtra("room", room);
-        try {
-            if (Build.VERSION.SDK_INT >= 26) c.startForegroundService(i); else c.startService(i);
-        } catch (Exception e) { /* قد يرفض النظام في الخلفية */ }
+    static void start(Context c) {
+        if (alive) return;
+        Intent i = new Intent(c, ServerService.class);
+        try { if (Build.VERSION.SDK_INT >= 26) c.startForegroundService(i); else c.startService(i); } catch (Exception e) { }
     }
 
-    static void stop(Context c) { c.stopService(new Intent(c, KeepAlive.class)); }
+    static void stop(Context c) { c.stopService(new Intent(c, ServerService.class)); }
 
-    @Override
+    static void update(Context c, String text) {
+        last = text;
+        if (!alive) return;
+        NotificationManager nm = (NotificationManager) c.getSystemService(NOTIFICATION_SERVICE);
+        if (nm != null) try { nm.notify(1, build(c, text)); } catch (Exception e) { }
+    }
+
     @SuppressWarnings("deprecation")
-    public int onStartCommand(Intent intent, int flags, int startId) {
-        String room = intent != null ? intent.getStringExtra("room") : null;
-        NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+    private static Notification build(Context c, String text) {
+        NotificationManager nm = (NotificationManager) c.getSystemService(NOTIFICATION_SERVICE);
         if (Build.VERSION.SDK_INT >= 26 && nm != null && nm.getNotificationChannel(CH) == null) {
             NotificationChannel ch = new NotificationChannel(CH, "السيرفر", NotificationManager.IMPORTANCE_LOW);
             ch.setDescription("يبقى ظاهراً ما دام السيرفر يعمل");
             nm.createNotificationChannel(ch);
         }
-        PendingIntent open = PendingIntent.getActivity(this, 0, new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
+        PendingIntent open = PendingIntent.getActivity(c, 0, new Intent(c, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
                 Build.VERSION.SDK_INT >= 23 ? PendingIntent.FLAG_IMMUTABLE : 0);
-        Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, CH) : new Notification.Builder(this);
-        b.setSmallIcon(android.R.drawable.stat_sys_upload_done)
+        Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(c, CH) : new Notification.Builder(c);
+        return b.setSmallIcon(android.R.drawable.stat_sys_upload_done)
                 .setContentTitle("سيرفر الرافدين يعمل")
-                .setContentText(room != null && !room.isEmpty() ? "رمز الغرفة: " + room + " — اترك التطبيق مفتوحاً" : "اترك التطبيق مفتوحاً أثناء اللعب")
+                .setContentText(text)
                 .setOngoing(true)
-                .setContentIntent(open);
-        Notification n = b.build();
+                .setContentIntent(open)
+                .build();
+    }
+
+    @Override
+    @SuppressWarnings("deprecation")
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        Notification n = build(this, last);
         try {
             if (Build.VERSION.SDK_INT >= 29) startForeground(1, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC);
             else startForeground(1, n);
-        } catch (Exception e) { /* بلا خدمة أمامية */ }
-
+        } catch (Exception e) { }
+        alive = true;
         try {
             if (cpu == null) {
                 PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
@@ -67,15 +83,19 @@ public class KeepAlive extends Service {
                     wifi.acquire();
                 }
             }
-        } catch (Exception e) { /* بلا أقفال */ }
+        } catch (Exception e) { }
+        // بعد إعادة تشغيل التطبيق من النظام: المحرك يُبنى هنا ويرجع يشغّل السيرفر
+        Engine.get(this);
         return START_STICKY;
     }
 
     @Override
     public void onDestroy() {
+        alive = false;
         try { if (cpu != null && cpu.isHeld()) cpu.release(); } catch (Exception e) { }
         try { if (wifi != null && wifi.isHeld()) wifi.release(); } catch (Exception e) { }
         cpu = null; wifi = null;
+        Engine e = Engine.peek(); if (e != null) e.releaseIfIdle();
         super.onDestroy();
     }
 

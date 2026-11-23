@@ -9,6 +9,7 @@ import { Input } from '../core/input.js';
 import { HUD, HUD_HTML } from './hud.js';
 import { Lan } from '../net/lan.js';
 import { Social, fmtId, validId } from '../net/social.js';
+import { Central } from '../net/central.js';
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -47,7 +48,7 @@ const TEMPLATE = HUD_HTML + `
       <div class="modes" id="modes"></div>
       <div class="mdesc" id="mdesc"></div>
       <div class="mopts" id="mopts"></div>
-      <div class="hbot"><div class="party" id="party"></div><button class="btn big lobbyBtn" id="btnLobby" title="لوبي خاص: تجوّل بالسوق ومهام">${ICON.shop}<span>السوق والمهام</span></button><button class="btn primary big" id="btnStart">ابدأ المعركة</button></div>
+      <div class="hbot"><div class="party" id="party"></div><button class="btn big lobbyBtn" id="btnLobby" title="لوبي خاص: تجوّل بالسوق ومهام">${ICON.shop}<span>السوق والمهام</span></button><button class="btn big onlineBtn" id="btnOnline" title="معركة أونلاين مع لاعبين حقيقيين (حد أقصى 10)"><span class="odot"></span><span>أونلاين</span></button><button class="btn primary big" id="btnStart">ابدأ المعركة</button></div>
     </div>
   </div>
 </section>
@@ -134,6 +135,8 @@ export const UI = {
     ui.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => { Audio.init(); Audio.play('ui'); this.open(b.dataset.go); }));
     ui.querySelectorAll('[data-back]').forEach(b => b.addEventListener('click', () => { Audio.play('uiBack'); this.back(); }));
     $('#btnStart').addEventListener('click', () => { Audio.init(); Audio.play('ui'); this.start(); });
+    $('#btnOnline').addEventListener('click', () => { Audio.init(); Audio.play('ui'); this.goOnline(); });
+    setInterval(() => { const d = document.querySelector('#btnOnline .odot'); if (d) d.className = 'odot' + (Central.isOnline() ? ' on' : ''); }, 3000);
     $('#btnLobby').addEventListener('click', () => { Audio.init(); Audio.play('ui'); this.startLobby(); });
     $('#pResume').addEventListener('click', () => this.game.resume());
     $('#pLoadout').addEventListener('click', () => this.open('loadout'));
@@ -286,6 +289,15 @@ export const UI = {
     const S = Settings;
     this.closeScreens(); this.hud(true);
     this.game.startLobby({ char: S.char, name: S.name, difficulty: S.difficulty, loadout: this.getLoadout('tdm'), weather: S.weather });
+  },
+  // معركة أونلاين: السيرفر المركزي ← غرفة مفتوحة ← نفتح غرفة على هاتفي
+  async goOnline() {
+    const b = $('#btnOnline'); if (b.disabled) return;
+    const lbl = b.querySelector('span:last-child'), say = t => { lbl.textContent = t.length > 26 ? t.slice(0, 25) + '…' : t; this.toast2(t); };
+    b.disabled = true;
+    try { await this.game.onlineMatch(this.matchOpts(), say); this.closeScreens(); this.hud(true); }
+    catch (e) { this.toast2('تعذّر دخول معركة أونلاين: ' + (e.message || e)); }
+    finally { b.disabled = false; lbl.textContent = 'أونلاين'; }
   },
   async start() {
     if (Social.party && Social.party.members.length > 1) {

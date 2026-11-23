@@ -13,10 +13,12 @@ import { Game } from './game/game.js';
 import { UI } from './ui/ui.js';
 import { HUD } from './ui/hud.js';
 import { Social } from './net/social.js';
+import { Central } from './net/central.js';
 import { buildGun } from './game/gunmodels.js';
 import { Intro, introSeen } from './game/intro.js';
 
 Social.load();
+Central.init();
 Social.start(() => ({ name: Settings.name, char: Settings.char }));
 const canvas = document.getElementById('gl');
 const Q = quality();
@@ -92,4 +94,4 @@ Loop.start((dt, now) => {
   game.frame(dt, now);
   fpsT -= dt; if (fpsT <= 0) { fpsT = 0.5; HUD.fps(`FPS ${Math.round(Loop.fps)} · ${Loop.ms.toFixed(1)}ms · ${resText}`); }
 });
-window.__R = { playIntro, Audio, renderer, scene, camera, world, game, UI, HUD, Loop, Input, Settings, Social, THREE, buildGun, weather, stats: () => renderer.info.render };
+window.__R = { playIntro, Central, Audio, renderer, scene, camera, world, game, UI, HUD, Loop, Input, Settings, Social, THREE, buildGun, weather, stats: () => renderer.info.render };

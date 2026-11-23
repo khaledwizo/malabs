@@ -558,3 +558,7 @@ body.drone #gl{filter:saturate(.55) contrast(1.15) brightness(1.05) sepia(.18) h
 body.drone #bFire,body.drone #bFireL,body.drone #bAds,body.drone #bReload,body.drone #bNade,body.drone #bLeanL,body.drone #bLeanR,body.drone #bBand,body.drone #bSyr,body.drone #bUse,body.drone #slots,body.drone #ammo,body.drone #cross{display:none!important}
 body.drone #topbar,body.drone #feed{display:none}
 #droneHud #dBack{background:rgba(0,0,0,.6);border:1px solid rgba(160,255,170,.6);color:#d8ffd8}
+.hbot .onlineBtn{display:flex;align-items:center;gap:7px;white-space:nowrap;background:linear-gradient(160deg,rgba(36,70,120,.92),rgba(16,30,58,.96));border:1px solid rgba(130,190,255,.5);color:#e2efff;max-width:46vw;overflow:hidden}
+.hbot .onlineBtn .odot{width:9px;height:9px;border-radius:50%;background:#8a96a8;box-shadow:0 0 0 2px rgba(255,255,255,.12);flex:none}
+.hbot .onlineBtn .odot.on{background:#3ee07a;box-shadow:0 0 8px #3ee07a}
+.hbot .onlineBtn:disabled{opacity:.85}

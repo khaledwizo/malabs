@@ -8,6 +8,7 @@ import { ClientLink, LocalLink, newId } from './link.js';
 import { Lan, LanClientLink } from './lan.js';
 import { brokerList } from './mqtt.js';
 import { PROTO, encCmd, decPlayer } from './proto.js';
+import { Central } from './central.js';
 
 const STEP = 1 / 60, INTERP = 0.12, now = () => performance.now() / 1000;
 const LOCAL_EV = new Set(['shot', 'impact', 'draw', 'reload', 'reloaded', 'dry', 'knife', 'throw', 'heal', 'healed']);
@@ -91,7 +92,7 @@ export class NetSim {
   sayHi() {
     this.state = this.state === 'joined' ? 'rejoin' : 'joining';
     const o = this.opt;
-    const hi = () => { if (this.state !== 'joining' && this.state !== 'rejoin') return; this.link.send({ k: 'hi', v: PROTO, n: o.name, ch: o.char, lo: o.loadout, tm: o.team }, true); this.hiT = setTimeout(hi, 1500); };
+    const hi = () => { if (this.state !== 'joining' && this.state !== 'rejoin') return; this.link.send({ k: 'hi', v: PROTO, n: o.name, ch: o.char, lo: o.loadout, tm: o.team, ...Central.ident() }, true); this.hiT = setTimeout(hi, 1500); };
     clearTimeout(this.hiT); hi();
   }
   lost(why) {
@@ -107,7 +108,7 @@ export class NetSim {
       case 'wl': this.welcome(m); break;
       case 'who': if (this.state === 'joined') this.sayHi(); break;
       case 'po': { const r = now() - m.c; if (r >= 0 && r < 10) this.ping = this.ping ? this.ping * 0.75 + r * 0.25 : r; break; }
-      case 'hp': this.hostPid = m.pid; this.hostCfg = m.cfg; break;
+      case 'hp': this.hostPid = m.pid; this.hostCfg = m.cfg; if (m.mid) this.hostMid = m.mid; break;
       case 'ro': for (const [id, name, bot, team, ch, rtt] of m.p) { this.roster.set(id, { name, bot: !!bot, team, char: ch, rtt }); const p = this.players.get(id); if (p) { p.name = name; p.bot = !!bot; } }
         if (this.mini && m.br) { for (const i of m.br) if (this.mini.props[i] && this.mini.props[i].alive) { this.worldEvent({ t: 'break', id: i }); this.events.push({ t: 'break', id: i, silent: 1 }); } }
         if (this.mini && m.nd) { for (const i of m.nd) if (this.mini.npcs[i] && this.mini.npcs[i].alive) { this.worldEvent({ t: 'npcDie', id: i }); this.events.push({ t: 'npcDie', id: i, silent: 1 }); } }

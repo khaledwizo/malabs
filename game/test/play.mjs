@@ -6,7 +6,7 @@ const mobile = process.argv.includes('mobile');
 const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
 const ctx = await b.newContext(mobile ? { viewport: { width: 844, height: 390 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true } : { viewport: { width: 1280, height: 720 } });
 const p = await ctx.newPage();
-await p.addInitScript(() => { try { localStorage.setItem('rafidain.intro.v1', '1'), localStorage.setItem('rafidain.settings.v1', JSON.stringify({ fps: 0, quality: 'medium' })); } catch (e) { } });
+await p.addInitScript(() => { try { localStorage.setItem('rafidain.intro.v2', '1'), localStorage.setItem('rafidain.settings.v1', JSON.stringify({ fps: 0, quality: 'medium' })); } catch (e) { } });
 const errs = []; p.on('pageerror', e => errs.push('PAGEERROR ' + e.message + '\n' + (e.stack || '').split('\n').slice(0, 5).join('\n'))); p.on('console', m => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) errs.push('ERR ' + m.text()); });
 await p.goto(url); await p.waitForTimeout(3000);
 const pre = mobile ? 'm_' : '';

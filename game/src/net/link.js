@@ -15,7 +15,7 @@ function waitIce(pc, ms = 2500) {
 // ---------- جهة السيرفر ----------
 // السيرفر يتصل بكل الوسطاء معاً: أي لاعب يصل عبر أي وسيط متاح عنده، ونردّ عليه من الوسيط نفسه
 export class HostLink {
-  constructor(room, opt = {}) { this.room = room; this.mqs = []; this.peers = new Map(); this.onmsg = null; this.onstatus = opt.onStatus || (() => { }); this.useRtc = opt.rtc !== false && !NO_RTC && typeof RTCPeerConnection !== 'undefined'; this.urls = opt.brokers || brokerList(); this.closed = false; }
+  constructor(room, opt = {}) { this.room = room; this.mqs = []; this.peers = new Map(); this.onmsg = null; this.onstatus = opt.onStatus || (() => { }); this.useRtc = opt.rtc !== false && !NO_RTC && typeof RTCPeerConnection !== 'undefined'; this.urls = opt.brokers || brokerList(); this.closed = false; this.will = opt.will || null; if (opt.rtc && opt.rtc.proxy) { this.rtcProxy = opt.rtc; this.useRtc = true; } }
   async open() {
     this.onstatus('الاتصال بالوسطاء…');
     this.openLan();
@@ -37,7 +37,7 @@ export class HostLink {
     };
   }
   async connectOne(url) {
-    const m = new Mqtt(url); await m.connect();
+    const m = new Mqtt(url); await m.connect(7000, this.will ? { will: this.will } : {});
     if (this.closed) { m.close(); return; }
     m.subscribe(NS + this.room + '/up');
     m.onmessage = (topic, payload) => { let x; try { x = JSON.parse(utf8.dec(payload)); } catch (e) { return; } if (!x || !x.from) return; this.handle(x.from, x, 'mqtt', m); };
@@ -56,6 +56,7 @@ export class HostLink {
     if (this.onmsg) this.onmsg(from, m, via);
   }
   async acceptRtc(from, sdp) {
+    if (this.rtcProxy) { this.rtcProxy.offer(from, sdp); return; }
     try {
       const p = this.peers.get(from); if (p.pc) p.pc.close();
       const pc = new RTCPeerConnection({ iceServers: ICE }); p.pc = pc;
@@ -72,20 +73,31 @@ export class HostLink {
     if (p && p.local) { queueMicrotask(() => p.local(JSON.parse(s))); return; }
     if (p && p.lan) { Lan.send(p.lan, s); return; }
     if (!forceRelay && p && p.dc && p.dc.readyState === 'open') { try { p.dc.send(s); return; } catch (e) { } }
+    if (!forceRelay && p && p.dcp) { this.rtcProxy.send([cid], s); return; }
     for (const q of this.mqFor(p)) q.publish(NS + this.room + '/to/' + cid, s);
   }
   // بث للجميع: مباشر لمن يملك قناة، وعبر كل وسيط فيه لاعبون بلا قناة (مرة واحدة لكل وسيط)
   broadcast(m) {
-    const s = JSON.stringify(m), via = new Set();
-    for (const p of this.peers.values()) {
+    const s = JSON.stringify(m), via = new Set(), px = [];
+    for (const [cid, p] of this.peers) {
+      if (p.dcp) { px.push(cid); continue; }
       if (p.local) { queueMicrotask(() => p.local(JSON.parse(s))); continue; }
       if (p.lan) { Lan.send(p.lan, s); continue; }
       if (p.dc && p.dc.readyState === 'open') { try { p.dc.send(s); continue; } catch (e) { } }
       for (const q of this.mqFor(p)) via.add(q);
     }
+    if (px.length) this.rtcProxy.send(px, s);
     for (const q of via) q.publish(NS + this.room + '/dn', s);
   }
-  drop(cid) { const p = this.peers.get(cid); if (p && p.pc) p.pc.close(); this.peers.delete(cid); }
+  // قناة مباشرة تُدار من الخيط الرئيسي (العامل ما يگدر يفتح WebRTC)
+  proxyEvent(t, from, x) {
+    const p = this.peers.get(from); if (!p) return;
+    if (t === 'ans') this.sendTo(from, { k: 'rtc-answer', sdp: x }, true);
+    else if (t === 'open') { p.dcp = true; p.via = 'p2p'; }
+    else if (t === 'close') { p.dcp = false; p.via = 'relay'; }
+    else if (t === 'msg') { let m; try { m = JSON.parse(x); } catch (e) { return; } this.handle(from, m, 'p2p'); }
+  }
+  drop(cid) { const p = this.peers.get(cid); if (p && p.pc) p.pc.close(); if (p && p.dcp) this.rtcProxy.drop(cid); this.peers.delete(cid); }
   via(cid) { const p = this.peers.get(cid); return p ? p.via : 'relay'; }
   get remotes() { let n = 0; for (const p of this.peers.values()) if (!p.local) n++; return n; }
   close() { this.closed = true; if (this.lanIp) { Lan.stop(); this.lanIp = ''; } for (const p of this.peers.values()) if (p.pc) p.pc.close(); this.peers.clear(); for (const q of this.mqs) { q.onclose = null; q.close(); } this.mqs = []; }
