@@ -70,6 +70,8 @@ export const Economy = {
   get money() { return this.W.money; },
   owns(id) { return !!this.W.owned[id] || WPRICE[id] === 0; },
   can(price) { return this.W.money >= price; },
+  earn(v) { const a = r250(v); if (a > 0) { this.W.money += a; this.save(); } return a; },
+  spend(price) { const ok = this.pay(price); if (ok) this.save(); return ok; },
   pay(price) { if (!this.can(price)) return false; this.W.money -= price; return true; },
   buyWeapon(id) { const p = WPRICE[id]; if (p == null || this.owns(id) || !this.pay(p)) return false; this.W.owned[id] = 1; this.save(); return true; },
   buyAmmo(t, packs = 1) { const A = AMMO[t]; if (!A || !this.pay(A.price * packs)) return false; this.W.ammo[t] = (this.W.ammo[t] || 0) + A.pack * packs; this.save(); return true; },

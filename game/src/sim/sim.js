@@ -35,10 +35,12 @@ export class Sim {
     // أجسام قابلة للكسر وأهل السوق: حالة كل مباراة (العالم مشترك فنعيده لحالته السليمة)
     this.props = (world.props || []).map(p => ({ hp: p.hp, alive: true }));
     this.npcs = (world.npcs || []).map(n => ({ hp: 70, alive: true }));
+    this.doors = (world.doors || []).map(() => ({ open: false, t: 0 }));
     this.resetWorld(false);
   }
   resetWorld(ev = true) {
     const W = this.w;
+    (this.doors || []).forEach((st, i) => { st.open = false; st.t = 0; const d = W.doors[i]; if (d) W.restore(d.box); });
     (W.props || []).forEach((p, i) => { const st = this.props[i]; st.hp = p.hp; st.alive = true; for (const b of p.boxes) W.restore(b); });
     this.npcs.forEach((n, i) => { n.alive = true; n.hp = 70; const w = (W.npcs || [])[i]; if (w && w.box >= 0 && !n.away) W.restore(w.box); });
     if (ev) this.events.push({ t: 'reset' });
@@ -156,6 +158,46 @@ export class Sim {
     return [best[0], best[1], best[2], yaw];
   }
   // ---------- الجولات والوقت ----------
+  // علامة على الخريطة يشوفها الفريق (p = [x, z, مسار؟] أو null)
+  setMark(id, p) {
+    const q = this.players.get(id); if (!q) return;
+    const v = Array.isArray(p) && p.length >= 2 && isFinite(p[0]) && isFinite(p[1]) ? [Math.max(-200, Math.min(200, +p[0])), Math.max(-200, Math.min(200, +p[1])), p[2] ? 1 : 0] : null;
+    q.mark = v; this.events.push({ t: 'mark', id, team: q.team, p: v, name: q.name });
+  }
+  // ---------- الأبواب والأكل والمرقد ----------
+  inNoFire(p) { for (const z of this.w.noFire || []) if (p.pos[0] > z[0] && p.pos[0] < z[2] && p.pos[2] > z[1] && p.pos[2] < z[3]) return true; return false; }
+  doorBusy(d) { const [x0, z0, x1, z1] = d.bb; for (const q of this.players.values()) if (q.alive && q.pos[0] > x0 - 0.45 && q.pos[0] < x1 + 0.45 && q.pos[2] > z0 - 0.45 && q.pos[2] < z1 + 0.45 && q.pos[1] < d.y + d.h) return true; return false; }
+  setDoor(i, open, by) {
+    const d = this.w.doors[i], st = this.doors[i]; if (!d || st.open === open) return false;
+    if (!open && this.doorBusy(d)) return false;
+    st.open = open; st.t = open ? 10 : 0;
+    if (open) this.w.disable(d.box); else this.w.restore(d.box);
+    this.events.push({ t: 'door', i, open, by: by ?? -1 });
+    return true;
+  }
+  // زر «استعمال»: أقرب باب، وإلا بسطة لبلبي أو چاي
+  use(p) {
+    let bd = 2.3, bi = -1;
+    (this.w.doors || []).forEach((d, i) => { const dd = Math.hypot(d.x - p.pos[0], d.z - p.pos[2]); if (dd < bd && Math.abs(p.pos[1] - d.y) < 2) { bd = dd; bi = i; } });
+    if (bi >= 0) { this.setDoor(bi, !this.doors[bi].open, p.id); return; }
+    for (const u of this.w.usables || []) {
+      if (Math.hypot(u.x - p.pos[0], u.z - p.pos[2]) > u.r) continue;
+      const eat = u.kind === 'lablabi', f = p.food || (p.food = { e: 3, t: 8 });
+      if (eat ? f.e <= 0 : f.t <= 0) { this.events.push({ t: 'foodOut', id: p.id, k: u.kind }); return; }
+      if (p.hp >= p.maxHp - 1) { this.events.push({ t: 'foodFull', id: p.id, k: u.kind }); return; }
+      if (eat) f.e--; else f.t--;
+      p.healT = eat ? 6 : 3; p.healK = eat ? 3 : 4; p.ads = false; p.reloadT = 0;
+      this.events.push({ t: 'heal', id: p.id, k: p.healK, left: eat ? f.e : f.t }); return;
+    }
+  }
+  tickDoors(dt) {
+    if (this.pred) return;
+    (this.w.doors || []).forEach((d, i) => {
+      const st = this.doors[i];
+      if (st.open) { st.t -= dt; if (st.t <= 0 && !this.setDoor(i, false)) st.t = 1; } // يتسكّر بعد 10 ثوانٍ (إذا ماكو أحد بالباب)
+      else for (const q of this.players.values()) if (q.bot && q.alive && Math.hypot(d.x - q.pos[0], d.z - q.pos[2]) < 1.4) { this.setDoor(i, true, q.id); break; }
+    });
+  }
   // ---------- وضع السيطرة: نقاط تتغيّر كل قيم ----------
   initDom() {
     this.cps = []; if (!this.dom) return;
@@ -164,7 +206,7 @@ export class Sim {
     const cen = t => { const S = ST[t] || []; if (!S.length) return null; let x = 0, z = 0; for (const a of S) { x += a[0]; z += a[2]; } return [x / S.length, z / S.length]; };
     const c0 = cen(0), c1 = cen(1);
     // مرشّحون: أرض مفتوحة (روابط كثيرة) على مستوى الشارع
-    const C = []; nav.nodes.forEach((a, i) => { if (a[1] < 0.3 && a[3] !== 'dead' && nav.adj[i].length >= 5) C.push(a); });
+    const C = []; nav.nodes.forEach((a, i) => { if (a[1] < 0.3 && a[3] !== 'dead' && nav.adj[i].length >= 5 && !(this.w.noFire || []).some(z => a[0] > z[0] - 4 && a[0] < z[2] + 4 && a[2] > z[1] - 4 && a[2] < z[3] + 4)) C.push(a); });
     if (!C.length) return;
     const bal = a => c0 && c1 ? Math.hypot(a[0] - c0[0], a[2] - c0[1]) - Math.hypot(a[0] - c1[0], a[2] - c1[1]) : 0; // سالب = أقرب للفريق الأول
     const pickFrom = (L) => L[Math.floor(this.rng() * L.length)];
@@ -201,7 +243,7 @@ export class Sim {
   start() {
     this.round = 0; this.score = [0, 0]; this.matchOver = false; this.winner = -1;
     this.resetWorld(true);
-    for (const p of this.players.values()) { p.kills = p.deaths = p.assists = p.dmgDone = p.hs = p.kh = p.kb = 0; }
+    for (const p of this.players.values()) { p.kills = p.deaths = p.assists = p.dmgDone = p.hs = p.kh = p.kb = 0; p.food = { e: 3, t: 8 }; }
     this.initDom();
     this.newRound();
   }
@@ -227,6 +269,7 @@ export class Sim {
   step(dt) {
     if (this.beforeStep) this.beforeStep(dt);
     this.t += dt; this.tick++;
+    this.tickDoors(dt);
     this.phaseT -= dt;
     if (this.phase === 'buy' && this.phaseT <= 0) { this.phase = 'live'; this.phaseT = this.tdm ? this.timeLimit : this.roundTime; this.events.push({ t: 'round', n: this.round, phase: 'live' }); }
     else if (this.phase === 'live') {
@@ -281,6 +324,8 @@ export class Sim {
     if (!p.alive) return;
     if (p.netWait) { p.netWait = false; return; } // لاعب شبكي لم يصل أمره بعد: ينتظر بدل أن نخمّن حركته
     const c = p.cmd;
+    // اللوبي بلا قتال، والمرقد يُمنع فيه إطلاق النار ورمي القنابل
+    if (this.rules === 'lobby' || this.inNoFire(p)) { c.fire = false; c.ads = false; if (p.slot === 4) c.slot = p.prevSlot || 2; }
     p.yaw = c.yaw; p.pitch = Math.max(-1.5, Math.min(1.5, c.pitch));
     const frozen = this.phase === 'buy' || this.phase === 'over' || (this.phase === 'end' && this.matchOver);
     const wd = this.curWD(p);
@@ -294,9 +339,12 @@ export class Sim {
       if (h) { const lim = Math.max(0, (h.t - 0.2) / LEAN); if (Math.abs(p.lean) > lim) p.lean = s * lim; }
     }
     // العلاج: ضمادة أو إبرة — يُلغى بالإطلاق أو القفز أو تبديل السلاح
-    if (!frozen && c.heal && p.healT <= 0) { const k = c.heal === 2 ? 's' : 'b', M = MEDS[k]; if (p.meds[k] > 0 && p.hp < p.maxHp - 1) { p.healT = M.t; p.healK = c.heal; p.ads = false; p.reloadT = 0; this.events.push({ t: 'heal', id: p.id, k: c.heal }); } }
+    if (!frozen && c.heal === 3 && p.healT <= 0 && !p.useLatch) { p.useLatch = true; if (!this.pred) this.use(p); }
+    if (c.heal !== 3) p.useLatch = false;
+    if (!frozen && c.heal && c.heal < 3 && p.healT <= 0) { const k = c.heal === 2 ? 's' : 'b', M = MEDS[k]; if (p.meds[k] > 0 && p.hp < p.maxHp - 1) { p.healT = M.t; p.healK = c.heal; p.ads = false; p.reloadT = 0; this.events.push({ t: 'heal', id: p.id, k: c.heal }); } }
     if (p.healT > 0) {
       if (c.fire || c.jump || (c.slot && c.slot !== p.slot) || c.reload) { p.healT = 0; p.healK = 0; }
+      else if (p.healK >= 3) { p.healT -= dt; if (p.healT <= 0) { const eat = p.healK === 3; p.hp = Math.min(p.maxHp, p.hp + (eat ? 40 : 10)); p.healT = 0; p.healK = 0; this.events.push({ t: 'healed', id: p.id, k: eat ? 'eat' : 'tea' }); } }
       else { p.healT -= dt; if (p.healT <= 0) { const k = p.healK === 2 ? 's' : 'b'; p.meds[k]--; p.hp = Math.min(p.maxHp, p.hp + MEDS[k].hp); p.healT = 0; p.healK = 0; this.events.push({ t: 'healed', id: p.id, k }); } }
     }
     const healing = p.healT > 0;

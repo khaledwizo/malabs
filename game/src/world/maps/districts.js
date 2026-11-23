@@ -179,9 +179,32 @@ export function buildDistricts(B, H) {
   graffiti('ارحلوا', -58.5, 1.5, -29.53, 0, 2.2);
   B.light(-62.2, 2.5, -26.2, 0xff9a50, 1.3, 7, 1); B.glow(-62.2, 2.5, -26.2, 0.5, 0xff9a50, 1);
   // كتلة محترقة صمّاء
-  block(-66, -18, -52, -6, ['n', 's', 'e', 'w'], { hMin: 5, hMax: 7.5, ruin: true });
-  graffiti('لا تلتفت', -51.97, 2.3, -12.5, PI / 2, 2.8);
-  graffiti('', -51.97, 1.4, -8.2, PI / 2, 1.6, { opt: { hands: true } });
+  // ================= مضيف الشيخ فاتح الرفاعي =================
+  // بيت عربي بباب خشبي يُفتح، فرش وتكايات على الجدران، دلال قهوة، ولوحة باسمه بالخط الكوفي المزخرف
+  {
+    const x0 = -66, z0 = -18, x1 = -52, z1 = -6, t = 0.45, H = 4.4, dz = -12, dw = 1.6, dh = 2.5;
+    B.box(x0, 0, z0, x1, H, z0 + t, 'brickPale'); B.box(x0, 0, z1 - t, x1, H, z1, 'brickPale'); B.box(x0, 0, z0 + t, x0 + t, H, z1 - t, 'brickPale');
+    B.box(x1 - t, 0, z0 + t, x1, H, dz - dw / 2, 'brickPale'); B.box(x1 - t, 0, dz + dw / 2, x1, H, z1 - t, 'brickPale'); B.box(x1 - t, dh, dz - dw / 2, x1, H, dz + dw / 2, 'brickPale');
+    B.box(x0 - 0.1, H, z0 - 0.1, x1 + 0.1, H + 0.3, z1 + 0.1, 'roof');
+    for (const [a, b, c, d] of [[x0 - 0.1, z0 - 0.1, x1 + 0.1, z0 + 0.2], [x0 - 0.1, z1 - 0.2, x1 + 0.1, z1 + 0.1], [x0 - 0.1, z0 + 0.2, x0 + 0.2, z1 - 0.2], [x1 - 0.2, z0 + 0.2, x1 + 0.1, z1 - 0.2]]) B.box(a, H + 0.3, b, c, H + 0.9, d, 'brickPale');
+    B.door({ x: x1 - t / 2, z: dz, axis: 'z', w: dw, h: dh, swing: -1, mat: 'woodDark', name: 'مضيف الشيخ' });
+    if (vis) {
+      B.box(x0 + t, 0, z0 + t, x1 - t, 0.03, z1 - t, 'carpet', { col: false, faces: 'py' });
+      B.box(x0 + 2.5, 0.03, z0 + 2.4, x1 - 2.5, 0.05, z1 - 2.4, 'carpet2', { col: false, faces: 'py' });
+      // فرش (دواشك) وتكايات على ثلاث جدران
+      for (let x = x0 + 1; x < x1 - 1.4; x += 1.25) for (const [zz, s2] of [[z0 + t + 0.35, 1], [z1 - t - 0.35, -1]]) { B.boxB(x + 0.55, 0, zz, 1.15, 0.16, 0.7, 'clothRed', { col: false }); B.boxB(x + 0.55, 0.16, zz - s2 * 0.3, 1.0, 0.42, 0.16, 'clothCream', { col: false }); }
+      for (let z = z0 + 1.2; z < z1 - 1.2; z += 1.25) { B.boxB(x0 + t + 0.35, 0, z + 0.55, 0.7, 0.16, 1.15, 'clothRed', { col: false }); B.boxB(x0 + t + 0.07, 0.16, z + 0.55, 0.16, 0.42, 1.0, 'clothCream', { col: false }); }
+      // سقف بجسور خشبية
+      for (let x = x0 + 0.9; x < x1 - 0.5; x += 1.4) B.box(x, H - 0.22, z0 + t, x + 0.18, H, z1 - t, 'beam', { col: false });
+      // موقد ودلال القهوة
+      B.boxB(x0 + 3.2, 0, dz, 1.0, 0.22, 1.0, 'brickBurnt', { col: false });
+      for (let k = 0; k < 3; k++) { const a = k * 2.1; B.geo(() => new THREE.CylinderGeometry(0.07, 0.11, 0.24, 10), T(x0 + 3.2 + Math.cos(a) * 0.28, 0.22, dz + Math.sin(a) * 0.28), 'brass'); B.geo(() => new THREE.ConeGeometry(0.07, 0.12, 10), T(x0 + 3.2 + Math.cos(a) * 0.28, 0.4, dz + Math.sin(a) * 0.28), 'brass'); }
+      // اللوحة بالكوفي على الجدار المقابل للباب
+      signs.push({ text: 'الشيخ فاتح الرفاعي', x: x0 + t + 0.02, y: 2.7, z: dz, ry: PI / 2, w: 3.6, h: 1.35, opt: { kufi: true, sub: 'مضيف أهل العلم والكرم', w: 1024, h: 384, glow: 0.45 } });
+      sign('مضيف الشيخ فاتح الرفاعي', x1 + 0.03, 3.1, dz, PI / 2, 2.6);
+      B.light(-59, 3.5, -12, 0xffc27a, 2.4, 10, 2); B.glow(-59, 3.6, -12, 0.5, 0xffc27a, 2);
+    }
+  }
   // البيت المسكون: غرفتان بباب داخلي، مرآة ودمية وكرسي هزّاز
   ruinHouse(-66, -2, -52, 8, {
     h: 5.4, n: [{ u: 10, w: 1.3, type: 'door' }, { u: 4, w: 1.2, type: 'win' }], e: [{ u: 5, w: 1.3, type: 'door' }], s: [{ u: 4, w: 1.3, type: 'door' }, { u: 10, w: 1.2, type: 'win' }], w: [{ u: 5, w: 1.2, type: 'win' }],
@@ -258,6 +281,10 @@ export function buildDistricts(B, H) {
       for (let k = 0; k < 5; k++) { const a = k / 5 * PI * 2; B.glow(cx + Math.cos(a) * 1.9, 0.35, cz + Math.sin(a) * 1.9, 0.22, 0xffd090, 1); B.geo(() => new THREE.CylinderGeometry(0.035, 0.035, 0.3, 6), T(cx + Math.cos(a) * 1.9, 0.15, cz + Math.sin(a) * 1.9), 'flowerWhite'); }
     }
     B.light(cx, 3.2, cz, 0x9effb8, 1.6, 8, 1);
+    // باب المرقد من الشرق والغرب (يُفتح ويتسكّر وحده بعد 10 ثوانٍ) — ويُمنع إطلاق النار داخله
+    B.door({ x: cx + s - t / 2, z: cz, axis: 'z', w: 2.0, h: 2.4, leaves: 2, swing: 1, mat: 'woodGreen', name: 'باب المرقد' });
+    B.door({ x: cx - s + t / 2, z: cz, axis: 'z', w: 2.0, h: 2.4, leaves: 2, swing: -1, mat: 'woodGreen', name: 'باب المرقد' });
+    B.noFire(cx - s, cz - s, cx + s, cz + s);
   }
   // القبور: صفوف بين الدروب (درب طولي عند x=-79 ودروب عرضية عند z=-20,-4,10)
   const trees = [[-86.6, -25.4, 5.4], [-71.4, -14.6, 6], [-87.1, 5.6, 5], [-70.4, 14.6, 5.6], [-84.6, -13.2, 4.6], [-72.6, -23.7, 5.2], [-74.8, 6.4, 4.8]];
@@ -391,7 +418,7 @@ export function buildDistricts(B, H) {
   B.box(76, 0, 20, 80, 2.7, 23, 'plasterWhite');
   if (vis) { B.box(75.6, 2.7, 19.6, 80.4, 2.9, 23.6, 'woodBlue', { col: false }); B.box(76.6, 1.0, 23.0, 79.4, 1.9, 23.03, 'dark', { col: false }); B.box(76.4, 0.95, 23.0, 79.6, 1.05, 23.4, 'woodDark', { col: false }); teaStove(76.95, 1.05, 23.2, PI); for (let k = 0; k < 7; k++) estikan(77.55 + k * 0.28, 1.05, 23.2, k < 4 ? 0.9 : 0, 0.5 + k); B.geo(() => new THREE.PlaneGeometry(4.6, 1.3), T(78, 2.5, 23.7, 0, 1, 1, 1, -1.1), 'clothCream', { uvs: 0.5 }); }
   sign('شاي الشريعة', 78, 2.38, 23.04, 0, 2.6, { bg: '#7a1a1f', border: '#f3d98a' });
-  table(74.6, 24.8); table(81.2, 24.6);
+  table(74.6, 24.8); table(81.2, 24.6); table(77.7, 27.2); // الثالثة: يلتقي عليها الأصحاب ويطلبون چاي
   // مرسى العبّارة
   B.box(62, -0.1, 33.6, 66, 0.15, 40, 'wood', { cm: MAT.wood });
   B.col(61.9, 0.15, 39.9, 66.1, 1, 40.1); B.col(61.9, 0.15, 33.6, 62, 1, 40); B.col(66, 0.15, 33.6, 66.1, 1, 40);
@@ -422,6 +449,77 @@ export function buildDistricts(B, H) {
   for (const [dx, dz, r] of [[-0.38, -0.1, 0.15], [0.05, 0.12, -0.2], [0.42, -0.08, 0.35]]) B.put('fish', -68.6 + dx, 0.36, 31.4 + dz, PI / 2 + r, 1.25);
   // زوّار الضريح يقرؤون الفاتحة رافعين أكفّهم (لا يُصابون احتراماً للمكان)
   for (const [x, z, yaw] of [[-80.2, -5.55, PI], [-77.8, -5.55, PI + 0.2], [-78.2, -2.4, 0], [-80.6, -2.5, 0.3]]) B.npc({ x, z, yaw, pose: 'pray', look: 'pilgrim', kill: false });
+
+  // ================= أهل السوق الجدد (مهام اللوبي — ساكتين بالمعركة) =================
+  // 29 أبو علي اللبلبچي: عربانة لبلبي يمّ الچايچي (تأكل منها بالمعركة 3 مرات)
+  {
+    const lx = 71.6, lz = 21.4;
+    B.box(lx - 0.75, 0, lz - 0.45, lx + 0.75, 0.95, lz + 0.45, 'woodBlue', { cm: MAT.wood, flags: F.THIN });
+    if (vis) {
+      for (const sx of [-0.55, 0.55]) B.geo(() => new THREE.TorusGeometry(0.28, 0.05, 6, 16), T(lx + sx, 0.28, lz + 0.47), 'rubber');
+      B.geo(() => new THREE.CylinderGeometry(0.32, 0.28, 0.34, 16), T(lx, 1.12, lz - 0.05), 'copper'); // قِدر اللبلبي
+      B.geo(() => new THREE.CylinderGeometry(0.31, 0.31, 0.02, 16), T(lx, 1.3, lz - 0.05), 'sack');
+      for (let k = 0; k < 5; k++) B.geo(() => new THREE.CylinderGeometry(0.05, 0.04, 0.07, 10), T(lx - 0.5 + k * 0.13, 0.99, lz + 0.3), 'porcelain');
+      for (const sx of [-0.7, 0.7]) B.box(lx + sx - 0.02, 0.95, lz - 0.42, lx + sx + 0.02, 2.1, lz - 0.38, 'iron', { col: false });
+      B.box(lx - 0.85, 2.1, lz - 0.6, lx + 0.85, 2.14, lz + 0.55, 'clothRed', { col: false });
+      sign('لبلبي أبو علي', lx, 1.75, lz - 0.41, PI, 1.3, { bg: '#7a1d14', border: '#ffd27a' });
+      B.light(lx, 1.9, lz, 0xffb060, 1.0, 5, 2);
+    }
+    B.npc({ x: lx, z: lz - 0.95, yaw: PI, pose: 'stand', look: 'lablabi' });
+    B.usable('lablabi', lx, lz + 0.7, 2.2); B.usable('tea', 78, 24.4, 2.4);
+  }
+  // 30 أبو فرحان الراعي وخرافه (الخروف يرعى بالحشيش يمّ الشريعة)
+  if (vis) B.box(34, 0, 27.4, 46, 0.035, 32.6, 'grass', { col: false, faces: 'py' });
+  B.npc({ x: 38.6, z: 27.9, yaw: -0.4, pose: 'stand', look: 'shepherd' });
+  // 31 السائح الأجنبي يصوّر النهر
+  B.npc({ x: 12.5, z: 31.6, yaw: PI, pose: 'stand', look: 'tourist' });
+  // 32 أبو زينب أبو الموبايلات (خبير تصليح الهواتف) بساحة الساعة
+  if (vis) { B.boxB(71.5, 0, -12.6, 1.2, 0.75, 0.6, 'woodDark', { col: false }); for (let k = 0; k < 4; k++) B.boxB(71.05 + k * 0.3, 0.75, -12.6, 0.1, 0.012, 0.18, k % 2 ? 'glassDark' : 'gunmetal', { col: false }); sign('تصليح موبايلات', 71.5, 1.05, -12.29, 0, 1.2, { bg: '#123a5a', border: '#9fd8ff' }); }
+  B.col(70.9, 0, -12.9, 72.1, 0.75, -12.3, MAT.wood, F.THIN);
+  B.npc({ x: 71.5, z: -13.3, yaw: PI, pose: 'stand', look: 'repair' });
+  // 33 حجي مجيد الكبير واقف على باب بيته (مهمة قنينة الغاز)
+  if (vis) { B.box(-52.06, 0, 14.8, -51.98, 2.3, 16.2, 'woodBlue', { col: false }); B.box(-52.1, 2.3, 14.7, -51.96, 2.45, 16.3, 'brickPale', { col: false }); }
+  B.npc({ x: -51.3, z: 15.55, yaw: -PI / 2, pose: 'stand', look: 'elder2' });
+  // 34 أبو أحمد اللي انبوگت حقيبته (باب السوق الجنوبي)
+  B.npc({ x: 5.8, z: 20.6, yaw: PI * 0.85, pose: 'stand', look: 'citizen' });
+  // 35 ياسر الشاب اللي يريد يلتحق بالمجاهدين
+  B.npc({ x: 57.5, z: -3.2, yaw: 0.6, pose: 'stand', look: 'youth' });
+  // 36 أبو حسين الدفّان بالمقبرة
+  B.npc({ x: -71.8, z: -2.0, yaw: -PI / 2, pose: 'stand', look: 'gravedigger' });
+
+  // 37 أبو رسول الخبّاز: بسطة صمّون وكاهي وكعك يمّ البسطات
+  {
+    const bx = 56.4, bz = 5.4;
+    B.boxB(bx, 0, bz, 2.2, 0.88, 0.9, 'woodDark', {});
+    if (vis) {
+      B.boxB(bx, 0.88, bz, 2.3, 0.05, 1.0, 'clothCream', { col: false });
+      for (let k = 0; k < 7; k++) B.geo(() => new THREE.CapsuleGeometry(0.06, 0.2, 3, 8), T(bx - 0.85 + k * 0.17, 0.99, bz - 0.15, 0, 1, 0.8, 1, 0, PI / 2), 'tan'); // صمّون
+      for (let k = 0; k < 4; k++) B.boxB(bx + 0.1 + k * 0.22, 0.93, bz + 0.22, 0.2, 0.03, 0.26, 'flowerYellow', { col: false }); // كاهي
+      for (let k = 0; k < 5; k++) B.geo(() => new THREE.TorusGeometry(0.06, 0.022, 5, 12), T(bx - 0.8 + k * 0.15, 0.95, bz + 0.25, 0, 1, 1, 1, PI / 2), 'clay'); // كعك
+      for (const [lx, lz] of [[-1.1, -0.45], [1.1, -0.45], [-1.1, 0.45], [1.1, 0.45]]) B.boxB(bx + lx, 0, bz + lz, 0.07, lz < 0 ? 2.5 : 2.2, 0.07, 'beam', { col: false });
+      B.geo(() => new THREE.PlaneGeometry(2.6, 1.3), T(bx, 2.36, bz, 0, 1, 1, 1, -PI / 2 + 0.2), 'clothGreen', { uvs: 0.5 });
+      sign('خبز أبو رسول', bx, 2.02, bz - 0.47, PI, 1.4, { bg: '#6a3a12', border: '#ffd89a' });
+    }
+    B.npc({ x: bx, z: bz + 1.0, yaw: 0, pose: 'stand', look: 'baker' });
+  }
+  // وكيل الغاز: قناني غاز مصفوفة يمّ الشريعة (مهمة حجي مجيد)
+  {
+    const gx = -30, gz = 22;
+    B.col(gx - 0.9, 0, gz - 0.5, gx + 0.9, 0.62, gz + 0.5, MAT.metal, F.THIN);
+    if (vis) for (let k = 0; k < 6; k++) { const x = gx - 0.75 + (k % 3) * 0.75, z = gz - 0.25 + Math.floor(k / 3) * 0.5; B.geo(() => new THREE.CylinderGeometry(0.16, 0.16, 0.5, 12), T(x, 0.25, z), k % 2 ? 'paintRed' : 'tileGreen'); B.geo(() => new THREE.CylinderGeometry(0.05, 0.07, 0.1, 8), T(x, 0.55, z), 'brass'); }
+    if (vis) sign('وكيل غاز', gx, 1.3, gz - 0.55, PI, 1.1, { bg: '#7a1414', border: '#ffd0a0' });
+  }
+
+  // ================= مسلّة حمورابي (ساتر بالساحة المفتوحة) =================
+  {
+    const sx = 63.5, sz = -6.8;
+    B.box(sx - 0.42, 0, sz - 0.27, sx + 0.42, 2.25, sz + 0.27, 'stone', { cm: MAT.stone, vis: false });
+    if (vis) {
+      B.geo(() => { const sh = new THREE.Shape(); sh.moveTo(-0.42, 0); sh.lineTo(-0.42, 1.95); sh.quadraticCurveTo(-0.42, 2.45, 0, 2.45); sh.quadraticCurveTo(0.42, 2.45, 0.42, 1.95); sh.lineTo(0.42, 0); sh.lineTo(-0.42, 0); const g = new THREE.ExtrudeGeometry(sh, { depth: 0.54, bevelEnabled: true, bevelSize: 0.03, bevelThickness: 0.03, bevelSegments: 2 }); g.translate(0, 0, -0.27); return g; }, T(sx, 0.12, sz), 'basalt');
+      B.boxB(sx, 0, sz, 1.1, 0.12, 0.75, 'stone', { col: false });
+      sign('مسلّة حمورابي', sx, 0.55, sz + 0.32, 0, 0.8, { bg: '#2a2622', border: '#c8a66a' });
+    }
+  }
 
   // ================= سواتر الطرقات =================
   // صبّات كونكريتية وأكياس رمل وحواجز خشبية قابلة للكسر — تُترك الممرات الرئيسة مفتوحة

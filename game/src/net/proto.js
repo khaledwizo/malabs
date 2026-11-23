@@ -1,6 +1,6 @@
 // ترميز الرسائل بين اللاعب والسيرفر (مضغوط ليوفّر الإنترنت)
 import { withAtt } from '../sim/weapons.js';
-export const PROTO = 3;
+export const PROTO = 4;
 const r2 = v => Math.round(v * 100) / 100, r3 = v => Math.round(v * 1000) / 1000;
 
 // ---------- الأوامر ----------
@@ -10,7 +10,7 @@ export function encCmd(c) {
 }
 export function decCmd(a) {
   const b = a[5] | 0;
-  return { seq: a[0] | 0, mx: clamp((a[1] | 0) / 100, -1, 1), mz: clamp((a[2] | 0) / 100, -1, 1), yaw: +a[3] || 0, pitch: clamp(+a[4] || 0, -1.5, 1.5), jump: !!(b & 1), crouch: !!(b & 2), walk: !!(b & 4), fire: !!(b & 8), ads: !!(b & 16), reload: !!(b & 32), swap: !!(b & 64), slot: clamp(a[6] | 0, 0, 4), vt: +a[7] || 0, lean: clamp(a[8] | 0, -1, 1), heal: clamp(a[9] | 0, 0, 2) };
+  return { seq: a[0] | 0, mx: clamp((a[1] | 0) / 100, -1, 1), mz: clamp((a[2] | 0) / 100, -1, 1), yaw: +a[3] || 0, pitch: clamp(+a[4] || 0, -1.5, 1.5), jump: !!(b & 1), crouch: !!(b & 2), walk: !!(b & 4), fire: !!(b & 8), ads: !!(b & 16), reload: !!(b & 32), swap: !!(b & 64), slot: clamp(a[6] | 0, 0, 4), vt: +a[7] || 0, lean: clamp(a[8] | 0, -1, 1), heal: clamp(a[9] | 0, 0, 3) };
 }
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
@@ -48,6 +48,7 @@ export function encSnap(sim, acks, events) {
     p: [...sim.players.values()].map(p => encPlayer(p, sim.t)),
     n: sim.nades.map(n => [n.id, n.kind, r2(n.pos[0]), r2(n.pos[1]), r2(n.pos[2])]),
     cp: (sim.cps || []).map(c => [r2(c.x), r2(c.y), r2(c.z), c.r, c.owner, r2(c.prog), c.name, c.contest ? 1 : 0]),
+    dr: (sim.doors || []).map((d, i) => d.open ? i : -1).filter(i => i >= 0),
     sm: sim.smokes.map(s => [r2(s.x), r2(s.y), r2(s.z), s.r, r2(s.t), s.life]),
     f: sim.fires.map(f => [r2(f.x), r2(f.y), r2(f.z), f.r, r2(f.t), f.life, f.owner]),
     e: events,

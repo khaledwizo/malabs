@@ -146,6 +146,7 @@ export class GameServer {
       case 'lo': cl.loadout = { ...(m.l || {}), supply: (m.l && m.l.supply) || (cl.loadout && cl.loadout.supply) }; this.sim.setLoadout(cl.pid, cl.loadout); break; // المخزون يبقى
       case 'ch': if (CHAR_ORDER.includes(m.c)) { cl.char = m.c; this.sim.setChar(cl.pid, m.c); this.sendRoster(); } break;
       case 'pi': this.link.sendTo(cid, { k: 'po', c: m.c }); cl.rtt = +m.r || 0; break;
+      case 'mk': this.sim.setMark(cl.pid, m.p); break;
       case 'bye': this.log('غادر: ' + cl.name); this.remove(cid); break;
     }
   }

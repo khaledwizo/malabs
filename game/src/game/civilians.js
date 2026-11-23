@@ -14,6 +14,8 @@ const G = new Map(); const geo = (k, f) => { if (!G.has(k)) G.set(k, f()); retur
 
 const _qa = new THREE.Quaternion(), _qb = new THREE.Quaternion(), _qc = new THREE.Quaternion(), _X = new THREE.Vector3(1, 0, 0);
 const SKINS = ['#c48a64', '#b98060', '#d69670', '#a87452', '#c99272'];
+// ألوان ثياب أهل المهن الجدد
+const LOOKC = { lablabi: [228, 226, 218], shepherd: [112, 88, 62], tourist: [196, 176, 134], repair: [72, 84, 98], elder2: [240, 238, 232], citizen: [150, 140, 122], youth: [58, 70, 92], gravedigger: [84, 76, 64], spice: [124, 72, 40], pharmacist: [246, 248, 246], baker: [236, 226, 204] };
 const ROBES = [[232, 230, 224], [196, 192, 182], [128, 110, 88], [86, 96, 104], [150, 138, 118], [70, 62, 54]];
 
 export class Civilian {
@@ -22,7 +24,7 @@ export class Civilian {
     const woman = n.look === 'pilgrim' && R() < 0.45, sheikh = n.look === 'sheikh', masked = n.look === 'masked';
     const skinC = SKINS[Math.floor(R() * SKINS.length)];
     const skin = std('skin' + skinC, { color: skinC, roughness: 0.6 });
-    const robeC = woman ? [22, 22, 26] : masked ? [30, 30, 32] : sheikh ? [238, 236, 230] : n.look === 'nursery' ? [70, 112, 72] : ROBES[Math.floor(R() * ROBES.length)];
+    const robeC = woman ? [22, 22, 26] : masked ? [30, 30, 32] : sheikh ? [238, 236, 230] : n.look === 'nursery' ? [70, 112, 72] : LOOKC[n.look] || ROBES[Math.floor(R() * ROBES.length)];
     const robe = fab('robe' + robeC.join(), robeC);
     const face = sheikh ? faceMat(20, '#c08a68', { beard: '#b9b4ac', beardA: 0.85, mustache: '#a8a29a', brow: '#8f8a82', eye: '#2a1c12', lip: '#8d5446' }) : faceMat(Math.floor(R() * 6) + (woman ? 10 : 0), skinC, woman ? { brow: '#1a120c', lip: '#9c5a4a' } : { beard: R() < 0.7 ? (R() < 0.3 ? '#bdb8b0' : '#2a221c') : null, beardA: 0.9, mustache: '#231d18', brow: '#1d1612' });
     const root = this.root = new THREE.Group(); root.position.set(n.x, n.y, n.z); root.rotation.y = n.yaw;
@@ -53,7 +55,13 @@ export class Civilian {
       for (const s2 of [-1, 1]) mesh(geo('eyeM', () => new THREE.SphereGeometry(0.011, 6, 5)), std('eyeM', { color: 0x050505 }), s2 * 0.026, 0.087, -0.138, head);
     }
     else if (woman) { const h = mesh(geo('hijab', () => new THREE.SphereGeometry(0.135, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.72)), std('abaya', { color: 0x141416, roughness: 0.9, side: THREE.DoubleSide }), 0, 0.06, 0.02, head); h.rotation.x = -0.35; mesh(geo('hijab2', () => new THREE.CylinderGeometry(0.13, 0.2, 0.3, 14, 1, true)), std('abaya', {}), 0, -0.12, 0.02, head); }
-    else if (sheikh || R() < 0.75) {
+    else if (n.look === 'tourist') { // قبعة شمس بحافة عريضة
+      const hm = std('hatT', { color: 0xd8c89a, roughness: 0.9 });
+      mesh(geo('hatTop', () => new THREE.CylinderGeometry(0.1, 0.12, 0.1, 14)), hm, 0, 0.16, 0.005, head);
+      mesh(geo('hatBrim', () => new THREE.CylinderGeometry(0.22, 0.22, 0.012, 18)), hm, 0, 0.115, 0.005, head);
+    }
+    else if (n.look === 'youth') mesh(geo('capY', () => new THREE.SphereGeometry(0.122, 14, 8, 0, Math.PI * 2, 0, Math.PI * 0.45)), std('capY', { color: 0x1d2a44 }), 0, 0.08, 0.005, head);
+    else if (sheikh || n.look === 'elder2' || n.look === 'shepherd' || (n.look !== 'pharmacist' && n.look !== 'repair' && R() < 0.75)) {
       const red = sheikh || R() < 0.55, m = shem(red);
       mesh(geo('shemTop', () => new THREE.SphereGeometry(0.128, 16, 10, 0, Math.PI * 2, 0, Math.PI * 0.55)), m, 0, 0.07, 0.008, head);
       const dr = mesh(geo('shemDrape', () => new THREE.CylinderGeometry(0.125, 0.17, 0.24, 14, 1, true, Math.PI * 0.2, Math.PI * 1.6)), m, 0, -0.06, 0.02, head); dr.rotation.y = Math.PI;
@@ -91,6 +99,22 @@ export class Civilian {
       for (const [ex, ez] of [[-0.05, -0.04], [0.05, -0.05], [0, -0.13]]) { mesh(geo('saucer', () => new THREE.CylinderGeometry(0.04, 0.033, 0.007, 14)), porc, ex, 0.045, ez, tray); mesh(shell, gl, ex, 0.049, ez, tray); mesh(fillG, tea, ex, 0.049, ez, tray); }
     }
     else if (n.look === 'nursery' && !sit) { const can = this.can = new THREE.Group(); can.position.set(0, -0.32, -0.04); Rh.add(can); const gm = std('canG', { color: 0x3f7a46, roughness: 0.45, metalness: 0.5 }); mesh(geo('canB', () => new THREE.CylinderGeometry(0.06, 0.07, 0.14, 10)), gm, 0, -0.08, 0, can); mesh(geo('canS', () => new THREE.CylinderGeometry(0.008, 0.012, 0.2, 6)), gm, 0, -0.06, -0.11, can).rotation.x = -1.1; }
+    else if (!sit && (n.look === 'shepherd' || n.look === 'elder2')) { // عصا الراعي / عكّازة الشايب
+      const st = this.staff = mesh(geo('staff' + n.look, () => new THREE.CylinderGeometry(0.014, 0.018, n.look === 'shepherd' ? 1.55 : 0.95, 6)), std('staffW', { color: 0x5a3a20, roughness: 0.8 }), 0, n.look === 'shepherd' ? -0.2 : -0.62, -0.02, Rh);
+    }
+    else if (!sit && n.look === 'gravedigger') { // مسحاة
+      const sv = this.shovel = new THREE.Group(); sv.position.set(0, -0.3, -0.02); Rh.add(sv);
+      mesh(geo('shvH', () => new THREE.CylinderGeometry(0.016, 0.016, 1.2, 6)), std('staffW', {}), 0, -0.2, 0, sv);
+      mesh(roundBox(0.2, 0.26, 0.02, 0.01), std('shvB', { color: 0x6a6660, roughness: 0.5, metalness: 0.7 }), 0, -0.88, 0, sv);
+    }
+    else if (!sit && n.look === 'tourist') { // كاميرا معلّقة على الصدر
+      const cm = std('camB', { color: 0x161616, roughness: 0.4, metalness: 0.4 });
+      this.camera = mesh(roundBox(0.13, 0.08, 0.06, 0.012), cm, 0, 0.1, -0.16, chest);
+      mesh(geo('camL', () => new THREE.CylinderGeometry(0.028, 0.03, 0.05, 12)), cm, 0, 0.1, -0.205, chest).rotation.x = Math.PI / 2;
+    }
+    else if (!sit && (n.look === 'lablabi' || n.look === 'spice' || n.look === 'baker')) { // صدرية/مريلة
+      mesh(roundBox(0.36, 0.55, 0.02, 0.01), std('apron' + n.look, { color: n.look === 'spice' ? 0x6a4a2a : 0xf4f2ec, roughness: 0.9 }), 0, 0.08, -0.14, chest);
+    }
     else if (sit && !this.cup) { this.beads = mesh(geo('beads', () => new THREE.TorusGeometry(0.045, 0.008, 5, 16)), std('beads', { color: 0x5a1a12, roughness: 0.35 }), 0, -0.33, -0.01, Rh); this.beads.rotation.y = Math.PI / 2; }
     // بشت الشيخ: عباءة بنّية داكنة بحاشية ذهبية على الكتفين
     if (sheikh) {
@@ -100,7 +124,7 @@ export class Civilian {
     }
     mergeChildren(body);
     // أصحاب المحال (والچايچي وزبائنه) يرجعون لبيوتهم بالليل؛ غيرهم يحملون مظلّة بالمطر
-    this.shop = n.look === 'vendor' || n.look === 'nursery' || n.look === 'tea';
+    this.shop = ['vendor', 'nursery', 'tea', 'spice', 'pharmacist', 'lablabi', 'repair', 'baker'].includes(n.look);
     this.umbOK = !this.shop && n.pose !== 'pray' || (n.look === 'tea' && sit);
     this.umbSeed = R();
     this.pose0(); this.alive = true; this.t = R() * 10; this.dead = 0; this.wave = 0; this.look = 0;
@@ -115,6 +139,8 @@ export class Civilian {
     if (n.look === 'tea') return [[-0.3, 0.14, -1.4], [-0.25, -0.3, -1.1]]; // صينية باليسار وقوري باليمين
     if (n.look === 'vendor') return [[-0.25, 0.45, -1.2], [-0.25, -0.45, -1.2]];
     if (n.look === 'nursery') return [[-0.2, 0.2, -0.9], [-0.35, -0.15, -1.0]];
+    if (n.look === 'shepherd' || n.look === 'elder2' || n.look === 'gravedigger') return [L, [-0.2, -0.12, -0.55]];
+    if (n.look === 'tourist') return [[-0.3, 0.3, -1.3], [-0.3, -0.3, -1.3]];
     return [L, R];
   }
   pose0() {
@@ -211,6 +237,9 @@ export class Civilian {
       // يمسك الرمّانة أمامه ثم يرميها
       if (this.hold) P[1] = [-1.1, -0.15, -1.5];
       if (this.throwT !== undefined) { this.throwT += dt; const T = this.throwT; if (T < 0.45) { const e = T / 0.45; P[1] = [-1.1 - 1.6 * e, -0.15 - 0.2 * e, -1.5 + 0.2 * e]; } else if (T < 0.7) { const e = (T - 0.45) / 0.25; P[1] = [-2.7 + 1.9 * e, -0.35, -1.3 + 1.1 * e]; } else P[1] = [-0.8, -0.3, -0.2]; }
+      // المشي (المارّة وأهل المهام): تأرجح الذراعين وهزّة الجسم
+      if (this.walkSp > 0.05) { const ph = (this.walkPh = (this.walkPh || 0) + dt * this.walkSp * 5.2), w = Math.min(1, this.walkSp); if (!(this.talkT > 0)) { P[0][0] += Math.sin(ph) * 0.38 * w; P[1][0] -= Math.sin(ph) * 0.38 * w; } this.root.position.y = n.y + Math.abs(Math.sin(ph)) * 0.035 * w; sway = Math.sin(ph) * 0.025 * w; }
+      // يجلس على الطاولة (الأصحاب بالچايخانة)
       // الخوف من الرمي: ينحني ويغطّي رأسه
       if (this.cower > 0) { const e = Math.min(1, this.cower * 2, (this.cowerMax - this.cower) * 4 + 0.2); P[0] = [-2.6 * e + P[0][0] * (1 - e), 0.35 * e + P[0][1] * (1 - e), -1.7 * e + P[0][2] * (1 - e)]; P[1] = [-2.6 * e + P[1][0] * (1 - e), -0.35 * e + P[1][1] * (1 - e), -1.7 * e + P[1][2] * (1 - e)]; cx = 0.5 * e; hx = 0.5 * e; }
       this.chest.rotation.y += (chestY - this.chest.rotation.y) * k;

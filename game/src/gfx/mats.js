@@ -90,6 +90,7 @@ export function makeMaterials(Q) {
   mk('brickBurnt', TX.brick(S, { base: [92, 72, 60], seed: 91 }), 1.25, { rough: 0.95 });
   mk('plasterBurnt', TX.plaster(S, { base: [118, 104, 92], seed: 93, cracks: 9 }), 2.6, { rough: 0.97 });
   mk('graveDirt', TX.sand(half, { base: [104, 90, 74], seed: 23 }), 4, { rough: 1 });
+  mk('basalt', TX.stoneFloor(half, { base: [44, 44, 48], tiles: 1, seed: 87 }), 1.4, { rough: 0.6, metal: 0.05 });
   mk('grass', TX.sand(half, { base: [78, 108, 56], seed: 12 }), 3, { rough: 1 });
   mk('tileGreen', TX.tile(half, { bg: '#1d6a3c', acc: '#d8b44a', line: '#f2e6b4', white: '#e6efe0', n: 2 }), 0.9, { rough: 0.35 });
   mk('paintRed', null, 1, { color: 0xa3221e, rough: 0.5, metal: 0.35 });

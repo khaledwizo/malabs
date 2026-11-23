@@ -183,3 +183,20 @@ PHASE 1 of the big plan (Nov 2026) — economy, shop, ammo, grenades, aim, modes
   world ring/column/letter markers for points, points on minimap/map. Aim assist stronger (cone 0.11, pull 0.75/0.45).
 - UI: wallet chip, shop screen (weapons/ammo/nades/meds/gear), loadout shows owned weapons + stock, end-screen reward.
 - iOS job paused (if: false) while user wants APK only.
+
+PHASE 2 (لوبي + مهام + تأشير) — DONE locally, see tests test/lobby.mjs, lobby2.mjs, p2world.mjs, p2online.mjs
+- UI: home = gear icon left of «الجولات التكتيكية», wallet inside العتاد, boot/loading screen with logo (#boot in template.html),
+  new home button «السوق والمهام» → UI.startLobby() → Game.startLobby() = local Sim mode 'lobby' (no bots, no firing, buyTime 0.05).
+- Map: shrine doors E/W (B.door, auto-close 10s, bots open) + noFire zone in shrine (no guns/nades, dom points avoid it);
+  mudhif of Sheikh فاتح الرفاعي replacing ruin block (-66,-18,-52,-6) with Kufic plaque (tex.kufiPlaque, glow) + door;
+  spice shop «عطارة أبو ستّار» (npc 6), pharmacy «صيدلية الشفاء» (npc 12); lablabi cart + usables (lablabi eat 6s +40 ×3, tea 3s +10 ×8 per match);
+  new NPCs 29..37: lablabi, shepherd(+grass), tourist, phone repair, old man door, bag owner, youth, gravedigger, baker(+stall);
+  gas depot (-30,22); Hammurabi stele cover (63.5,-6.8); 3rd chaychi table for ambient friends. talkdata PERSONAS has null at 25..28.
+- Sim: doors (setDoor/use/tickDoors, snapshot dr), cmd.heal 3 = use, food per match, setMark → 'mark' event (team waypoints), PROTO=4,
+  client mini-sim pred=true (never opens doors). Server msg 'mk'.
+- Client: game/doors.js (door meshes/animation, online collision sync), waypoint.js (GTA-style beacons: quest gold, mine magenta,
+  team cyan; route via route.js A* on nav), maps.js pins + route line, big-map tap → «مسار / نقطة / شيل».
+  game/quests.js + questdata.js (15 quests incl. repeatables, fisher first meeting, flower from nursery, Fallujah escort,
+  tourist quiz, recruit weapon choice; cinematic OTS camera + letterbox + subtitles; rewards via Economy.earn; saved 'rafidain.quests.v1').
+  ambient.js (lobby only: strollers, sheep, friends meeting at chaychi). Talk (NPC chatter) runs in lobby only — silent in battle.
+  Key F = use (inspect moved to I). tools/voice_lines.mjs exports quest lines (player lines for all 4 chars).

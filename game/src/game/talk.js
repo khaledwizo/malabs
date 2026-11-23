@@ -89,7 +89,8 @@ export class TalkManager {
   }
   update(dt) {
     this.t += dt;
-    const g = this.g, live = !!g.sim && !g.paused && g.sim.phase !== 'over';
+    // الحچي باللوبي بس — بالمعركة أهل السوق ساكتين. وبالمشهد السينمائي محّد يقاطع
+    const g = this.g, live = !!g.sim && g.lobby && !g.cine && !g.paused && g.sim.phase !== 'over';
     if (!live || !this.on) { this.stopAll(); for (const u of this.units) u.q.length = 0; this.renderBubbles(); return; }
     const cam = g.camera.position, me = g.mp, alive = !!(me && me.alive);
     for (const c of this.civs) { c.greetCD -= dt; c.callCD -= dt; }

@@ -3,6 +3,7 @@
 import { Input } from '../core/input.js';
 import { Settings } from '../core/settings.js';
 import { WEAPONS, SCOPES, NADES } from '../sim/weapons.js';
+import { Economy, fmtIQD } from '../game/economy.js';
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -41,6 +42,10 @@ export const HUD_HTML = `
   </div>
   <div id="tl"><div class="hb" id="hPause">${I.pause}</div><div class="hb" id="hScore">${I.score}</div><div class="hb" id="hNvg">NV</div><div id="fps"></div><div id="net"></div></div>
   <div id="feed"></div>
+  <div id="qTrack"></div>
+  <div id="lobbyBar"><b id="lobbyMoney"></b><small>سوق المجاهدين · لوبي خاص</small></div>
+  <div id="useHint"><kbd>F</kbd><span id="useHintL"></span></div>
+  <div id="cine"><i class="lb t"></i><i class="lb b"></i><div class="cbox"><b class="cname"></b><p class="ctext"></p><div class="copts"></div><div class="cact"><i></i><em></em><b></b></div><small class="ctap">اضغط للتكملة</small></div></div>
   <div id="mini"><canvas id="minimap" width="256" height="256"></canvas><span class="mlab">الخريطة</span></div>
   <div id="banner"><b></b><small></small></div>
   <div id="toast"></div>
@@ -68,6 +73,7 @@ export const HUD_HTML = `
     <div class="tb sm" id="bLeanR">${I.leanR}</div>
     <div class="tb med" id="bBand">${I.band}<span id="bandN">5</span></div>
     <div class="tb med" id="bSyr">${I.syr}<span id="syrN">2</span></div>
+    <div class="tb use" id="bUse"><span id="useL">استعمال</span></div>
     <div class="tb zm" id="bZoomIn">＋</div>
     <div class="tb zm" id="bZoomOut">－<small id="zoomV"></small></div>
   </div>
@@ -99,6 +105,7 @@ export const HUD = {
       C('bLeanR', { action: 'leanR', toggle: true, excl: 'leanL' }),
       C('bBand', { action: 'heal1' }),
       C('bSyr', { action: 'heal2' }),
+      C('bUse', { round: false, tapUp: true, pad: 8, tap: () => game.useAction() }),
       C('bZoomIn', { round: true, tap: () => game.zoomStep(1) }),
       C('bZoomOut', { round: true, tap: () => game.zoomStep(-1) }),
     ];
@@ -139,6 +146,11 @@ export const HUD = {
   update(dt, g) {
     this.t += dt;
     const sim = g.sim, me = g.mp; if (!sim || !me) return;
+    // زر الاستعمال واللوبي
+    const U = g.useInfo, ul = U ? U.label : '';
+    if (this.useL !== ul) { this.useL = ul; $('bUse').classList.toggle('show', !!U); $('useHint').classList.toggle('on', !!U && !Input.isTouch); if (U) { $('useL').textContent = ul; $('useHintL').textContent = ul; } }
+    document.body.classList.toggle('cine', !!g.cine);
+    if (g.lobby) { const m = Economy.money; if (this.lm !== m) { this.lm = m; $('lobbyMoney').textContent = fmtIQD(m); } }
     // الوقت والنتيجة
     const t = Math.max(0, Math.ceil(sim.phaseT));
     const fmt = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
@@ -170,7 +182,7 @@ export const HUD = {
     $('bBand').classList.toggle('dis', !md.b || hp >= mx); $('bSyr').classList.toggle('dis', !md.s || hp >= mx);
     const healing = me.alive && me.healT > 0;
     $('healov').classList.toggle('on', healing);
-    if (healing) { const tot = me.healK === 2 ? 4 : 2.4, k = 1 - me.healT / tot; $('healArc').style.strokeDashoffset = (170 * (1 - k)).toFixed(1); $('healTx').textContent = (me.healK === 2 ? 'إبرة' : 'ضمادة') + ' ' + me.healT.toFixed(1); }
+    if (healing) { const tot = me.healK === 2 ? 4 : me.healK === 3 ? 6 : me.healK === 4 ? 3 : 2.4, k = 1 - me.healT / tot; $('healArc').style.strokeDashoffset = (170 * (1 - k)).toFixed(1); $('healTx').textContent = (me.healK === 2 ? 'إبرة' : me.healK === 3 ? 'لبلبي' : me.healK === 4 ? 'چاي' : 'ضمادة') + ' ' + me.healT.toFixed(1); }
     // تكبير المنظار المتغيّر
     const zs = me.slot === 1 && me.scope && SCOPES[me.scope] && SCOPES[me.scope].zoom && g.scoped;
     $('bZoomIn').classList.toggle('show', !!zs); $('bZoomOut').classList.toggle('show', !!zs);

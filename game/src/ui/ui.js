@@ -31,7 +31,6 @@ const TEMPLATE = HUD_HTML + `
   <div class="home">
     <div class="hleft">
       <div class="logo"><h1>جبهة الرافدين</h1><small>معركة سوق المجاهدين</small></div>
-      <div class="wallet" id="wallet"></div>
       <div class="pcard">
         <div class="av" id="pcAv"></div>
         <div class="pinfo"><input id="nameIn" maxlength="16" spellcheck="false" autocomplete="off"><div class="pid" id="pcId"></div></div>
@@ -41,14 +40,13 @@ const TEMPLATE = HUD_HTML + `
         <button data-go="chars">${ICON.char}<span>الشخصية</span></button>
         <button data-go="shop">${ICON.shop}<span>المتجر</span></button>
         <button data-go="loadout">${ICON.gun}<span>العتاد</span></button>
-        <button data-go="settings">${ICON.gear}<span>الإعدادات</span></button>
       </nav>
     </div>
     <div class="hright">
       <div class="modes" id="modes"></div>
       <div class="mdesc" id="mdesc"></div>
       <div class="mopts" id="mopts"></div>
-      <div class="hbot"><div class="party" id="party"></div><button class="btn primary big" id="btnStart">ابدأ المعركة</button></div>
+      <div class="hbot"><div class="party" id="party"></div><button class="btn big lobbyBtn" id="btnLobby" title="لوبي خاص: تجوّل بالسوق ومهام">${ICON.shop}<span>السوق والمهام</span></button><button class="btn primary big" id="btnStart">ابدأ المعركة</button></div>
     </div>
   </div>
 </section>
@@ -71,7 +69,7 @@ const TEMPLATE = HUD_HTML + `
 </section>
 
 <section class="scr" id="s-loadout">
-  <div class="panel side lo"><div class="head"><h2>العتاد</h2><span class="mtag" id="loMode"></span><button class="x" data-back>✕</button></div>
+  <div class="panel side lo"><div class="head"><h2>العتاد</h2><span class="wallet" id="wallet"></span><span class="mtag" id="loMode"></span><button class="x" data-back>✕</button></div>
     <div class="lobody">
       <div class="locol">
         <h5>السلاح الرئيسي</h5><div class="wgrid" id="loPrim"></div>
@@ -114,7 +112,7 @@ const TEMPLATE = HUD_HTML + `
 </section>
 
 <section class="scr" id="s-map">
-  <div class="mapwrap"><canvas id="bigmap"></canvas><button class="x big" id="mapClose">✕</button><button class="x big zoom" id="mapZoom">＋</button><div class="maplegend"><i class="me"></i>أنت <i class="mate"></i>فريقك <i class="foe"></i>عدو مكشوف</div></div>
+  <div class="mapwrap"><canvas id="bigmap"></canvas><button class="x big" id="mapClose">✕</button><button class="x big zoom" id="mapZoom">＋</button><div class="maplegend"><i class="me"></i>أنت <i class="mate"></i>فريقك <i class="foe"></i>عدو مكشوف <i class="wpm"></i>علامتك — اضغط على الخريطة للتأشير</div><div id="mapPop"></div></div>
 </section>
 
 <div id="invite"></div>
@@ -132,6 +130,7 @@ export const UI = {
     ui.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => { Audio.init(); Audio.play('ui'); this.open(b.dataset.go); }));
     ui.querySelectorAll('[data-back]').forEach(b => b.addEventListener('click', () => { Audio.play('uiBack'); this.back(); }));
     $('#btnStart').addEventListener('click', () => { Audio.init(); Audio.play('ui'); this.start(); });
+    $('#btnLobby').addEventListener('click', () => { Audio.init(); Audio.play('ui'); this.startLobby(); });
     $('#pResume').addEventListener('click', () => this.game.resume());
     $('#pLoadout').addEventListener('click', () => this.open('loadout'));
     $('#pSettings').addEventListener('click', () => this.open('settings'));
@@ -145,14 +144,22 @@ export const UI = {
       const cv = $('#bigmap'), pts = new Map(); let pinch = null, lastTap = 0;
       const mv = () => this.game.mapView, k = () => cv.width / Math.max(1, cv.clientWidth);
       const setZoom = (z, fx, fy) => { const M = mv(), V = M.view; if (!V) return; const nz = Math.max(1, Math.min(4.5, z)); const mx = (fx - V.ox) / V.s, my = (fy - V.oy) / V.s; if (nz > 1.001) { const s2 = V.s / (M.zs || 1) * nz; M.cx = mx + (V.W / 2 - fx) / s2; M.cy = my + (V.H / 2 - fy) / s2; M.follow = false; } else M.follow = true; M.zoom = nz; M.zs = nz; $('#mapZoom').textContent = nz > 1 ? '－' : '＋'; };
-      cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX * k(), e.clientY * k()]); if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), z: mv().zoom || 1 }; } const now = performance.now(); if (pts.size === 1 && now - lastTap < 280) { const p = pts.get(e.pointerId); setZoom((mv().zoom || 1) > 1.4 ? 1 : 2.6, p[0], p[1]); } lastTap = now; });
+      let downAt = null, popT = 0;
+      cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); clearTimeout(popT); this.mapPop(null); downAt = pts.size === 0 ? { x: e.clientX, y: e.clientY, t: performance.now(), dbl: performance.now() - lastTap < 280 } : null; pts.set(e.pointerId, [e.clientX * k(), e.clientY * k()]); if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), z: mv().zoom || 1 }; } const now = performance.now(); if (pts.size === 1 && now - lastTap < 280) { const p = pts.get(e.pointerId); setZoom((mv().zoom || 1) > 1.4 ? 1 : 2.6, p[0], p[1]); } lastTap = now; });
       cv.addEventListener('pointermove', e => {
         if (!pts.has(e.pointerId)) return; const p0 = pts.get(e.pointerId), p = [e.clientX * k(), e.clientY * k()]; pts.set(e.pointerId, p);
         const M = mv(), V = M.view; if (!V) return;
         if (pts.size >= 2 && pinch) { const [a, b] = [...pts.values()]; const d = Math.hypot(a[0] - b[0], a[1] - b[1]); setZoom(pinch.z * d / Math.max(10, pinch.d), (a[0] + b[0]) / 2, (a[1] + b[1]) / 2); }
         else if (pts.size === 1 && (M.zoom || 1) > 1.001) { if (M.follow !== false) { M.cx = (V.W / 2 - V.ox) / V.s; M.cy = (V.H / 2 - V.oy) / V.s; M.follow = false; } M.cx -= (p[0] - p0[0]) / V.s; M.cy -= (p[1] - p0[1]) / V.s; M.cx = Math.max(0, Math.min(M.SW, M.cx)); M.cy = Math.max(0, Math.min(M.SD, M.cy)); }
       });
-      const up = e => { pts.delete(e.pointerId); if (pts.size < 2) pinch = null; };
+      const up = e => {
+        pts.delete(e.pointerId); if (pts.size < 2) pinch = null;
+        // نقرة وحدة بلا سحب: نافذة التأشير (مسار / نقطة / شيل)
+        if (e.type === 'pointerup' && downAt && !downAt.dbl && pts.size === 0 && Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) < 9 && performance.now() - downAt.t < 450) {
+          const cx = e.clientX, cy = e.clientY; popT = setTimeout(() => this.mapPop([cx, cy]), 290);
+        }
+        downAt = null;
+      };
       cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
       cv.addEventListener('wheel', e => { e.preventDefault(); setZoom((mv().zoom || 1) * (e.deltaY < 0 ? 1.18 : 1 / 1.18), e.clientX * k(), e.clientY * k()); }, { passive: false });
     }
@@ -183,7 +190,7 @@ export const UI = {
     if (this.screen && this.screen !== id) this.stack.push(this.screen);
     this.hideAll(); const el = $('#s-' + id); if (el) el.classList.add('on'); this.screen = id;
     if (this.game.sim) Input.reset();
-    if (id === 'loadout') this.buildLoadout();
+    if (id === 'loadout') { this.buildLoadout(); this.buildWallet(); }
     if (id === 'shop') this.buildShop();
     if (id === 'chars') { this.game.menuView('chars', Settings.char); this.buildChars(); }
     if (id === 'home') { this.game.menuView('menu'); this.buildHome(); }
@@ -201,6 +208,20 @@ export const UI = {
   showMenu() { this.stack = []; this.hideAll(); $('#s-home').classList.add('on'); this.screen = 'home'; this.hud(false); this.game.menuView('menu'); this.buildHome(); },
   closeScreens() { this.hideAll(); this.screen = null; this.stack = []; this.game.menuWeaponId = null; },
   hud(on) { HUD.show(on); },
+  // نافذة التأشير على الخريطة الكبيرة
+  mapPop(at) {
+    const el = $('#mapPop'); if (!el) return;
+    if (!at) { el.classList.remove('on'); return; }
+    const g = this.game, M = g.mapView, V = M.view, cv = $('#bigmap'); if (!V || !g.wps) return;
+    const r = cv.getBoundingClientRect(), k = cv.width / Math.max(1, cv.clientWidth), fx = (at[0] - r.left) * k, fy = (at[1] - r.top) * k;
+    const wx = (fx - V.ox) / V.s / M.k + M.ox, wz = (fy - V.oy) / V.s / M.k + M.oz;
+    if (wx < M.B[0] || wx > M.B[3] || wz < M.B[2] || wz > M.B[5]) return;
+    const mine = g.wps.mine;
+    el.innerHTML = `<button data-a="route">📍 مسار</button><button data-a="point">📌 نقطة</button>${mine ? '<button data-a="del">✖ شيل علامتي</button>' : ''}`;
+    el.style.left = Math.min(innerWidth - 170, Math.max(8, at[0] - 80 - r.left + r.left)) + 'px'; el.style.top = Math.min(innerHeight - 140, Math.max(8, at[1] + 12)) + 'px';
+    el.classList.add('on');
+    el.querySelectorAll('button').forEach(b => b.onclick = ev => { ev.stopPropagation(); Audio.play('ui'); const a = b.dataset.a; if (a === 'del') g.wps.clearMine(); else g.wps.setMine(wx, wz, a === 'route'); el.classList.remove('on'); });
+  },
   openMap() { if (!this.game.sim) return; this.mapOpen = true; this.hideAll(); clearTimeout(this.mapCloseT); const el = $('#s-map'); el.classList.remove('closing'); el.classList.add('on'); this.screen = 'map'; Input.reset(); },
   closeMap() { this.mapOpen = false; const el = $('#s-map'); el.classList.add('closing'); clearTimeout(this.mapCloseT); this.mapCloseT = setTimeout(() => { el.classList.remove('on', 'closing'); }, 170); this.screen = null; this.stack = []; },
   // ---------- الرئيسية: أوضاع اللعب ----------
@@ -210,8 +231,9 @@ export const UI = {
     $('#pcId').innerHTML = `المعرّف: <b dir="ltr">${fmtId(Social.id)}</b>`;
     $('#pcAv').textContent = (CHARS[S.char] || CHARS.khaled).name[0];
     $('#pcAv').className = 'av c-' + S.char;
-    $('#modes').innerHTML = MODE_ORDER.map(k => { const m = MODES[k]; return `<button class="mode m-${k} ${S.mode === k ? 'sel' : ''}" data-m="${k}"><i>${ICON[m.icon]}</i><b>${m.name}</b><small>${m.sub}</small></button>`; }).join('');
-    $('#modes').querySelectorAll('.mode').forEach(b => b.addEventListener('click', () => { Audio.play('ui'); setSetting('mode', b.dataset.m); this.buildHome(); }));
+    $('#modes').innerHTML = MODE_ORDER.map(k => { const m = MODES[k]; return `<button class="mode m-${k} ${S.mode === k ? 'sel' : ''}" data-m="${k}"><i>${ICON[m.icon]}</i><b>${m.name}</b><small>${m.sub}</small></button>`; }).join('') + `<button class="setbtn" id="homeSet" title="الإعدادات">${ICON.gear}</button>`;
+    $('#homeSet').onclick = () => { Audio.init(); Audio.play('ui'); this.open('settings'); };
+    $('#modes').querySelectorAll('.mode[data-m]').forEach(b => b.addEventListener('click', () => { Audio.play('ui'); setSetting('mode', b.dataset.m); this.buildHome(); }));
     const M = MODES[S.mode] || MODES.tdm;
     $('#mdesc').textContent = M.desc;
     // خيارات مضغوطة: كل خيار بسهمين للتبديل
@@ -250,6 +272,12 @@ export const UI = {
     const r = $('#frReqN'); if (r) { r.textContent = n || ''; r.classList.toggle('on', n > 0); }
   },
   matchOpts() { const S = Settings, mode = S.mode; return { mode, roundsToWin: S.rounds, timeLimit: S.tdmTime, roundTime: S.roundTime || 120, difficulty: S.difficulty, size: S.teamSize, team: S.team || 0, char: S.char, name: S.name, loadout: this.matchLoadout(mode), weather: S.weather }; },
+  // اللوبي الخاص: تجوّل ومهام بلا قتال
+  startLobby() {
+    const S = Settings;
+    this.closeScreens(); this.hud(true);
+    this.game.startLobby({ char: S.char, name: S.name, difficulty: S.difficulty, loadout: this.getLoadout('tdm'), weather: S.weather });
+  },
   async start() {
     if (Social.party && Social.party.members.length > 1) {
       if (Social.party.host !== Social.id) return;

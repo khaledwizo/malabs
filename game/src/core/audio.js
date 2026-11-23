@@ -250,6 +250,13 @@ const SOUNDS = {
   invite: (A, pos, t) => { const o = A.out(null, 0.5); [784, 988, 1175].forEach((f, i) => A.osc(o, t + i * 0.09, 0.3, f, f, 'sine', 0.35)); },
   roundWin: (A, pos, t) => { const o = A.out(null, 0.5); [523, 659, 784, 1046].forEach((f, i) => A.osc(o, t + i * 0.13, 0.5, f, f, 'triangle', 0.4)); },
   roundLose: (A, pos, t) => { const o = A.out(null, 0.5); [392, 349, 311].forEach((f, i) => A.osc(o, t + i * 0.18, 0.5, f, f * 0.98, 'triangle', 0.4)); },
+  // باب خشبي: صرير المفصلة ثم ضربة الإغلاق
+  doorOpen: (A, pos, t) => { const o = A.out(pos, 0.6, 3, 30); A.nz(o, t, 0.05, 900, 400, 1.2, 'bandpass', 0.6, 0.002); A.osc(o, t + 0.04, 0.5, 620, 980, 'sawtooth', 0.05, 0.05); A.osc(o, t + 0.1, 0.45, 1250, 1500, 'triangle', 0.035, 0.08); },
+  doorClose: (A, pos, t) => { const o = A.out(pos, 0.75, 3, 35); A.osc(o, t, 0.35, 900, 650, 'sawtooth', 0.04, 0.04); A.nz(o, t + 0.36, 0.14, 520, 110, 0.8, 'lowpass', 1, 0.002); A.nz(o, t + 0.4, 0.06, 1800, 900, 2, 'bandpass', 0.3, 0.001); },
+  // نهاية المهمة: نغمة نجاح قصيرة
+  questDone: (A, pos, t) => { const o = A.out(null, 0.45); [523, 659, 784, 1046].forEach((f, k) => A.osc(o, t + k * 0.11, 0.32, f, f, 'triangle', 0.32, 0.01)); },
+  questNew: (A, pos, t) => { const o = A.out(null, 0.4); A.osc(o, t, 0.18, 660, 660, 'triangle', 0.3, 0.01); A.osc(o, t + 0.16, 0.3, 990, 990, 'triangle', 0.28, 0.01); },
+  questFail: (A, pos, t) => { const o = A.out(null, 0.4); A.osc(o, t, 0.25, 440, 330, 'triangle', 0.3, 0.01); A.osc(o, t + 0.22, 0.4, 330, 220, 'triangle', 0.28, 0.01); },
   buy: (A, pos, t) => { const o = A.out(null, 0.5); A.osc(o, t, 0.06, 1500, 1500, 'triangle', 0.35); A.osc(o, t + 0.07, 0.12, 2200, 2200, 'triangle', 0.3); A.nz(o, t, 0.08, 6000, 3000, 2, 'bandpass', 0.15, 0.002); }, // صوت عدّ فلوس
   ui: (A, pos, t) => { const o = A.out(null, 0.3); A.osc(o, t, 0.05, 1200, 1500, 'sine', 0.4); },
   uiBack: (A, pos, t) => { const o = A.out(null, 0.3); A.osc(o, t, 0.06, 900, 700, 'sine', 0.4); },

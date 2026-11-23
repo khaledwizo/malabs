@@ -289,6 +289,7 @@ export function carpet(S, opt = {}) {
 
 // لوحة بخط عربي (لافتات المحلات والأفاريز)
 export function sign(text, opt = {}) {
+  if (opt.kufi) return kufiPlaque(text, opt);
   const w = opt.w || 512, h = opt.h || 128, c = document.createElement('canvas'); c.width = w; c.height = h;
   const x = c.getContext('2d');
   x.fillStyle = opt.bg || '#2b4b3c'; x.fillRect(0, 0, w, h);
@@ -299,6 +300,26 @@ export function sign(text, opt = {}) {
   const img = x.getImageData(0, 0, w, h); const d = img.data;
   for (let i = 0; i < d.length; i += 4) { const k = 0.85 + Math.random() * 0.15; d[i] *= k; d[i + 1] *= k; d[i + 2] *= k; }
   x.putImageData(img, 0, 0);
+  const t = toTex(c, true, false); return { map: t };
+}
+
+// لوحة بالخط الكوفي المزخرف (مضيف الشيخ): إطار ذهبي مضفور وزخارف هندسية ونص بالكوفي
+function kufiPlaque(text, opt) {
+  const w = opt.w || 1024, h = opt.h || 384, c = document.createElement('canvas'); c.width = w; c.height = h;
+  const x = c.getContext('2d');
+  const bg = x.createLinearGradient(0, 0, 0, h); bg.addColorStop(0, '#0f3b2c'); bg.addColorStop(1, '#082419'); x.fillStyle = bg; x.fillRect(0, 0, w, h);
+  const gold = x.createLinearGradient(0, 0, 0, h); gold.addColorStop(0, '#fff0b8'); gold.addColorStop(0.5, '#e1b04a'); gold.addColorStop(1, '#9c6a1c');
+  x.strokeStyle = gold; x.lineWidth = h * 0.025; x.strokeRect(h * 0.04, h * 0.04, w - h * 0.08, h - h * 0.08); x.lineWidth = h * 0.012; x.strokeRect(h * 0.09, h * 0.09, w - h * 0.18, h - h * 0.18);
+  // ضفيرة هندسية: معيّنات صغيرة على طول الإطار
+  x.fillStyle = gold; const st = h * 0.07;
+  for (let u = h * 0.12; u < w - h * 0.12; u += st) for (const v of [h * 0.065, h - h * 0.065]) { x.save(); x.translate(u, v); x.rotate(Math.PI / 4); x.fillRect(-st * 0.18, -st * 0.18, st * 0.36, st * 0.36); x.restore(); }
+  for (let v = h * 0.12; v < h - h * 0.12; v += st) for (const u of [h * 0.065, w - h * 0.065]) { x.save(); x.translate(u, v); x.rotate(Math.PI / 4); x.fillRect(-st * 0.18, -st * 0.18, st * 0.36, st * 0.36); x.restore(); }
+  // نجمتان ثمانيتان بالطرفين
+  for (const cx0 of [h * 0.42, w - h * 0.42]) { x.save(); x.translate(cx0, h / 2); for (let k = 0; k < 2; k++) { x.rotate(Math.PI / 4); x.strokeRect(-h * 0.15, -h * 0.15, h * 0.3, h * 0.3); } x.beginPath(); x.arc(0, 0, h * 0.05, 0, 7); x.fill(); x.restore(); }
+  x.fillStyle = gold; x.textAlign = 'center'; x.textBaseline = 'middle'; x.direction = 'rtl';
+  x.shadowColor = 'rgba(0,0,0,.6)'; x.shadowBlur = h * 0.02;
+  x.font = `700 ${h * (opt.sub ? 0.3 : 0.4)}px "Reem Kufi","Aref Ruqaa",serif`; x.fillText(text, w / 2, h * (opt.sub ? 0.42 : 0.52));
+  if (opt.sub) { x.font = `500 ${h * 0.12}px "Reem Kufi","Cairo",serif`; x.fillText(opt.sub, w / 2, h * 0.73); }
   const t = toTex(c, true, false); return { map: t };
 }
 

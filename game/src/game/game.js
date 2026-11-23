@@ -20,7 +20,11 @@ import { GameServer } from '../net/server.js';
 import { Social } from '../net/social.js';
 import { Civilian } from './civilians.js';
 import { TalkManager } from './talk.js';
-import { Economy } from './economy.js';
+import { Economy, fmtIQD } from './economy.js';
+import { DoorVis } from './doors.js';
+import { Waypoints } from './waypoint.js';
+import { Quests } from './quests.js';
+import { Ambient } from './ambient.js';
 
 const STEP = 1 / 60;
 const BOT_NAMES = ['يوسف', 'حيدر', 'زيد', 'عمر', 'مصطفى', 'ليث', 'أنمار', 'كرار', 'بلال', 'طارق', 'سجّاد', 'مرتضى', 'حسين', 'رعد', 'وسام', 'ياسر', 'نوفل', 'عمّار', 'قاسم', 'سلمان'];
@@ -52,7 +56,27 @@ export class Game {
     // أهل السوق
     this.civs = (this.world.npcs || []).map(n => { const c = new Civilian(n); this.scene.add(c.root); return c; });
     this.talk = new TalkManager(this, this.civs);
+    // المرحلة 2: الأبواب، التأشير، المهام، وحياة السوق
+    this.ui = UI; this.lobby = false; this.cine = false;
+    this.doorsVis = new DoorVis(this); this.wps = new Waypoints(this); this.ambient = new Ambient(this); this.quests = new Quests(this);
   }
+  // اللوبي الخاص: تجوّل بالسوق بلا قتال — المهام والحچي ويّا الناس هنا بس
+  startLobby(o) {
+    this.startMatch({ ...o, mode: 'lobby', size: 0, team: 0, timeLimit: 1e9, buyTime: 0.05, lobby: true });
+  }
+  // زر «استعمال»: أقرب شي يتسوّى (مهمة، وردة، باب، لبلبي، چاي)
+  computeUse(me) {
+    if (!me || !me.alive || this.cine || this.paused) return null;
+    const q = this.lobby && this.quests.interact(); if (q) return q;
+    const D = this.doorsVis.near(me.pos);
+    if (D) { const i = this.doorsVis.list.indexOf(D), o = this.doorsVis.stateOf(i); return { label: o ? 'سكّر الباب' : 'افتح الباب', fn: () => { this.queued.use = true; } }; }
+    for (const u of this.world.usables || []) if (Math.hypot(u.x - me.pos[0], u.z - me.pos[2]) < u.r) {
+      const f = me.food, left = f ? (u.kind === 'lablabi' ? f.e : f.t) : null;
+      return { label: (u.kind === 'lablabi' ? '🥣 كُل لبلبي' : '🫖 اشرب چاي') + (left != null ? ` (${left})` : ''), fn: () => { this.queued.use = true; } };
+    }
+    return null;
+  }
+  useAction() { const U = this.useInfo; if (U) { Audio.play('ui'); U.fn(); } }
   // ---------- القوائم: كاميرا سينمائية وعرض الشخصيات ----------
   buildLineup() {
     const L = this.info.lineup || { x: -2.4, z: 23.6, dx: 1.6 };
@@ -86,7 +110,8 @@ export class Game {
   startMatch(o) {
     this.quit(true); this.wxSeed = 0; this.civNight = undefined;
     Social.presence('game');
-    const sim = this.sim = new Sim(this.world, { mode: o.mode, roundsToWin: o.roundsToWin, timeLimit: o.timeLimit, roundTime: o.roundTime, difficulty: o.difficulty, seed: Date.now() & 0xffff });
+    const sim = this.sim = new Sim(this.world, { mode: o.mode, roundsToWin: o.roundsToWin, timeLimit: o.timeLimit, roundTime: o.roundTime, difficulty: o.difficulty, seed: Date.now() & 0xffff, buyTime: o.buyTime });
+    this.lobby = !!o.lobby; document.body.classList.toggle('lobby', this.lobby);
     const me = sim.addPlayer({ name: o.name, team: o.team, char: o.char, loadout: o.loadout });
     this.me = me.id;
     let ni = Math.floor(Math.random() * BOT_NAMES.length);
@@ -94,6 +119,7 @@ export class Game {
     sim.start();
     this.begin(me, o.weather);
     const M = MODES[sim.mode];
+    if (this.lobby) { this.ambient.start(); this.quests.start(); UI.banner('سوق المجاهدين', 'تجوّل، احچِ ويّا الناس، وساعدهم بمهامهم', '', 3.2); return; }
     UI.banner(M.name, sim.dom ? `سيطروا على ${sim.cps && sim.cps.length > 1 ? 'النقاط' : 'النقطة'} · ${Math.round(sim.timeLimit / 60)} دقائق` : sim.tdm ? `الأكثر قتلات بعد ${Math.round(sim.timeLimit / 60)} دقائق يفوز` : `أول من يفوز بـ ${sim.roundsToWin} جولات`, '', 3);
   }
   begin(me, weather) {
@@ -103,7 +129,7 @@ export class Game {
     Input.enabled = true; Input.clearToggles(); if (!Input.isTouch) Input.requestLock();
     if (this.weather) { this.weather.set(weather || Settings.weather); this.weather.schedule(this.wxSeed || (Date.now() & 0xffff)); }
     this.matchT = 0;
-    this.syncWorld(true); this.talk && this.talk.reset();
+    this.syncWorld(true); this.talk && this.talk.reset(); this.doorsVis.reset(); this.wps.reset();
     Audio.musicMode('game');
     Audio.play('roundStart');
   }
@@ -143,6 +169,7 @@ export class Game {
     }
     this.setNvg(false);
     if (this.talk) this.talk.clear();
+    if (this.lobby) { this.quests.stop(); this.ambient.stop(); } this.lobby = false; this.cine = false; document.body.classList.remove('lobby'); this.wps && this.wps.reset();
     if (this.sim && this.sim.online) { try { this.sim.onlost = null; this.sim.close(); } catch (e) { } }
     if (this.hostSrv && !keepSrv) { const s = this.hostSrv; this.hostSrv = null; this.hostInfo = null; setTimeout(() => s.stop(), 200); }
     if (!keep) Social.presence('on');
@@ -157,7 +184,7 @@ export class Game {
   nvgAvail() { const W = this.weather; return !!(Economy.W.nvg && this.sim && W && W.cur && W.cur.night > 0.4); }
   toggleNvg() { this.setNvg(!this.nvgOn && this.nvgAvail()); Audio.play('ui'); }
   setNvg(on) { this.nvgOn = !!on; document.body.classList.toggle('nvg', this.nvgOn); }
-  pause() { if (!this.sim || this.paused) return; this.paused = true; Input.exitLock(); Input.reset(); UI.open('pause'); }
+  pause() { if (!this.sim || this.paused) return; this.paused = true; { const L = this.lobby, $ = id => document.getElementById(id); $('pResume').textContent = L ? 'متابعة التجوّل' : 'متابعة القتال'; $('pQuit').textContent = L ? 'مغادرة السوق' : 'مغادرة المعركة'; $('pLoadout').style.display = L ? 'none' : ''; } Input.exitLock(); Input.reset(); UI.open('pause'); }
   resume() { this.paused = false; UI.closeScreens(); UI.hud(true); if (!Input.isTouch) Input.requestLock(); }
   queueSlot(s) { this.queued.slot = s; }
   queueHeal(k) { this.queued.heal = k; }
@@ -173,7 +200,9 @@ export class Game {
     if (!this.sim) { this.updateMenu(dt); this.renderMenu(dt); Input.endFrame(); return; }
     if (this.sim.online) this.me = this.sim.me; // قد يتغير رقمنا إن أعيد تشغيل السيرفر
     const sim = this.sim, me = this.mp;
-    const blocked = this.paused || !!UI.screen;
+    const blocked = this.paused || !!UI.screen || !!this.cine;
+    this.useInfo = this.computeUse(me);
+    if (Input.take('use') && !blocked) this.useAction();
     if (Input.take('pause') && !this.paused) { if (UI.mapOpen) UI.closeMap(); else this.pause(); }
     if (Input.take('map') && !this.paused) { if (UI.mapOpen) UI.closeMap(); else UI.openMap(); }
     if (Input.take('loadout') && !blocked) UI.open('loadout');
@@ -204,7 +233,7 @@ export class Game {
       if (this.queued.slot) { cmd.slot = this.queued.slot === (me && me.slot) && me.slot === 4 ? me.prevSlot : this.queued.slot; }
       if (!idle && Input.take('heal1')) this.queued.heal = 1;
       if (!idle && Input.take('heal2')) this.queued.heal = 2;
-      cmd.heal = this.queued.heal || 0;
+      cmd.heal = this.queued.heal || 0; if (this.queued.use) cmd.heal = 3;
       if (Input.take('inspect')) this.vm.inspect();
       this.queued = {};
       this.acc += dt;
@@ -334,7 +363,10 @@ export class Game {
         case 'reset': this.resetWorldVis(); break;
         case 'npcHit': { const c = this.civs && this.civs[e.id]; if (c && e.p && !c.away) { const d = me ? [e.p[0] - me.pos[0], 0, e.p[2] - me.pos[2]] : [0, 0, 1]; this.fx.blood(e.p, d, 25, false, this.world); Audio.play('flesh', e.p); } break; }
         case 'npcDie': { const c = this.civs && this.civs[e.id]; if (!c) break; c.die(e.d); if (!e.silent) { setTimeout(() => { this.fx.bloodPool([c.n.x, c.n.y, c.n.z], this.world, 0.55 + Math.random() * 0.25); Audio.play('bodyFall', [c.n.x, 0.3, c.n.z]); }, 650); if (e.k === this.me) UI.toast('قتلت أحد أهل السوق!'); } break; }
-        case 'heal': if (e.id === this.me) this.vm.healT = e.k === 2 ? 4 : 2.4; Audio.play(e.k === 2 ? 'syringe' : 'bandage', e.id === this.me ? null : this.posOf(e.id)); break;
+        case 'heal': if (e.k >= 3) { if (e.id === this.me) UI.toast(e.k === 3 ? `تاكل لبلبي حار… (باقي ${e.left ?? '?'})` : `تشرب استكان چاي… (باقي ${e.left ?? '?'})`); Audio.play('ui'); break; } if (e.id === this.me) this.vm.healT = e.k === 2 ? 4 : 2.4; Audio.play(e.k === 2 ? 'syringe' : 'bandage', e.id === this.me ? null : this.posOf(e.id)); break;
+        case 'foodOut': if (e.id === this.me) UI.toast(e.k === 'lablabi' ? 'خلصت حصّتك من اللبلبي بهالمعركة' : 'خلصت حصّتك من الچاي بهالمعركة'); break;
+        case 'foodFull': if (e.id === this.me) UI.toast('صحّتك كاملة، ما تحتاج'); break;
+        case 'mark': this.wps.onMark(e, this.mp); break;
         case 'healed': if (e.id === this.me) { Audio.play('healed'); this.vm.healT = 0; } break;
         case 'boom': {
           this.fx.explosion(e.p, e.kind); if (this.talk && (e.kind === 'frag' || e.kind === 'flash' || e.kind === 'molotov')) this.talk.onShot(e.p);
@@ -434,6 +466,7 @@ export class Game {
       if (me.landed > 4) Audio.play('land');
       HUD.spec('');
     } else this.spectate(dt);
+    if (this.cine && this.quests.camera(dt)) { zoom = 1; this.scoped = false; }
     // مجال الرؤية: الإعداد أفقي ثم يُحوّل إلى عمودي، والمنظار يقسّمه
     const aspect = innerWidth / innerHeight, hf = Settings.fov * Math.PI / 180;
     let vf = 2 * Math.atan(Math.tan(hf / 2) / aspect); vf = Math.max(vf, 0.9);
@@ -447,7 +480,7 @@ export class Game {
     this.updateWorldAnim(dt);
     if (this.talk) this.talk.update(dt);
     // الرسم: العالم ثم السلاح
-    this.draw(me && me.alive && !this.scoped);
+    this.draw(me && me.alive && !this.scoped && !this.lobby && !this.cine);
     HUD.update(dt, this);
     // الخرائط
     if ((this.miniT = (this.miniT || 0) - dt) <= 0) { this.miniT = 1 / 15; this.mapView.drawMini(document.getElementById('minimap'), this); }
@@ -515,7 +548,7 @@ export class Game {
       r.autoClear = true;
     }
   }
-  updateWorldAnim(dt) { if (this.onAnim) this.onAnim(dt, this.t); this.updateCivs(dt); this.updateCps(dt); }
+  updateWorldAnim(dt) { if (this.onAnim) this.onAnim(dt, this.t); this.updateCivs(dt); this.updateCps(dt); this.doorsVis.update(dt); this.wps.update(dt); this.ambient.update(dt); this.quests.update(dt); }
   // علامات نقاط السيطرة بالعالم: حلقة على الأرض بلون المسيطر وعمود ضوء خفيف وحرف فوقها
   updateCps(dt) {
     const C = (this.sim && this.sim.cps) || [], me = this.mp;
@@ -548,7 +581,7 @@ export class Game {
     const night = !!(this.sim && W && W.cur && W.cur.night > 0.5), rain = !!(W && (W.rainNow || 0) > 0.15);
     if (this.civNight !== night) {
       this.civNight = night;
-      (this.civs || []).forEach((c, i) => { const away = night && c.shop; c.setAway(away); const st = this.sim && this.sim.npcs && this.sim.npcs[i]; if (st) st.away = away; const wn = this.world.npcs[i]; if (wn && wn.box >= 0) { if (away) this.world.disable(wn.box); else if (!st || st.alive !== false) this.world.restore(wn.box); } });
+      (this.civs || []).forEach((c, i) => { const away = night && c.shop && !this.lobby; c.setAway(away); const st = this.sim && this.sim.npcs && this.sim.npcs[i]; if (st) st.away = away; const wn = this.world.npcs[i]; if (wn && wn.box >= 0) { if (away) this.world.disable(wn.box); else if (!st || st.alive !== false) this.world.restore(wn.box); } });
     }
     for (const c of this.civs || []) {
       if (c.away) continue;

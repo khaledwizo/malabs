@@ -20,7 +20,7 @@ export const SOUQ_INFO = {
   water: [[-110, 33.6, 110, 70]],
   areas: [
     { name: 'سوق المجاهدين', x: 0, z: -2, big: true }, { name: 'صحن الجامع', x: 0, z: -29 }, { name: 'خان المرجان', x: -25, z: -6 },
-    { name: 'ساحة البئر', x: 30, z: -3 }, { name: 'الشريعة', x: 0, z: 27 }, { name: 'الحارة المهجورة', x: -55, z: -8, col: '#ffb3a8' },
+    { name: 'ساحة البئر', x: 30, z: -3 }, { name: 'الشريعة', x: 0, z: 27 }, { name: 'الحارة المهجورة', x: -58, z: 3, col: '#ffb3a8' }, { name: 'مضيف الشيخ فاتح', x: -59, z: -12, col: '#bff5c8' },
     { name: 'المقبرة القديمة', x: -77, z: -6, col: '#ff8f8f', big: true }, { name: 'ساحة الساعة', x: 66, z: -9, big: true }, { name: 'مشتل ريحانة', x: -6.5, z: -8.8, col: '#a6ff9a' },
   ],
   lineup: { x: -2.4, z: 23.6, dx: 1.6 },
@@ -349,6 +349,33 @@ export function buildSouq(B) {
       B.npc({ x: xFace + side * 1.05, y: 0.25, z: mid + 0.35, yaw: side * Math.PI / 2, pose: 'stand', look: 'nursery' });
       return;
     }
+    if (kind === 'spice') {
+      // عطارة أبو ستّار: أكياس طحين وحمص، صحون بهارات مكوّمة، علب چاي، فلفل مجفّف معلّق، ميزان نحاسي
+      for (let k = 0; k < 3; k++) B.box(Math.min(back - side * 0.25, back + side * 0.25), 1.0 + k * 0.62, z0 + 0.15, Math.max(back - side * 0.25, back + side * 0.25), 1.05 + k * 0.62, z1 - 0.15, 'wood', { col: false });
+      const SP = ['flowerRed', 'flowerYellow', 'clay', 'tan', 'leafDark', 'brickBurnt'];
+      for (let k = 0; k < 3; k++) for (let j = 0; j < 5; j++) { const z = z0 + 0.35 + j * (z1 - z0 - 0.7) / 4, y = 1.05 + k * 0.62; if (k === 1) { B.boxB(back, y, z, 0.26, 0.3, 0.2, j % 2 ? 'paintRed' : 'tileGreen', { col: false }); } else { B.geo(() => new THREE.CylinderGeometry(0.11, 0.1, 0.14, 10), T(back, y, z), 'porcelain'); B.geo(() => new THREE.ConeGeometry(0.1, 0.12, 10), T(back, y + 0.2, z), SP[(j + k) % SP.length]); } }
+      for (let j = 0; j < 3; j++) sackVis(cx + side * 0.15, z0 + 0.45 + j * (z1 - z0 - 0.9) / 2, j === 1 ? 'tan' : 'flowerWhite', 0.25);
+      counter('wood');
+      for (let j = 0; j < 4; j++) { const z = z0 + 0.45 + j * (z1 - z0 - 0.9) / 3; B.geo(() => new THREE.CylinderGeometry(0.16, 0.12, 0.08, 12), T(xFace + side * 0.45, 1.1, z), 'copper'); B.geo(() => new THREE.ConeGeometry(0.14, 0.13, 12), T(xFace + side * 0.45, 1.2, z), SP[j]); }
+      for (let j = 0; j < 3; j++) { const z = z0 + 0.5 + j * (z1 - z0 - 1) / 2; for (let k = 0; k < 6; k++) B.geo(() => new THREE.ConeGeometry(0.035, 0.12, 6), T(xFace + side * 0.3, 2.9 - k * 0.11, z, 0, 1, 1, 1, Math.PI), 'paintRed'); }
+      B.geo(() => new THREE.CylinderGeometry(0.13, 0.13, 0.02, 12), T(xFace + side * 0.5, 1.4, mid - 0.25), 'brass'); B.box(xFace + side * 0.5 - 0.01, 1.1, mid - 0.26, xFace + side * 0.5 + 0.01, 1.4, mid - 0.24, 'brass', { col: false });
+      lantern(cx, 2.6, mid, 0.5);
+      B.npc({ x: xFace + side * 1.12, y: 0.25, z: mid + 0.2, yaw: side * Math.PI / 2, pose: 'stand', look: 'spice' });
+      signs.push({ text: 'عطارة أبو ستّار', x: xFace - side * 0.03, y: 3.98, z: mid, ry: side > 0 ? -Math.PI / 2 : Math.PI / 2, w: Math.min(2.6, z1 - z0 - 0.3), opt: { bg: '#5a2a10', border: '#ffcf7a', fg: '#fff2d8' } });
+      return;
+    }
+    if (kind === 'pharmacy') {
+      // صيدلية الشفاء: رفوف علب بيضاء وخضراء، كاونتر زجاجي، صليب أخضر مضيء
+      B.box(Math.min(wallX, wallX + side * 0.04), 0.9, z0 + 0.2, Math.max(wallX, wallX + side * 0.04), 3.0, z1 - 0.2, 'porcelain', { col: false });
+      for (let k = 0; k < 4; k++) { const y = 1.0 + k * 0.5; B.box(Math.min(back - side * 0.22, back + side * 0.22), y, z0 + 0.15, Math.max(back - side * 0.22, back + side * 0.22), y + 0.04, z1 - 0.15, 'porcelain', { col: false }); for (let j = 0; j < 7; j++) if (R() < 0.85) B.boxB(back, y + 0.04, z0 + 0.3 + j * (z1 - z0 - 0.6) / 6, 0.2, 0.14 + R() * 0.12, 0.16, R() < 0.5 ? 'porcelain' : R() < 0.5 ? 'tileGreen' : 'paintRed', { col: false }); }
+      counter('porcelain'); B.box(Math.min(xFace + side * 0.15, xFace + side * 0.75), 1.1, z0 + 0.25, Math.max(xFace + side * 0.15, xFace + side * 0.75), 1.3, z1 - 0.25, 'glass', { col: false });
+      for (const [a, b2, c] of [[0.5, 0.14, 0.14], [0.14, 0.5, 0.14]]) B.boxB(xFace - side * 0.08, 3.3 - b2 / 2 + 0.03, z1 + 0.05, c, b2, a, 'tileGreen', { col: false });
+      B.glow(xFace - side * 0.1, 3.33, z1 + 0.05, 0.6, 0x5aff8a, 0);
+      B.light(cx, 2.8, mid, 0xe8fff2, 2.0, 7);
+      B.npc({ x: xFace + side * 1.12, y: 0.25, z: mid, yaw: side * Math.PI / 2, pose: 'stand', look: 'pharmacist' });
+      signs.push({ text: 'صيدلية الشفاء', x: xFace - side * 0.03, y: 3.98, z: mid, ry: side > 0 ? -Math.PI / 2 : Math.PI / 2, w: Math.min(2.6, z1 - z0 - 0.3), opt: { bg: '#0f5a3a', border: '#e8fff2', fg: '#ffffff' } });
+      return;
+    }
     // لوح عرض خشبي على الجدار الخلفي
     B.box(Math.min(wallX, wallX + side * 0.04), 1.0, z0 + 0.2, Math.max(wallX, wallX + side * 0.04), 3.0, z1 - 0.2, kind === 'blades' ? 'carpet' : kind === 'armor' ? 'woodDark' : 'clothCream', { col: false });
     const gx = wallX - side * 0.04;
@@ -516,7 +543,7 @@ export function buildSouq(B) {
     const zA = -20, zB = 18, vz0 = -16, vz1 = 14;
     // صفوف الدكاكين على الجانبين (جدار الكتل عند x=±3)
     const shopsAt = [[-15.6, -13.2], [-12.8, -10.4], [-10, -7.6], [-7.2, -4.8], [5.2, 7.6], [8, 10.4], [10.8, 13.2]];
-    for (const [z0, z1] of shopsAt) { shop(-3, z0, z1, -1, z0 === -10 ? 'nursery' : null); shop(3, z0, z1, 1); }
+    for (const [z0, z1] of shopsAt) { shop(-3, z0, z1, -1, z0 === -10 ? 'nursery' : z0 === -7.2 ? 'spice' : z0 === 10.8 ? 'pharmacy' : null); shop(3, z0, z1, 1); }
     // دعامات بين الدكاكين + جدار علوي حتى القبو
     const piers = [[-20, -15.6], [-13.2, -12.8], [-10.4, -10], [-7.6, -7.2], [-4.8, -2], [2, 5.2], [7.6, 8], [10.4, 10.8], [13.2, 18]];
     for (const [z0, z1] of piers) { B.box(-5.2, 0, z0, -3, 4.6, z1, 'brick'); B.box(3, 0, z0, 5.2, 4.6, z1, 'brick'); }

@@ -1,3 +1,4 @@
+import { WP_COL } from '../game/waypoint.js';
 // الخرائط: المصغّرة (يمين الأعلى، الشمال للأعلى) والكبيرة التي تُفتح وتُغلق كما في ببجي
 import { MAT } from '../world/collide.js';
 import { TEAMS } from '../sim/sim.js';
@@ -57,6 +58,31 @@ export class MapView {
     x.beginPath(); x.arc(X, Z, r, 0, Math.PI * 2); x.fill(); x.stroke();
     x.font = `900 ${fs}px 'Cairo', sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.lineWidth = 3; x.strokeStyle = 'rgba(0,0,0,.7)'; x.strokeText(c.name, X, Z); x.fillStyle = '#fff'; x.fillText(c.name, X, Z);
   }
+  // علامات التأشير والمهام: دبّوس على شكل قطرة بحافة بيضاء، وخط الطريق بلون الهدف
+  marks(g) {
+    const L = [], W = g.wps, Q = g.quests;
+    if (Q && Q.on && Q.offer && !Q.act) { const p = Q.posOf('g', Q.offer); if (p) L.push({ x: p[0], z: p[1], col: WP_COL.giver, glyph: '!', dot: true }); }
+    if (W) {
+      for (const m of W.team.values()) L.push({ x: m.x, z: m.z, col: WP_COL.team, glyph: '' });
+      if (W.mine) L.push({ x: W.mine.x, z: W.mine.z, col: WP_COL.mine, glyph: W.mine.route ? '' : '•' });
+      if (W.quest) L.push({ x: W.quest.x, z: W.quest.z, col: WP_COL.quest, glyph: '★' });
+    }
+    return L;
+  }
+  pin(x, X, Y, col, s, glyph, dot) {
+    x.save(); x.lineWidth = Math.max(2, s * 0.22); x.strokeStyle = '#fff'; x.fillStyle = col;
+    if (dot) { x.beginPath(); x.arc(X, Y, s * 0.75, 0, 7); x.fill(); x.stroke(); }
+    else { x.beginPath(); x.moveTo(X, Y); x.bezierCurveTo(X - s * 1.1, Y - s * 1.2, X - s * 0.9, Y - s * 2.4, X, Y - s * 2.4); x.bezierCurveTo(X + s * 0.9, Y - s * 2.4, X + s * 1.1, Y - s * 1.2, X, Y); x.closePath(); x.shadowColor = 'rgba(0,0,0,.5)'; x.shadowBlur = s * 0.6; x.fill(); x.shadowBlur = 0; x.stroke(); }
+    if (glyph) { x.fillStyle = dot ? '#fff' : '#1a1206'; x.font = `900 ${Math.round(s * (dot ? 1.1 : 1.05))}px 'Cairo', sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(glyph, X, dot ? Y + s * 0.05 : Y - s * 1.45); }
+    x.restore();
+  }
+  route(x, P, T, col, w) {
+    if (!P || P.length < 2) return;
+    x.save(); x.lineJoin = 'round'; x.lineCap = 'round';
+    x.beginPath(); P.forEach((p, i) => { const [X, Y] = T(p[0], p[1]); if (i) x.lineTo(X, Y); else x.moveTo(X, Y); });
+    x.strokeStyle = 'rgba(20,8,24,.65)'; x.lineWidth = w + 4; x.stroke(); x.strokeStyle = col; x.lineWidth = w; x.stroke();
+    x.restore();
+  }
   arrow(x, cx, cy, yaw, col, s) {
     x.save(); x.translate(cx, cy); x.rotate(-yaw); x.fillStyle = col; x.strokeStyle = 'rgba(0,0,0,0.6)'; x.lineWidth = 2;
     x.beginPath(); x.moveTo(0, -s * 1.3); x.lineTo(s * 0.85, s * 0.8); x.lineTo(0, s * 0.35); x.lineTo(-s * 0.85, s * 0.8); x.closePath(); x.stroke(); x.fill(); x.restore();
@@ -69,6 +95,10 @@ export class MapView {
     x.translate(S / 2, S / 2); x.scale(sc / this.k, sc / this.k); x.translate(-this.px(me.pos[0]), -this.pz(me.pos[2]));
     x.drawImage(this.bg, 0, 0);
     x.restore();
+    // خط الطريق والعلامات
+    { const T = (wx, wz) => [(wx - me.pos[0]) * sc + S / 2, (wz - me.pos[2]) * sc + S / 2], W = g.wps, tg = W && W.target;
+      if (tg && W.path) this.route(x, W.path, T, W.quest ? WP_COL.quest : WP_COL.mine, 5);
+      for (const m of this.marks(g)) { const [X, Y] = T(m.x, m.z), cl = (v) => Math.max(10, Math.min(S - 10, v)); this.pin(x, cl(X), m.dot ? cl(Y) : Math.max(24, Math.min(S - 4, Y)), m.col, 9, m.glyph, m.dot); } }
     // نقاط السيطرة
     for (const c of g.sim.cps || []) { const X = (c.x - me.pos[0]) * sc + S / 2, Z = (c.z - me.pos[2]) * sc + S / 2; this.cpMark(x, Math.max(9, Math.min(S - 9, X)), Math.max(9, Math.min(S - 9, Z)), Math.max(7, c.r * sc), c, me.team, 11); }
     // اللاعبون
@@ -109,6 +139,7 @@ export class MapView {
       x.font = `700 ${a.big ? 30 : 22}px 'Reem Kufi', 'Cairo', sans-serif`; x.lineWidth = 6; x.strokeStyle = 'rgba(0,0,0,0.55)';
       x.strokeText(a.name, this.px(a.x), this.pz(a.z)); x.fillStyle = a.col || '#fff3d6'; x.fillText(a.name, this.px(a.x), this.pz(a.z));
     }
+    { const W = g.wps, tg = W && W.target; if (tg && W.path) this.route(x, W.path, (a, b) => [this.px(a), this.pz(b)], W.quest ? WP_COL.quest : WP_COL.mine, 9); for (const m of this.marks(g)) this.pin(x, this.px(m.x), this.pz(m.z), m.col, 17, m.glyph, m.dot); }
     if (me) for (const c of g.sim.cps || []) this.cpMark(x, this.px(c.x), this.pz(c.z), Math.max(14, this.px(c.x + c.r) - this.px(c.x)), c, me.team, 22);
     if (me) {
       const now = g.t;

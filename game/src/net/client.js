@@ -106,7 +106,7 @@ export class NetSim {
     const fresh = m.pid !== this.me || !this.mini;
     this.me = m.pid; this.mode = m.mo; this.roundsToWin = m.rw; if (m.tl) this.timeLimit = m.tl;
     if (fresh) {
-      const mini = this.mini = new Sim(this.w, { mode: m.mo, timeLimit: m.tl });
+      const mini = this.mini = new Sim(this.w, { mode: m.mo, timeLimit: m.tl }); mini.pred = true; // تنبّؤ فقط: ما يفتح أبواب
       mini.damage = () => { }; mini.hitProp = () => { }; mini.damageNpc = () => { }; // الضرر يقرّره السيرفر وحده
       this.pp = mini.addPlayer({ id: m.pid, name: this.opt.name, team: m.tm, char: this.opt.char, loadout: this.opt.loadout });
       this.hist.length = 0; this.recent.length = 0; this.seq = 0; this.snaps.length = 0; this.offset = null; this.lastSnapT = -1;
@@ -128,7 +128,7 @@ export class NetSim {
       const sample = m.t - tl;
       if (this.offset === null || Math.abs(sample - this.offset) > 1.5) this.offset = sample;
       else this.offset += (sample - this.offset) * (sample > this.offset ? 0.25 : 0.03);
-      this.phase = m.ph; this.phaseT = m.pt; this.round = m.r; this.score = m.sc; this.cps = (m.cp || []).map(c => ({ x: c[0], y: c[1], z: c[2], r: c[3], owner: c[4], prog: c[5], name: c[6], contest: c[7] })); this.matchOver = !!m.ov; this.roundsToWin = m.rw;
+      this.phase = m.ph; this.phaseT = m.pt; this.round = m.r; this.score = m.sc; this.doorsOpen = m.dr || []; this.cps = (m.cp || []).map(c => ({ x: c[0], y: c[1], z: c[2], r: c[3], owner: c[4], prog: c[5], name: c[6], contest: c[7] })); this.matchOver = !!m.ov; this.roundsToWin = m.rw;
       if (m.mo !== this.mode) { this.mode = m.mo; this.mini.mode = m.mo; }
       const P = new Map(); for (const a of m.p) P.set(a[0], a);
       const N = new Map(); for (const n of m.n) N.set(n[0], n);
@@ -179,6 +179,7 @@ export class NetSim {
   // ---------- واجهة Sim التي تستعملها اللعبة ----------
   input(id, cmd) { this.cmd = { ...cmd }; }
   setLoadout(id, L) { if (this.mini) this.mini.setLoadout(this.me, L); this.opt.loadout = L; this.link && this.link.send({ k: 'lo', l: L }, true); }
+  setMark(id, p) { this.link && this.link.send({ k: 'mk', p }, true); }
   setChar(id, c) { if (this.pp) this.pp.char = c; this.opt.char = c; this.link && this.link.send({ k: 'ch', c }, true); }
   curW(p) { return p.slot <= 3 ? p.inv[p.slot] : null; }
   curId(p) { return p.slot === 4 ? (p.inv[4][0] || 'frag') : (p.inv[p.slot] ? p.inv[p.slot].id : 'khanjar'); }

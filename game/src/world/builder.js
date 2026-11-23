@@ -21,11 +21,22 @@ export class Builder {
     this.gfx = gfx || null; // { THREE, mats, Batch, boxInto, ... }
     this.batches = new Map(); this.meshes = []; this.inst = new Map(); this.lights = []; this.glows = []; this.water = []; this.anim = [];
     this.navN = []; this.navL = []; this.zones = []; this.cur = null; this.dyn = new Map();
-    this.w.props = []; this.w.npcs = [];
+    this.w.props = []; this.w.npcs = []; this.w.doors = []; this.w.usables = []; this.w.noFire = [];
   }
   // جسم قابل للكسر: كل ما يُبنى بعده (تصادم ورسم) يتبعه حتى end()
   prop(kind, hp) { const p = { id: this.w.props.length, kind, hp, boxes: [], c: null }; this.w.props.push(p); this.cur = p; return p.id; }
   end() { this.cur = null; }
+  // باب يُفتح ويُغلق (axis: اتجاه لوح الباب x أو z، hinge: -1/1 جهة المفصلة، swing: جهة الفتح)
+  door(o) {
+    const t = 0.14, y = o.y || 0, d = { id: this.w.doors.length, x: o.x, y, z: o.z, axis: o.axis, w: o.w, h: o.h || 2.3, leaves: o.leaves || 1, swing: o.swing || 1, mat: o.mat || 'woodDark', name: o.name || '' };
+    const [x0, z0, x1, z1] = o.axis === 'x' ? [o.x - o.w / 2, o.z - t / 2, o.x + o.w / 2, o.z + t / 2] : [o.x - t / 2, o.z - o.w / 2, o.x + t / 2, o.z + o.w / 2];
+    d.box = this.w.add(x0, y, z0, x1, y + d.h, z1, MAT.wood, 0); d.bb = [x0, z0, x1, z1];
+    this.w.doors.push(d); return d.id;
+  }
+  // مكان يُستعمل بزر «استعمال»: أكل اللبلبي وشرب الچاي بالمعركة
+  usable(kind, x, z, r = 2.4) { this.w.usables.push({ id: this.w.usables.length, kind, x, z, r }); }
+  // منطقة يُمنع فيها إطلاق النار ورمي القنابل (المرقد)
+  noFire(x0, z0, x1, z1) { this.w.noFire.push([x0, z0, x1, z1]); }
   // شخص من أهل السوق: pose = sit | stand | pray ؛ kill: يمكن إصابته
   npc(o) { const n = { id: this.w.npcs.length, x: o.x, y: o.y || 0, z: o.z, yaw: o.yaw || 0, pose: o.pose || 'stand', kill: o.kill !== false, look: o.look || 'vendor', stool: o.stool !== false, seed: this.w.npcs.length * 7 + (o.seed || 3) }; const r = n.pose === 'sit' ? 0.3 : 0.24; n.box = this.w.add(n.x - r, n.y, n.z - r, n.x + r, n.y + (n.pose === 'sit' ? 1.25 : 1.75), n.z + r, 6, F.NOBULLET); this.w.npcs.push(n); return n.id; }
   get vis() { return !!this.gfx; }
@@ -105,6 +116,8 @@ export class Builder {
       for (const i of p.boxes) { pof[i] = p.id; const o = i * 6, b = this.w.b; x += (b[o] + b[o + 3]) / 2; y += (b[o + 1] + b[o + 4]) / 2; z += (b[o + 2] + b[o + 5]) / 2; }
       const n = Math.max(1, p.boxes.length); p.c = [x / n, y / n, z / n];
     }
+    // الأبواب تُحسب مفتوحة عند بناء الملاحة (البوت يفتحها إذا وصلها)
+    for (const d of this.w.doors) this.w.disable(d.box);
     // إزاحة العقد الواقعة داخل الأجسام الصلبة
     for (const n of this.navN) {
       if (!this.w.overlap(n[0], n[1] + 0.05, n[2], 0.3, 1.2)) continue;
@@ -131,6 +144,7 @@ export class Builder {
       if (ok) { adj[i].add(j); adj[j].add(i); }
     }
     this.w.nav = { nodes: N, adj: adj.map(s => [...s]) };
+    for (const d of this.w.doors) this.w.restore(d.box);
     return this.w;
   }
 }

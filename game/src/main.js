@@ -81,8 +81,12 @@ function playIntro() {
   intro.start(); window.__intro = intro;
 }
 if (!introSeen() && !/[?&]nointro/.test(location.search)) playIntro();
-let fpsT = 0;
+let fpsT = 0, bootF = 0;
+// نخفي شاشة التحميل بعد أول إطارات مرسومة
+const bootOut = () => { const b = document.getElementById('boot'); if (b && !b.classList.contains('out')) { b.classList.add('out'); setTimeout(() => b.remove(), 700); } };
+setTimeout(bootOut, 12000);
 Loop.start((dt, now) => {
+  if (++bootF === 4) bootOut();
   if (intro && intro.active) { intro.frame(dt); return; }
   game.frame(dt, now);
   fpsT -= dt; if (fpsT <= 0) { fpsT = 0.5; HUD.fps(`FPS ${Math.round(Loop.fps)} · ${Loop.ms.toFixed(1)}ms · ${resText}`); }

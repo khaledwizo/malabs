@@ -79,6 +79,7 @@ export const SECONDARIES = ['dijla', 'nisr', 'zaeem', 'furat'];
 export const MODES = {
   tdm: { name: 'اشتباك الفرق', sub: 'إحياء فوري · الأكثر قتلات يفوز', desc: 'تعود للحياة بعد سقوطك. عند انتهاء الوقت يفوز الفريق اللي أسقط أعداءه أكثر.', rules: 'tdm', time: 600, primaries: PRIM_ALL, icon: 'tdm' },
   dom: { name: 'السيطرة', sub: 'إحياء · نقاط سيطرة', desc: 'ثلاث نقاط بالخريطة تتغيّر كل قيم (نقطة وحدة إذا 2 ضد 2 أو أقل). قف بالدائرة حتى تسيطر عليها؛ كل ثانية سيطرة نقطة، والأكثر نقاطاً يفوز.', rules: 'dom', time: 600, primaries: PRIM_ALL, icon: 'tdm' },
+  lobby: { name: 'اللوبي', sub: 'تجوّل ومهام', desc: 'تجوّل بالسوق، احچِ ويّا الناس واشتغل بمهامهم.', rules: 'lobby', time: 1e9, primaries: [], icon: 'tdm', hidden: true },
   rounds: { name: 'الجولات التكتيكية', sub: 'بلا إحياء · جولات', desc: 'حياة واحدة في كل جولة. خطّط مع فريقك واستعمل القنابل بذكاء.', rules: 'rounds', primaries: PRIM_ALL, icon: 'rounds' },
 };
 export const MODE_ORDER = ['tdm', 'dom', 'rounds'];
