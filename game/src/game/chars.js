@@ -225,11 +225,11 @@ export class CharModel {
     let grip, fore;
     if (g) {
       const pistol = P.pistol, knife = P.knife, nade = P.nade;
-      const recoil = Math.max(0, st.fireT || 0);
-      const base = knife ? V(0.2, 0.28, -0.3) : nade ? V(0.18, 0.42, -0.25) : pistol ? V(0.06, 0.44, -0.42) : V(0.11, 0.36, -0.2);
+      const recoil = Math.max(0, st.fireT || 0), stab = knife ? st.stab || 0 : 0;
+      const base = knife ? V(0.2 - stab * 0.12, 0.28 + stab * 0.16, -0.3 - stab * 0.42) : nade ? V(0.18, 0.42, -0.25) : pistol ? V(0.06, 0.44, -0.42) : V(0.11, 0.36, -0.2);
       if (st.reloading) base.add(V(-0.03, -0.06, 0.04));
       g.position.copy(base).add(V(0, recoil * 0.01, recoil * 0.06));
-      g.rotation.set(st.reloading ? -0.35 : recoil * 0.12, 0, st.reloading ? 0.3 : 0);
+      g.rotation.set(st.reloading ? -0.35 : recoil * 0.12 - stab * 0.5, 0, st.reloading ? 0.3 : 0);
       g.updateMatrix();
       grip = V(...P.grip).applyMatrix4(g.matrix); fore = V(...P.fore).applyMatrix4(g.matrix);
       if (st.reloading) fore = V(0.04, 0.22, -0.2);

@@ -607,3 +607,5 @@ body.showfps #lobbyBar{top:calc(var(--sat) + 74px)}
 /* اللوبي: ماكو لوحة نتائج، البوصلة تصعد للأعلى */
 body.lobby #topbar{top:calc(var(--sat) + 6px)}
 #boot .blogo{border-radius:22%;box-shadow:0 10px 30px rgba(0,0,0,.6),0 0 0 1px rgba(232,184,74,.35)}
+.kflash{position:fixed;inset:0;z-index:7;pointer-events:none;background:radial-gradient(circle,rgba(160,0,0,.0) 30%,rgba(120,0,0,.55));animation:kfl .5s ease-out forwards}@keyframes kfl{from{opacity:1}to{opacity:0}}
+#cine.kc .cbox,#cine.kc #mclose{display:none}

@@ -9,7 +9,7 @@ export class HouseDoors {
   build() {
     if (this.list) return;
     const w = this.g.world, N = (w.nav && w.nav.nodes) || [], out = [];
-    const avoid = [[-67, -19, -50, -5], [-84, -9, -74, 1]]; // المضيف والمرقد
+    const avoid = [[-67, -19, -50, -5], [-84, -9, -74, 1], [64, -32, 76, -21]]; // المضيف والمرقد وبيت أبو صگر
     const bad = (x, z) => avoid.some(([a, b, c, d]) => x > a && x < c && z > b && z < d) || (w.doors || []).some(d => Math.hypot(d.x - x, d.z - z) < 4) || (w.noFire || []).some(([a, b, c, d]) => x > a - 1 && x < c + 1 && z > b - 1 && z < d + 1);
     const hit = (x, y, z, dx, dz, L) => { const h = w.ray(x, y, z, dx, 0, dz, L, F.NOBULLET, {}); return h ? h.t : -1; };
     for (const n of N) {

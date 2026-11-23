@@ -179,6 +179,55 @@ export function buildDistricts(B, H) {
   graffiti('ارحلوا', -58.5, 1.5, -29.53, 0, 2.2);
   B.light(-62.2, 2.5, -26.2, 0xff9a50, 1.3, 7, 1); B.glow(-62.2, 2.5, -26.2, 0.5, 0xff9a50, 1);
   // كتلة محترقة صمّاء
+  // ================= بيت أبو صگر (طابقين + سطح) — يندخل من الباب، مؤثث، ودرج للطابق الثاني ودرج للسطح بباب =================
+  {
+    // البيت مزحوح متر للجنوب حتى ما يدخل بسور المدينة الشمالي
+    const OZ = 1.0, H = { box: (x0, y0, z0, x1, y1, z1, m, o) => B.box(x0, y0, z0 + OZ, x1, y1, z1 + OZ, m, o), door: o => B.door({ ...o, z: o.z + OZ }), light: (x, y, z, ...r) => B.light(x, y, z + OZ, ...r), geo: (f, m, ...r) => B.geo(f, m, ...r) }, Tz = (x, y, z, ...r) => T(x, y, z + OZ, ...r);
+    const X0 = 66, X1 = 74, Z0 = -31, Z1 = -24.5, t = 0.3, F2 = 3.4, R = 6.6, ix0 = X0 + t, ix1 = X1 - t, iz0 = Z0 + t, iz1 = Z1 - t;
+    const DX = 69.6, DW = 1.2, DH = 2.3;
+    // الجدران الخارجية (الجنوبي بباب)
+    H.box(X0, 0, Z0, X1, R, iz0, 'brickPale'); H.box(X0, 0, iz0, ix0, R, iz1, 'brickPale'); H.box(ix1, 0, iz0, X1, R, iz1, 'brickPale');
+    H.box(X0, 0, iz1, DX - DW / 2, R, Z1, 'brickPale'); H.box(DX + DW / 2, 0, iz1, X1, R, Z1, 'brickPale'); H.box(DX - DW / 2, DH, iz1, DX + DW / 2, R, Z1, 'brickPale');
+    H.door({ x: DX, z: Z1 - t / 2, axis: 'x', w: DW, h: DH, swing: 1, mat: 'woodDark', name: 'بيت أبو صگر' });
+    // أرضية الطابق الأول
+    if (vis) H.box(ix0, 0, iz0, ix1, 0.03, iz1, 'carpet', { col: false, faces: 'py' });
+    // الدرج الأول (جهة الشرق، يصعد للشمال): 10 درجات + بسطة
+    const sx0 = 72.15, sx1 = ix1;
+    for (let k = 1; k <= 10; k++) H.box(sx0, 0, -25.9 - k * 0.38, sx1, k * 0.31, -25.9 - (k - 1) * 0.38, 'stone'); // تبدي بعيد عن الجدار حتى تنصعد من گدّام
+    // سقف الطابق الأول = أرضية الثاني (فتحة فوق الدرج)
+    H.box(ix0, F2 - 0.2, iz0, sx0, F2, iz1, 'paving'); H.box(sx0, F2 - 0.2, iz0, sx1, F2, -29.7, 'paving');
+    H.box(sx0 - 0.12, F2, -29.7, sx0, F2 + 1.0, iz1, 'woodDark', { cm: MAT.wood }); // محجّر حول فتحة الدرج
+    // الدرج الثاني (جهة الغرب، يصعد للجنوب) + بسطة السطح
+    const wx0 = ix0, wx1 = 67.8;
+    for (let k = 1; k <= 10; k++) H.box(wx0, F2, -29.8 + (k - 1) * 0.4, wx1, F2 + k * 0.29, -29.8 + k * 0.4, 'stone');
+    H.box(wx0, F2, -25.8, 68.2, R, iz1, 'stone');
+    H.box(wx1, F2, -29.8, wx1 + 0.1, F2 + 1.0, -25.8, 'woodDark', { cm: MAT.wood });
+    // السطح (فتحة فوق الدرج الثاني) + محجّر + غرفة الدرج بباب
+    H.box(68.2, R - 0.2, iz0, ix1, R, iz1, 'roof'); H.box(ix0, R - 0.2, iz0, 68.2, R, -30.0, 'roof');
+    H.box(X0, R, Z0, X1, R + 0.85, Z0 + 0.25, 'brickPale'); H.box(X0, R, Z1 - 0.25, X1, R + 0.85, Z1, 'brickPale'); H.box(X1 - 0.25, R, Z0, X1, R + 0.85, Z1, 'brickPale');
+    const hx = 68.45, hd = -25.45, H2 = 2.4;
+    H.box(X0, R, Z0 + 0.25, X0 + 0.25, R + H2, Z1 - 0.25, 'brickPale'); H.box(X0, R, Z0 + 0.25, hx, R + H2, -30.75 + 0.25, 'brickPale');
+    H.box(hx - 0.25, R, -30.5, hx, R + H2, hd - 0.45, 'brickPale'); H.box(hx - 0.25, R, hd + 0.45, hx, R + H2, Z1 - 0.25, 'brickPale'); H.box(hx - 0.25, R + 2.15, hd - 0.45, hx, R + H2, hd + 0.45, 'brickPale'); H.box(X0, R, Z1 - 0.5, hx - 0.25, R + H2, Z1 - 0.25, 'brickPale');
+    H.box(X0, R + H2, Z0, hx + 0.1, R + H2 + 0.15, Z1 - 0.15, 'roof');
+    H.door({ x: hx - 0.125, y: R, z: hd, axis: 'z', w: 0.88, h: 2.1, swing: -1, mat: 'woodBlue', name: 'باب السطح' });
+    if (vis) {
+      // الطابق الأول: قعدة عربية، ميز، تلفزيون، كنتور، مصباح
+      H.box(ix0 + 0.05, 0, iz0 + 0.3, ix0 + 0.85, 0.38, iz1 - 0.3, 'clothRed', { col: false }); H.box(ix0 + 0.05, 0.38, iz0 + 0.3, ix0 + 0.25, 0.85, iz1 - 0.3, 'clothCream', { col: false });
+      H.box(68.4, 0, -28.6, 70.2, 0.45, -27.4, 'woodDark'); H.box(68.6, 0.45, -28.4, 70.0, 0.5, -27.6, 'clothGreen', { col: false });
+      H.box(70.6, 0, iz0 + 0.05, 71.9, 0.7, iz0 + 0.55, 'woodDark'); H.box(70.75, 0.7, iz0 + 0.15, 71.75, 1.35, iz0 + 0.22, 'dark', { col: false });
+      H.box(ix0 + 0.05, 0, iz0 + 0.05, ix0 + 1.3, 2.1, iz0 + 0.6, 'woodBlue');
+      H.box(71.2, 0, -25.6, 71.6, 1.5, -25.2, 'brass', { col: false });
+      // الطابق الثاني: فراش، دولاب، سجادة
+      H.box(68.6, F2, -28.6, 70.1, F2 + 0.5, -26.4, 'clothCream'); H.box(68.6, F2 + 0.5, -28.6, 70.1, F2 + 0.65, -28.25, 'clothRed', { col: false });
+      H.box(70.3, F2, iz1 - 0.65, 71.9, F2 + 2.1, iz1 - 0.05, 'woodDark');
+      H.box(68.3, F2, -29.0, 71.6, F2 + 0.02, -26.0, 'carpet', { col: false, faces: 'py' });
+      // شبابيك
+      for (const x of [67.4, 72.6]) for (const y of [1.2, F2 + 1.2]) H.box(x - 0.5, y, Z1 - 0.02, x + 0.5, y + 1.0, Z1 + 0.04, 'win', { col: false });
+      // خزّان ماي وصحن ستلايت على السطح
+      H.geo(() => new THREE.CylinderGeometry(0.55, 0.55, 1.1, 14), Tz(72.6, R + 0.55, -29.8), 'paintRed'); H.geo(() => new THREE.SphereGeometry(0.45, 12, 6, 0, PI * 2, 0, PI / 2), Tz(70.5, R + 0.6, -30.4, 0, 1, 0.35, 1, 1.0), 'plasterWhite');
+    }
+    H.light(69.5, 2.7, -27.5, 0xffd8a0, 1.4, 7); H.light(70, F2 + 2.6, -27.5, 0xffd8a0, 1.2, 7);
+  }
   // ================= مضيف الشيخ فاتح الرفاعي =================
   // بيت عربي بباب خشبي يُفتح، فرش وتكايات على الجدران، دلال قهوة، ولوحة باسمه بالخط الكوفي المزخرف
   {
@@ -416,7 +465,7 @@ export function buildDistricts(B, H) {
   stall(61.5, 5.4, 0); stall(66, 5.4, 0); stall(70.5, 5.4, 0);
   car(49.4, -24.6, 0, 'paintOrange', 'plasterWhite', { top: 'paintOrange' });
   car(48.8, 6.2, PI / 2 + 0.12, 'rust', 'charred', { missing: true, burnt: true });
-  crate(84.4, -26.6, 1.1); crate(84.6, -25.4, 0.8); crate(47.6, -28.6, 1); crate(62.5, -26.8, 1.1); crate(69.6, -26.4, 0.9); sack(70.6, -27.1, 'spice1');
+  crate(84.4, -26.6, 1.1); crate(84.6, -25.4, 0.8); crate(47.6, -28.6, 1); crate(62.5, -26.8, 1.1); crate(63.7, -27.9, 0.9); sack(63.5, -26.4, 'spice1');
   for (const [x, z] of [[46.7, -19.2], [84.2, -1.5], [60, 7.2], [72, 7.2]]) post(x, z, 3.6, 0xffb060, 2.4, 10);
 
   // ================= الشريعة الشرقية =================

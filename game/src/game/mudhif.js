@@ -226,6 +226,7 @@ export class Mudhif {
   doFollow() { const P = this.pray; if (!P || !P.me || !P.me.want) return; P.me.pose = P.me.want; P.me.want = null; Audio.play('ui'); const b = $('mfollow'); if (b) b.remove(); }
   buildSeq(rak) {
     const S = [], T = IMAM_CALLS.takbir;
+    S.push(['stand', 15, IMAM_CALLS.iqama]); // الإقامة
     S.push(['raise', 1.8, T]);
     for (let r = 1; r <= rak; r++) {
       if (r > 1) S.push(['stand', 1.2, T]);
@@ -252,12 +253,13 @@ export class Mudhif {
       return;
     }
     if (P.stage === 'pray') {
-      if (P.lagT > 0 && (P.lagT -= dt) <= 0) { P.ws.forEach(w => { w.c.prayP = P.cur; }); if (P.me) { if (P.i === 0) P.me.pose = P.cur; else this.follow(P.cur); } }
+      if (P.lagT > 0 && (P.lagT -= dt) <= 0) { P.ws.forEach(w => { w.c.prayP = P.cur; }); if (P.me) { if (P.i <= 1) P.me.pose = P.cur; else this.follow(P.cur); } }
       if ((P.st -= dt) > 0) return;
       P.i++;
       if (P.i >= P.seq.length) { P.stage = 'done'; P.t = 0; for (const w of [P.imam, ...P.ws]) w.c.prayP = null; if (P.me) this.leavePrayer(); this.notice({ icon: '🤍', title: 'تقبّل الله صلاتكم', sub: 'سلّم المصلّون وتفرّقوا إلى بيوتهم' }, 3500); this.disperse(); return; }
       const [pose, dur, call] = P.seq[P.i]; P.st = dur;
-      if (call) this.speak(IMAM, call, P.imam);
+      // صوت الإقامة والصلاة يُسمع داخل المضيف بس
+      if (call) { if (this.inside || P.me) this.speak(IMAM, call, P.imam); else P.imam.c.say && P.imam.c.say(1.2); }
       P.imam.c.prayP = pose; P.cur = pose; P.lagT = 0.5;
       if (P.me) $('cine').querySelector('.ctext').textContent = call ? `الإمام: ${call}` : (POSE_TXT[pose] || '');
       return;

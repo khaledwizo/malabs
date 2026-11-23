@@ -572,6 +572,7 @@ export class Game {
     // منظور الشخص الثالث (افتراضي مثل ببجي): الكاميرا ورا الكتف، والتصويب يحوّل لمنظور الشخص الأول
     this.tpp = Settings.view !== 'fpp' && !this.cine && !(this.mg && !this.mg.closed);
     this.fpNow = !this.tpp || !!(me && (me.adsT || 0) > 0.55);
+    if (this.quests && this.quests.kc) this.fpNow = false; // مشهد التصفية: نشوف الشخصيتين
     // النماذج
     const seen = new Set();
     for (const p of sim.players.values()) {
@@ -586,7 +587,7 @@ export class Game {
         const wid = sim.curId(p); m.setWeapon(wid, p.slot === 1 ? p.scope : null);
         const sp = Math.hypot(p.vel[0], p.vel[2]);
         const wdd = WEAPONS[wid];
-        m.update({ yaw: p.yaw, pitch: p.pitch, speed: sp, vx: p.vel[0], vz: p.vel[2], crouch: p.crouch, lean: p.lean || 0, hurt: sim.t - (p.lastHurt ?? -9), onGround: p.onGround, alive: p.alive, ads: p.adsT || 0, prot: p.spawnProt > 0, reloading: p.reloadT > 0, fireT: Math.max(0, 1 - (sim.t - (p.nextFire - 60 / (wdd ? wdd.rpm || 600 : 600))) * 12) * (p.shots > 0 ? 1 : 0) }, dt);
+        m.update({ yaw: p.yaw, pitch: p.pitch, speed: sp, vx: p.vel[0], vz: p.vel[2], crouch: p.crouch, lean: p.lean || 0, hurt: sim.t - (p.lastHurt ?? -9), stab: p.id === this.me && this.quests ? this.quests.stab || 0 : 0, onGround: p.onGround, alive: p.alive, ads: p.adsT || 0, prot: p.spawnProt > 0, reloading: p.reloadT > 0, fireT: Math.max(0, 1 - (sim.t - (p.nextFire - 60 / (wdd ? wdd.rpm || 600 : 600))) * 12) * (p.shots > 0 ? 1 : 0) }, dt);
         // خطوات الآخرين: الركض مسموع والانحناء صامت
         if (p.alive && p.onGround && sp > 2.9 && p.crouch < 0.5) { const a = (this.stepAcc.get(p.id) || 0) + sp * dt; if (a > 2.1) { Audio.step(p.pos, sp > 4.6, this.surfaceAt(p.pos)); this.stepAcc.set(p.id, 0); } else this.stepAcc.set(p.id, a); }
       }
