@@ -28,7 +28,7 @@ import { Showcase } from './showcase.js';
 import { Drone } from './drone.js';
 import { Waypoints } from './waypoint.js';
 import { Quests } from './quests.js';
-import { Ambient } from './ambient.js';
+import { Ambient, walkerDoors, walkStep } from './ambient.js';
 import { Mudhif } from './mudhif.js';
 import { HouseDoors } from './housedoors.js';
 import { makeItem, ITEM_VIEW } from './items.js';
@@ -786,12 +786,12 @@ export class Game {
       let F = null;
       if (this.lobby) {
         const d = this.houseDoors && this.houseDoors.pick(c.n.x, c.n.z);
-        if (d) { d.busy++; F = { mode: 'house', door: d, path: findPath(this.world, [c.n.x, 0, c.n.z], [d.fx, 0, d.fz]), back: t + 45 + Math.random() * 30 }; }
+        if (d) { d.busy++; F = { mode: 'house', door: d, path: findPath(this.world, [c.n.x, 0, c.n.z], [d.fx, 0, d.fz], true), back: t + 45 + Math.random() * 30 }; }
       } else {
         const seat = this.refugeSeat();
-        if (seat) F = { mode: 'mudhif', seat, path: [...findPath(this.world, [c.n.x, 0, c.n.z], [-50.4, 0, -12]), [-53.6, -12], seat], back: t + 90 + Math.random() * 60 };
+        if (seat) F = { mode: 'mudhif', seat, path: [...findPath(this.world, [c.n.x, 0, c.n.z], [-50.4, 0, -12], true), [-53.6, -12], seat], back: t + 90 + Math.random() * 60 };
       }
-      if (!F) { const h = this.hideSpot(c, pos); if (!h) return; F = { mode: 'hide', path: findPath(this.world, [c.n.x, 0, c.n.z], [h.x, 0, h.z]), back: t + 45 + Math.random() * 30 }; }
+      if (!F) { const h = this.hideSpot(c, pos); if (!h) return; F = { mode: 'hide', path: findPath(this.world, [c.n.x, 0, c.n.z], [h.x, 0, h.z], true), back: t + 45 + Math.random() * 30 }; }
       F.pi = 1; F.stage = 'run'; F.i = i; F.sp = 4.6;
       c.fl = F; c.cower = 0;
       const st = this.sim && this.sim.npcs && this.sim.npcs[i], wn = this.world.npcs[i]; if (st) st.away = true; if (wn && wn.box >= 0) this.world.disable(wn.box);
@@ -829,10 +829,11 @@ export class Game {
       if (this.t < F.back) return false;
       // هدأ الوضع: يطلع من المضيف ويرجع لمكانه مشياً
       c.prayP = null; F.stage = 'ret'; F.sp = 1.3; F.pi = 1;
-      F.path = [[r.position.x, r.position.z], [-55.5, F.seat[1] * 0.4 - 7.2], [-53.6, -12], [-50.4, -12], ...findPath(this.world, [-50.4, 0, -12], [c.n.x, 0, c.n.z]).slice(1), [c.n.x, c.n.z]];
+      F.path = [[r.position.x, r.position.z], [-55.5, F.seat[1] * 0.4 - 7.2], [-53.6, -12], [-50.4, -12], ...findPath(this.world, [-50.4, 0, -12], [c.n.x, 0, c.n.z], true).slice(1), [c.n.x, c.n.z]];
       return false;
     }
     const p = F.path[F.pi];
+    if (p && (F.dT = (F.dT || 0) - dt) <= 0) { F.dT = 0.2; walkerDoors(this, r.position.x, 0, r.position.z); }
     if (!p) {
       if (F.stage === 'ret') { this.civHome(c); return false; }
       if (F.mode === 'mudhif' && F.stage === 'run') { F.stage = 'sit'; c.walkSp = 0; c.prayP = 'sit'; r.rotation.y = Math.atan2(-(-58.4 - r.position.x), -(-12 - r.position.z)); return false; }
@@ -845,7 +846,9 @@ export class Game {
     if (F.wait > 0) { F.wait -= dt; c.walkSp = 0; return false; }
     const dx = p[0] - r.position.x, dz = p[1] - r.position.z, d = Math.hypot(dx, dz);
     if (d < 0.3) { F.pi++; return false; }
-    const st = Math.min(d, F.sp * dt); r.position.x += dx / d * st; r.position.z += dz / d * st;
+    const st = Math.min(d, F.sp * dt);
+    if (F.stage === 'enter') { r.position.x += dx / d * st; r.position.z += dz / d * st; }
+    else { const P = F.wp || (F.wp = { x: 0, y: 0, z: 0 }); P.x = r.position.x; P.y = r.position.y; P.z = r.position.z; walkStep(this.world, P, dx / d, dz / d, st); const pr = Math.hypot(P.x - r.position.x, P.z - r.position.z); r.position.set(P.x, P.y, P.z); F.stk = pr < st * 0.3 ? (F.stk || 0) + dt : 0; if (F.stk > 2) { F.stk = 0; F.pi++; } } // يمشي بتصادم، وإذا علگ يتجاوز النقطة
     let a = Math.atan2(-dx, -dz) - r.rotation.y; while (a > Math.PI) a -= Math.PI * 2; while (a < -Math.PI) a += Math.PI * 2; r.rotation.y += a * Math.min(1, dt * 8);
     c.walkSp = F.sp > 2 ? 3.4 : 1.1;
     return false;

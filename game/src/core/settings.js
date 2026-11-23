@@ -20,7 +20,7 @@ export const QUALITY = {
 };
 export const WEATHER_OPTIONS = [
   { id: 'random', label: 'متغيّر', sub: 'عجاج ← مطر ← نهار ← غروب ← ليل' }, { id: 'day', label: 'نهار', sub: 'شمس الظهيرة' }, { id: 'sunset', label: 'غروب', sub: 'ذهبي دافئ' },
-  { id: 'storm', label: 'عاصفة', sub: 'مطر وبرق' }, { id: 'horror', label: 'ليلة مرعبة', sub: 'ضباب وظلال' },
+  { id: 'storm', label: 'عاصفة', sub: 'مطر وبرق' }, { id: 'horror', label: 'ليلة مرعبة', sub: 'ضباب وظلال' }, { id: 'dust', label: 'عجاج', sub: 'غبار وريح ترابية' },
 ];
 
 export const DEFAULTS = {

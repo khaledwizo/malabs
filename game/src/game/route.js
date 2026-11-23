@@ -11,7 +11,7 @@ export function nearestNode(w, x, y, z, needLos = true) {
   return best;
 }
 
-export function findPath(w, from, to) {
+export function findPath(w, from, to, strict) {
   const nav = w.nav; if (!nav || !nav.nodes.length) return [[from[0], from[2]], [to[0], to[2]]];
   const a = nearestNode(w, from[0], from[1] || 0, from[2]), b = nearestNode(w, to[0], to[1] || 0, to[2]);
   if (a < 0 || b < 0) return [[from[0], from[2]], [to[0], to[2]]];
@@ -31,19 +31,30 @@ export function findPath(w, from, to) {
   }
   const pts = [];
   if (b === a || came[b] >= 0) { for (let i = b; i >= 0; i = came[i]) { pts.push([N[i][0], N[i][2]]); if (i === a) break; } pts.reverse(); }
+  // ماكو طريق: الماشي (strict) يبقى بمكانه بدل ما يخترق الحيطان
+  else if (strict && !clear(w, from[0], from[2], to[0], to[2], from[1] || 0)) return [[from[0], from[2]], [from[0], from[2]]];
   // نختصر العقد الأولى/الأخيرة إذا كان الطريق المباشر مكشوفاً
   const out = [[from[0], from[2]]];
   for (const p of pts) out.push(p);
-  out.push([to[0], to[2]]);
-  return simplify(w, out, (from[1] || 0) + 0.9);
+  // الهدف جوّا حايط/بسطة؟ نوقف عند آخر عقدة بالطريق
+  if (!(strict && pts.length && !clear(w, pts[pts.length - 1][0], pts[pts.length - 1][1], to[0], to[2], from[1] || 0))) out.push([to[0], to[2]]);
+  return simplify(w, out, from[1] || 0, strict);
 }
 
-function simplify(w, P, y) {
+// ممر "عريض": ثلاث خطوط (الوسط والكتفين) على ارتفاعين، حتى الجسم ما يحتك بزوايا الحيطان والصناديق
+export function clear(w, ax, az, bx, bz, y0 = 0) {
+  const dx = bx - ax, dz = bz - az, L = Math.hypot(dx, dz) || 1, px = -dz / L * 0.32, pz = dx / L * 0.32;
+  for (const h of [0.45, 1.3]) for (const s of [0, 1, -1]) if (!w.los(ax + px * s, y0 + h, az + pz * s, bx + px * s, y0 + h, bz + pz * s)) return false;
+  return true;
+}
+
+function simplify(w, P, y0, fat) {
   if (P.length < 3) return P;
+  const ok = fat ? (a, b) => clear(w, a[0], a[1], b[0], b[1], y0) : (a, b) => w.los(a[0], y0 + 0.9, a[1], b[0], y0 + 0.9, b[1]);
   const out = [P[0]]; let i = 0;
   while (i < P.length - 1) {
     let j = Math.min(P.length - 1, i + 6);
-    while (j > i + 1 && !w.los(P[i][0], y, P[i][1], P[j][0], y, P[j][1])) j--;
+    while (j > i + 1 && !ok(P[i], P[j])) j--;
     out.push(P[j]); i = j;
   }
   return out;

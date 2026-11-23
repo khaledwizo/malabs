@@ -55,7 +55,7 @@ export class HouseDoors {
     d.busy++;
     w.goTo(d.fx, d.fz, () => {
       w.face(d.x, d.z); d.want = 1;
-      setTimeout(() => { w.path = [[w.n.x, w.n.z], [d.x - d.nx * 0.2, d.z - d.nz * 0.2]]; w.pi = 1; w.onArrive = () => { w.hidden = true; setTimeout(() => { d.want = 0; d.busy = Math.max(0, d.busy - 1); cb && cb(); }, 700); }; }, 550);
+      setTimeout(() => { w.ghost = true; w.path = [[w.n.x, w.n.z], [d.x - d.nx * 0.2, d.z - d.nz * 0.2]]; w.pi = 1; w.onArrive = () => { w.hidden = true; w.ghost = false; setTimeout(() => { d.want = 0; d.busy = Math.max(0, d.busy - 1); cb && cb(); }, 700); }; }, 550);
     });
   }
   update(dt) { if (!this.list) return; for (const d of this.list) { if (Math.abs(d.open - d.want) < 0.001) continue; d.open += Math.sign(d.want - d.open) * Math.min(Math.abs(d.want - d.open), dt * 2.6); d.hinge.rotation.y = d.open * 1.45; } }

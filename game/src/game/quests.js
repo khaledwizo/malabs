@@ -41,12 +41,12 @@ export class Quests {
   // نحفظ المهمة الجارية حتى ترجع تكمّلها
   saveCur() { const A = this.act; this.S.cur = A ? { id: A.q.id, vi: A.q.vi, i: A.i, left: Math.round(A.left), item: A.item, extra: A.extra } : null; this.S.lastId = this.lastId; this.S.lastPos = this.lastPos; this.save(); }
   expandVi(q, vi) { const save = this.varK; this.varK = (vi ?? 0) - (this.S.done[q.id] || 0) - 1; const r = this.expand(q); this.varK = save; return r; }
-  stop() { this.saveCur(); this.dropTargets(); if (this.conf) { this.conf.remove(); this.conf = null; } this.kc = null; this.stab = 0; this.endCine(true); if (this.mg) { this.mg.close(); this.mg = this.g.mg = null; } this.dropCarry(); if (this.findMesh) this.findMesh.visible = false; this.on = false; this.offer = null; this.act = null; this.giverMark.visible = false; this.g.wps && this.g.wps.clearQuest(); this.dropFighters(); this.updateHud(); }
+  stop() { this.saveCur(); this.dropTargets(); this.dropHits(); this.kc = null; this.stab = 0; this.endCine(true); if (this.mg) { this.mg.close(); this.mg = this.g.mg = null; } this.dropCarry(); if (this.findMesh) this.findMesh.visible = false; this.on = false; this.offer = null; this.act = null; this.giverMark.visible = false; this.g.wps && this.g.wps.clearQuest(); this.dropFighters(); this.updateHud(); }
   // ---------- من هو؟ ----------
   civ(who, q) {
     q = q || (this.act && this.act.q) || this.offer;
     if (who === 'g') who = q && q.giver;
-    if (who === 't') return this.conf ? this.conf.c : null; // المطلوب بمهمة المواجهة
+    if (who === 't') return this.hitCur ? this.hitCur.c : null; // المطلوب بالاغتيال
     if (typeof who === 'string' && who[0] === 'f') { const F = this.fighters; return F ? F[+who[1]].c : null; }
     if (who === 'n') { const st = this.act && this.act.q === q && this.act.q.steps[this.act.i]; who = st ? (st.to === 'g' ? q.giver : st.to === 'fighters' ? 'f2' : st.to) : q && q.giver; if (typeof who === 'string' && who[0] === 'f') return this.civ(who, q); }
     return typeof who === 'number' ? this.g.civs[who] : null;
@@ -54,7 +54,7 @@ export class Quests {
   persona(who, q) {
     if (who === 'me') { const ch = (this.g.mp && this.g.mp.char) || Settings.char; return CAST[ch] || CAST.khaled; }
     if (typeof who === 'string' && who[0] === 'f') return FIGHTERS[+who[1]];
-    if (who === 't') { const st = this.act && this.act.q.steps[this.act.i]; return (st && st.confront && st.confront.per) || { name: '', v: 'b', p: 0, r: 0 }; }
+    if (who === 't') return (this.hitCur && this.hitCur.tg.per) || { name: '', v: 'b', p: 0, r: 0 };
     const c = this.civ(who, q); return c && c.per ? c.per : { name: c ? c.name : '', v: 'b', p: 0, r: 0 };
   }
   posOf(to, q) {
@@ -127,12 +127,12 @@ export class Quests {
       if (A.left <= 0) { this.fail('خلص الوقت!'); }
       else {
         const st = A.q.steps[A.i], p = this.posOf(st.to, A.q);
-        const tp = st.kill ? this.targetPos() : st.confront ? [st.confront.x, st.confront.z] : null, pp = tp || p;
+        const tp = st.kill ? this.targetPos() : (st.hit || st.confront) ? this.hitPos(st) : null, pp = tp || p;
         if (pp) g.wps.setQuestPos ? g.wps.setQuestPos(pp[0], pp[1], st.label) : (g.wps.quest = { x: pp[0], z: pp[1], label: st.label });
         // الجماعة تمشي وراك
         if (this.fighters && st.escort && me) this.fighters.forEach((w, i) => { const d = Math.hypot(w.n.x - me.pos[0], w.n.z - me.pos[2]); if (d > 3.2 + i * 0.5 && (!w.path || (w.reT = (w.reT || 0) - dt) <= 0)) { w.reT = 0.8; const a = i / 5 * Math.PI * 2; w.goTo(me.pos[0] + Math.cos(a) * 1.6, me.pos[2] + Math.sin(a) * 1.6); } });
         // غرض مخفي: توصل للمنطقة وتدوّره بعينك (يلمع شوية)
-        if (st.confront) this.updateConfront(st, me);
+        if (st.hit || st.confront) this.updateHit(st, dt, me);
         else if (st.kill) this.updateTargets(st, dt, p);
         else if (st.find && me && !A.picked) { this.findObj(st.find); this.findMesh.visible = true; this.findMesh.rotation.y += dt; const near = Math.hypot(st.find.x - me.pos[0], st.find.z - me.pos[2]); if (p && Math.hypot(p[0] - me.pos[0], p[1] - me.pos[2]) < 7) g.wps.quest = null; this.findNear = near < 1.9; }
         else if (me && p && !this.cine && !this.mg && Math.hypot(p[0] - me.pos[0], p[1] - me.pos[2]) < (typeof st.to === 'object' ? 2.0 : 2.6)) this.runStep();
@@ -148,6 +148,8 @@ export class Quests {
     const near = (p, r) => p && Math.hypot(p[0] - me.pos[0], p[1] - me.pos[2]) < r;
     if (this.offer && !this.act && near(this.posOf('g', this.offer), 3.0)) return { label: 'تكلّم', fn: () => this.openOffer() };
     if (this.act && this.act.q.steps[this.act.i].find && this.findNear) return { label: (ITEM_ICON[this.act.q.steps[this.act.i].find.kind || 'bag'] || '👜') + ' ' + this.act.q.steps[this.act.i].find.label, fn: () => { const A = this.act, st = A.q.steps[A.i]; this.findMesh.visible = false; A.picked = true; this.findNear = false; if (st.carry) { this.startCarry(st.carry, true); Audio.play('ui'); } this.runStep(); } };
+    // اغتيال: أول ما تقترب من المطلوب (بدون سلاح — كاتسين بالسكين)
+    if (this.hitNear && this.hitNear.c.alive && !this.kc) { const w = this.hitNear; return { label: '🗡 اغتيال ' + w.tg.name, fn: () => this.startHit(w) }; }
     // أبو حيدر: أول لقاء
     const fc = g.civs[FISHER]; if (fc && fc.here && !this.S.met.fisher && !(this.offer && this.offer.giver === FISHER) && near([fc.n.x, fc.n.z], 3)) return { label: 'تكلّم', fn: () => this.meetFisher() };
     // المشتل: شراء وردة
@@ -231,29 +233,29 @@ export class Quests {
   }
   // الكاميرا السينمائية: لقطة فوق الكتف نحو المتكلّم، أو لقطة جانبية للاثنين
   camera(dt) {
-    if (this.kc && this.g.mp) { const K = this.kc, me = this.g.mp, w = K.w, mx = (me.pos[0] + w.n.x) / 2, mz = (me.pos[2] + w.n.z) / 2, dx = w.n.x - me.pos[0], dz = w.n.z - me.pos[2], L = Math.hypot(dx, dz) || 1, px = -dz / L, pz = dx / L, k = Math.min(1, K.t / 3), sh = K.hit && K.t < 1.4 ? (Math.random() - 0.5) * 0.06 : 0; const cam = this.g.camera; const D = Math.max(1.6, (K.cd || 2.8) - k * 0.3), s = K.side || 1; cam.position.set(mx + px * s * D + sh, w.n.y + 1.5 - k * 0.2, mz + pz * s * D); cam.lookAt(mx, w.n.y + 1.15 - k * 0.25, mz); return true; }
+    if (this.kc && this.g.mp) return this.knifeCam();
     const C = this.cine, g = this.g, me = g.mp; if (!C || !me) return false;
     const cam = g.camera, W = g.world;
     const st = this.act && this.act.q === C.q ? C.q.steps[this.act.i] : null;
     const other = C.c || (st && typeof st.to === 'object' ? null : this.civ('n', C.q));
     const mx = me.pos[0], mz = me.pos[2];
-    const ox = other ? other.n.x : mx - Math.sin(g.yaw) * 2, oz = other ? other.n.z : mz - Math.cos(g.yaw) * 2, oy = other ? (other.sit ? 1.15 : 1.6) : 1.6;
+    const gy = me.pos[1] || 0, ox = other ? other.n.x : mx - Math.sin(g.yaw) * 2, oz = other ? other.n.z : mz - Math.cos(g.yaw) * 2, oy = (other ? (other.n.y || 0) + (other.sit ? 1.15 : 1.6) : gy + 1.6); // الارتفاع: سطح، طابق ثاني…
     // نموذج اللاعب يواجه المتكلّم
     const M = this.meModel; if (M) { const yaw = Math.atan2(-(ox - mx), -(oz - mz)); M.root.position.set(mx, me.pos[1], mz); const crouch = C.stage === 'act' && C.opt.act && C.opt.act.me ? 1 : 0; M.update({ yaw, pitch: crouch ? -0.5 : 0, speed: 0, vx: 0, vz: 0, crouch, lean: 0, hurt: 9, onGround: true, alive: true, ads: 0, prot: false, reloading: false, fireT: 0 }, dt); }
     let dx = ox - mx, dz = oz - mz; const d = Math.hypot(dx, dz) || 1; dx /= d; dz /= d;
     const rx = -dz, rz = dx, meSpeak = C.who === 'me';
     // فوق الكتف: خلف اللي يسمع، ينظر للي يحچي
-    const [ax, az, ay, bx, bz, by] = meSpeak ? [ox, oz, oy, mx, mz, 1.62] : [mx, mz, 1.62, ox, oz, oy];
+    const [ax, az, ay, bx, bz, by] = meSpeak ? [ox, oz, oy, mx, mz, gy + 1.62] : [mx, mz, gy + 1.62, ox, oz, oy];
     const fx = meSpeak ? -dx : dx, fz = meSpeak ? -dz : dz;
     const sd = meSpeak ? -1 : 1, cx0 = (mx + ox) / 2, cz0 = (mz + oz) / 2;
     // مرشّحات اللقطة بالترتيب: فوق الكتف، فوق الكتف الثاني، جانبية يمين/يسار، ومن عين اللاعب
-    const cands = [[ax - fx * 1.35 + rx * 0.62 * sd, ay + 0.2, az - fz * 1.35 + rz * 0.62 * sd], [ax - fx * 1.35 - rx * 0.62 * sd, ay + 0.2, az - fz * 1.35 - rz * 0.62 * sd], [cx0 + rx * 2.4, 1.7, cz0 + rz * 2.4], [cx0 - rx * 2.4, 1.7, cz0 - rz * 2.4], [mx - dx * 0.5, 1.85, mz - dz * 0.5]];
-    const okCam = ([x, y, z]) => !W.overlap(x, y - 0.25, z, 0.22, 0.5) && W.los(bx, by, bz, x + (x - bx) * 0.15, y, z + (z - bz) * 0.15) && W.los(cx0, 1.5, cz0, x, y, z);
+    const cands = [[ax - fx * 1.35 + rx * 0.62 * sd, ay + 0.2, az - fz * 1.35 + rz * 0.62 * sd], [ax - fx * 1.35 - rx * 0.62 * sd, ay + 0.2, az - fz * 1.35 - rz * 0.62 * sd], [cx0 + rx * 2.4, gy + 1.7, cz0 + rz * 2.4], [cx0 - rx * 2.4, gy + 1.7, cz0 - rz * 2.4], [mx - dx * 0.5, gy + 1.85, mz - dz * 0.5]];
+    const okCam = ([x, y, z]) => !W.overlap(x, y - 0.25, z, 0.22, 0.5) && W.los(bx, by, bz, x + (x - bx) * 0.15, y, z + (z - bz) * 0.15) && W.los(cx0, gy + 1.5, cz0, x, y, z);
     let [px, py, pz] = cands.find(okCam) || cands[cands.length - 1];
     // أثناء الفعل (تعبئة، عجن، دفن…): الكاميرا تدور ببطء حول المشهد
-    if (C.stage === 'act') { C.orb = (C.orb ?? Math.atan2(pz - cz0, px - cx0)) + dt * 0.3; const R0 = 2.3; const ox2 = cx0 + Math.cos(C.orb) * R0, oz2 = cz0 + Math.sin(C.orb) * R0; if (okCam([ox2, 1.55, oz2])) { px = ox2; py = 1.55; pz = oz2; } }
+    if (C.stage === 'act') { C.orb = (C.orb ?? Math.atan2(pz - cz0, px - cx0)) + dt * 0.3; const R0 = 2.3; const ox2 = cx0 + Math.cos(C.orb) * R0, oz2 = cz0 + Math.sin(C.orb) * R0; if (okCam([ox2, gy + 1.55, oz2])) { px = ox2; py = gy + 1.55; pz = oz2; } }
     if (cands.indexOf([px, py, pz]) < 0 && px === cands[4][0]) { /* من عين اللاعب */ }
-    const tgt = C.stage === 'act' ? new THREE.Vector3(cx0, 1.0, cz0) : new THREE.Vector3(bx, by, bz);
+    const tgt = C.stage === 'act' ? new THREE.Vector3(cx0, gy + 1.0, cz0) : new THREE.Vector3(bx, by, bz);
     if (!this.camP) { this.camP = new THREE.Vector3(px, py, pz); this.camL = tgt.clone(); }
     const k = Math.min(1, dt * 3.2); this.camP.lerp(new THREE.Vector3(px, py, pz), k); this.camL.lerp(tgt, k);
     cam.position.copy(this.camP); cam.lookAt(this.camL);
@@ -277,7 +279,7 @@ export class Quests {
   }
   ignore(q) { this.cd[q.id] = this.t + 180; this.offer = null; this.offerT = 6; this.lastId = q.id; this.lastPos = this.giverPos(q) || this.lastPos; if (q.spawn === 'fighters') this.dropFighters(); }
   fail(why) {
-    const q = this.act.q; this.act = null; this.saveCur(); this.dropTargets(); this.dropCarry(); if (this.mg) { this.mg.close(); this.mg = this.g.mg = null; } if (this.findMesh) this.findMesh.visible = false; this.lastPos = this.giverPos(q) || this.lastPos; this.g.wps.clearQuest(); this.cd[q.id] = this.t + 90; this.offerT = 6; this.endCine(true);
+    const q = this.act.q; this.act = null; this.saveCur(); this.dropTargets(); this.dropHits(); this.kc = null; this.stab = 0; this.dropCarry(); if (this.mg) { this.mg.close(); this.mg = this.g.mg = null; } if (this.findMesh) this.findMesh.visible = false; this.lastPos = this.giverPos(q) || this.lastPos; this.g.wps.clearQuest(); this.cd[q.id] = this.t + 90; this.offerT = 6; this.endCine(true);
     if (q.spawn === 'fighters') this.dropFighters();
     Audio.play('questFail'); this.g.ui && this.g.ui.toast2 && this.g.ui.toast2(`فشلت المهمة «${q.title}» — ${why} ترجع تنعرض بعدين.`);
   }
@@ -319,35 +321,100 @@ export class Quests {
     } });
   }
   // ---------- المواجهة على السطح: حوار، وإذا ما تراجع تصفية بالسكين ----------
-  updateConfront(st, me) {
-    const C = st.confront, A = this.g.ambient;
-    if (!this.conf && A && A.on && me && Math.hypot(C.x - me.pos[0], C.z - me.pos[2]) < 70) {
-      const w = this.conf = A.spawn(C.look, C.x, C.z, { name: C.per.name, seed: 777 }); w.n.y = C.y; w.c.root.position.y = C.y; w.n.yaw = C.yaw; w.c.root.rotation.y = C.yaw; w.c.name = C.per.name; w.c.per = C.per;
+  // ---------- الاغتيال السينمائي (ماكو سلاح باللوبي: كل تصفية تصير كاتسين بالسكين) ----------
+  // st.hit = { targets:[{ name, look, x, z, y, yaw, patrol, per, style:'front'|'behind'|'slash', lines }], guards:[...] }
+  hitDef(st) { if (st.hit) return st.hit; if (st.confront) return st.hitConv || (st.hitConv = { targets: [{ ...st.confront, name: st.confront.per.name, style: 'front' }] }); return null; }
+  hitPos(st) { const H = this.hitDef(st), T = this.hits && this.hits.find(w => !w.tg.guard && w.c.alive); if (T) return [T.n.x, T.n.z]; const t = H && H.targets.find((o, i) => !(this.hitDead || []).includes(i)); return t ? [t.x, t.z] : null; }
+  updateHit(st, dt, me) {
+    const H = this.hitDef(st), A = this.g.ambient; if (!H) return;
+    if (!this.hits) {
+      if (!A || !A.on || !me || !H.targets.some(o => Math.hypot(o.x - me.pos[0], o.z - me.pos[2]) < 70)) return;
+      const dead = this.hitDead || [];
+      const mk = (o, guard, k) => { const w = A.spawn(o.look, o.x, o.z, { name: o.name, sp: 1.1, seed: 700 + k * 31 + Math.round(o.x * 7 + o.z), keep: !!o.y }); w.n.y = o.y || 0; w.c.root.position.y = w.n.y; w.n.yaw = o.yaw || 0; w.c.root.rotation.y = w.n.yaw; w.c.name = o.name; if (o.per) w.c.per = o.per; w.tg = { ...o, guard, k, home: [o.x, o.z], back: false, t: 3 + Math.random() * 4 }; return w; };
+      this.hits = [...H.targets.map((o, k) => dead.includes(k) ? null : mk(o, false, k)).filter(Boolean), ...(H.guards || []).map((o, k) => mk(o, true, 100 + k))];
     }
-    const w = this.conf; if (!w || !me || this.cine || this.kc) return;
-    if (w.c.alive && Math.hypot(w.n.x - me.pos[0], w.n.z - me.pos[2]) < 3.2 && Math.abs(me.pos[1] - C.y) < 1.3) {
-      w.face(me.pos[0], me.pos[2]); w.c.focus(me.pos[0], me.pos[2], 60);
-      this.play(C.lines.slice(), { q: this.act.q, done: () => this.knifeKill(w) });
+    // يتمشّون طبيعي بين نقطتين (بالطرق، ويفتحون الأبواب) — الحرس يلحگون صاحبهم
+    for (const w of this.hits) {
+      if (!w.c.alive || w.tg.frozen || w.tg.fled) continue;
+      if (w.tg.guard) { const boss = this.hits.find(b => !b.tg.guard && b.c.alive); if (boss && !w.path && Math.hypot(boss.n.x - w.n.x, boss.n.z - w.n.z) > 3.2 && (w.tg.t -= dt) <= 0) { w.tg.t = 1.5; const a = w.tg.k * 2.1; w.goTo(boss.n.x + Math.cos(a) * 1.6, boss.n.z + Math.sin(a) * 1.6); } continue; }
+      if (!w.tg.patrol || w.path) continue; if ((w.tg.t -= dt) > 0) continue; w.tg.t = 6 + Math.random() * 5; w.tg.back = !w.tg.back; const [x, z] = w.tg.back ? w.tg.patrol : w.tg.home; w.goTo(x, z);
     }
+    this.hitNear = null; if (!me || this.cine || this.kc) return;
+    let bd = 9; for (const w of this.hits) { if (w.tg.guard || !w.c.alive || Math.abs(me.pos[1] - (w.n.y || 0)) > 1.3) continue; const d = Math.hypot(w.n.x - me.pos[0], w.n.z - me.pos[2]); if (d < bd) { bd = d; this.hitNear = w; } }
+    const w = this.hitNear; if (!w) return;
+    // المواجهة بالكلام تبدأ وحدها أول ما توصله (إذا عنده حچي)
+    if (w.tg.lines && w.tg.lines.length && !w.tg.talked && bd < 3.2) this.startHit(w);
+    else if (bd > 2.6) this.hitNear = null;
+  }
+  startHit(w) {
+    const me = this.g.mp; this.hitCur = w; w.tg.frozen = true; w.stop(); this.hitNear = null;
+    if (w.tg.lines && w.tg.lines.length && !w.tg.talked) { w.tg.talked = true; w.face(me.pos[0], me.pos[2]); w.c.focus(me.pos[0], me.pos[2], 60); this.play(w.tg.lines.slice(), { q: this.act.q, done: () => this.knifeKill(w) }); }
+    else this.knifeKill(w);
   }
   knifeKill(w) {
-    const g = this.g, me = g.mp; g.cine = true; this.kc = { t: 0, w, hit: false, sx: me.pos[0], sz: me.pos[2] }; g.queued.slot = 3; Audio.play('knife');
-    // الكاميرا من الجنب الأوسع (حتى ما تدخل بالحيطان)
-    const dx = w.n.x - me.pos[0], dz = w.n.z - me.pos[2], L = Math.hypot(dx, dz) || 1, mx = (me.pos[0] + w.n.x) / 2, mz = (me.pos[2] + w.n.z) / 2, y = w.n.y + 1.3, out = { t: 0 };
-    let best = 1, bd = -1; for (const s of [1, -1]) { const px = -dz / L * s, pz = dx / L * s, r = g.world.ray(mx, y, mz, px, 0, pz, 3, 0, out); const d = r ? r.t : 3; if (d > bd) { bd = d; best = s; } }
-    this.kc.side = best; this.kc.cd = Math.max(1.6, Math.min(3.2, bd - 0.35));
+    const g = this.g, me = g.mp, style = w.tg.style || 'front'; g.cine = true; this.hitCur = w; w.tg.frozen = true; w.stop();
+    this.kc = { t: 0, w, hit: false, style, sx: me.pos[0], sz: me.pos[2] }; g.queued.slot = 3; Audio.play('knife');
+    let dx = w.n.x - me.pos[0], dz = w.n.z - me.pos[2], L = Math.hypot(dx, dz) || 1; dx /= L; dz /= L;
+    if (style === 'behind') {
+      // من الخلف: هو يدير ظهره (ما حاس بيك)، وإنت تتسلّل وراه
+      w.n.yaw = Math.atan2(-dx, -dz); w.c.root.rotation.y = w.n.yaw; this.kc.f = [dx, dz]; this.kc.dest = [w.n.x - dx * 0.62, w.n.z - dz * 0.62];
+    }
+    // نختار أوسع لقطة (جنب، جنب ثاني، قطري، من فوق) حتى الكاميرا ما تدخل بالحيطان والأغراض
+    const mx = (me.pos[0] + w.n.x) / 2, mz = (me.pos[2] + w.n.z) / 2, y0 = w.n.y || 0, px = -dz, pz = dx;
+    const dirs = [[px, 0.12, pz], [-px, 0.12, -pz], [px * 0.7 + dx * 0.7, 0.15, pz * 0.7 + dz * 0.7], [-px * 0.7 + dx * 0.7, 0.15, -pz * 0.7 + dz * 0.7], [px * 0.7 - dx * 0.7, 0.15, pz * 0.7 - dz * 0.7], [-px * 0.7 - dx * 0.7, 0.15, -pz * 0.7 - dz * 0.7], [px * 0.5, 0.85, pz * 0.5]];
+    let best = dirs[0], bf = -1; for (const v of dirs) { const L2 = Math.hypot(...v); const u = v.map(c => c / L2); const f = Math.min(this.free(mx, y0 + 1.2, mz, u, 3.2), this.free(mx, y0 + 0.6, mz, u, 3.2)); if (f > bf + 0.25) { bf = f; best = u; } }
+    this.kc.v = best; this.kc.cd = Math.max(0.9, Math.min(2.9, bf - 0.3)); this.kc.dur = style === 'slash' ? 4.2 : 3.4;
+    if (style === 'behind') { const u = [-dx * 0.94 + px * 0.34, 0.06, -dz * 0.94 + pz * 0.34]; this.kc.preOk = this.free(me.pos[0], y0 + 1.6, me.pos[2], u, 1.6) > 1.1; }
     document.getElementById('cine').classList.add('on', 'kc');
   }
   tickKnife(dt) {
-    const K = this.kc; if (!K) return; K.t += dt; const w = K.w, me = this.g.mp, g = this.g;
-    // يتقدّم عليه ويواجهه، وبعدين طعنة
+    const K = this.kc; if (!K) return; const w = K.w, me = this.g.mp, g = this.g, sty = K.style;
+    // تبطيء خفيف لحظة الضربة بالكاتسين الثالث
+    K.t += sty === 'slash' && K.t > 0.85 && K.t < 1.7 ? dt * 0.45 : dt;
     const ddx = w.n.x - me.pos[0], ddz = w.n.z - me.pos[2], dd = Math.hypot(ddx, ddz) || 1;
-    if (K.t < 0.85 && dd > 0.8) { const st = Math.min(dd - 0.8, dt * 2.4); me.pos[0] += ddx / dd * st; me.pos[2] += ddz / dd * st; }
-    if (!K.hit) { g.yaw = Math.atan2(-ddx, -ddz); w.n.yaw = Math.atan2(ddx, ddz); if (w.c.root) w.c.root.rotation.y = w.n.yaw; } // وجهاً لوجه، حتى يطيح لورا
-    this.stab = K.t < 0.75 ? 0 : K.t < 1.05 ? (K.t - 0.75) / 0.3 : K.t < 1.4 ? 1 : Math.max(0, 1 - (K.t - 1.4) / 0.4);
-    if (!K.hit && K.t > 1.05) { K.hit = true; Audio.play('knifeHit'); const dx = w.n.x - me.pos[0], dz = w.n.z - me.pos[2], L = Math.hypot(dx, dz) || 1; w.c.die([dx / L, 0, dz / L]); if (w.c.fall) { w.c.fall.tw = 0.12; w.c.fall.s = 0; } const fl = document.createElement('div'); fl.className = 'kflash'; document.body.appendChild(fl); setTimeout(() => fl.remove(), 500); }
-    if (K.t > 3.2) { this.kc = null; this.stab = 0; this.g.cine = false; document.getElementById('cine').classList.remove('on', 'kc'); const c = this.conf; this.conf = null; if (c) setTimeout(() => c.remove(), 30000); this.g.ui && this.g.ui.toast2 && this.g.ui.toast2('✔ انتهى شرّ أبو صگر — ارجع لصاحب المحل'); this.stepDone(); }
+    const hitT = sty === 'behind' ? 1.15 : 1.05;
+    // التقدّم بس إذا المكان فاضي (ما ندخّله بالبسطات والحيطان)
+    const W = g.world, moveTo = (x, z) => { if (!W.overlap(x, me.pos[1] + 0.06, z, 0.35, 1.85) && W.los(me.pos[0], me.pos[1] + 0.5, me.pos[2], x, me.pos[1] + 0.5, z)) { me.pos[0] = x; me.pos[2] = z; } };
+    if (sty === 'behind') { const k = Math.min(1, K.t / 0.95); moveTo(K.sx + (K.dest[0] - K.sx) * k, K.sz + (K.dest[1] - K.sz) * k); if (!K.hit) g.yaw = Math.atan2(-K.f[0], -K.f[1]); }
+    else {
+      if (K.t < 0.85 && dd > 0.8) { const st = Math.min(dd - 0.8, dt * 2.4); moveTo(me.pos[0] + ddx / dd * st, me.pos[2] + ddz / dd * st); }
+      if (!K.hit) { g.yaw = Math.atan2(-ddx, -ddz); if (sty === 'front' || K.t > 0.3) { w.n.yaw = Math.atan2(ddx, ddz); w.c.root.rotation.y = w.n.yaw; } } // وجهاً لوجه، حتى يطيح لورا
+    }
+    // إذا ما گدرنا نوصله (بسطة، عتبة واطية): هو يتراجع لحدّنا
+    if (!K.hit && K.t > 0.6 && dd > 0.75) { const st = Math.min(dd - 0.72, dt * 2.2); w.n.x -= ddx / dd * st; w.n.z -= ddz / dd * st; w.c.root.position.x = w.n.x; w.c.root.position.z = w.n.z; }
+    this.stab = K.t < hitT - 0.3 ? 0 : K.t < hitT ? (K.t - hitT + 0.3) / 0.3 : K.t < hitT + 0.35 ? 1 : Math.max(0, 1 - (K.t - hitT - 0.35) / 0.4);
+    if (!K.hit && K.t > hitT) {
+      K.hit = true; Audio.play('knifeHit'); const dir = sty === 'behind' ? [K.f[0], 0, K.f[1]] : [ddx / dd, 0, ddz / dd]; w.c.die(dir); if (w.c.fall) { w.c.fall.tw = 0.12; w.c.fall.s = 0; }
+      const fl = document.createElement('div'); fl.className = 'kflash'; document.body.appendChild(fl); setTimeout(() => fl.remove(), 500);
+      // الحرس ينهزمون
+      (this.hits || []).forEach((h, i) => { if (!h.tg.guard || !h.c.alive || h.tg.fled) return; h.tg.fled = true; h.sp = 3.2; const a = Math.atan2(h.n.z - w.n.z, h.n.x - w.n.x); h.goTo(h.n.x + Math.cos(a) * 30, h.n.z + Math.sin(a) * 30, () => h.hidden = true); setTimeout(() => { h.hidden = true; }, 15000); });
+    }
+    if (K.t > K.dur) {
+      this.kc = null; this.stab = 0; g.cine = false; document.getElementById('cine').classList.remove('on', 'kc');
+      const A = this.act, st = A && A.q.steps[A.i]; (this.hitDead = this.hitDead || []).push(w.tg.k); this.hitCur = null;
+      setTimeout(() => w.remove(), 30000);
+      const left = (this.hits || []).filter(h => !h.tg.guard && h.c.alive);
+      if (left.length) { this.g.ui && this.g.ui.toast2 && this.g.ui.toast2(`✔ انتهى ${w.tg.name} — باقي ${left.map(h => h.tg.name).join('، ')}`); return; }
+      const H = this.hits; this.hits = null; this.hitDead = null; if (H) H.forEach(h => { if (h !== w) setTimeout(() => h.remove(), h.c.alive ? 16000 : 30000); });
+      Audio.play('questDone'); this.g.ui && this.g.ui.toast2 && this.g.ui.toast2('✔ تمّت التصفية — ارجع لصاحب المهمة'); this.stepDone();
+    }
   }
+  dropHits() { const H = this.hits; this.hits = null; this.hitDead = null; this.hitCur = null; this.hitNear = null; if (H) H.forEach(h => h.remove()); }
+  // لقطات الاغتيال: جانبية (مواجهة)، فوق الكتف ثم جانبية (من الخلف)، ودوران بطيء (الضربة الخاطفة)
+  free(x, y, z, u, max) { const r = this.g.world.ray(x, y, z, u[0], u[1], u[2], max, 0, this.rayO || (this.rayO = { t: 0 })); return r && r.t < max ? r.t : max; }
+  knifeCam() {
+    const K = this.kc, me = this.g.mp, w = K.w, y0 = w.n.y || 0, mx = (me.pos[0] + w.n.x) / 2, mz = (me.pos[2] + w.n.z) / 2;
+    let dx = w.n.x - me.pos[0], dz = w.n.z - me.pos[2]; const L = Math.hypot(dx, dz) || 1; dx /= L; dz /= L;
+    const px = -dz, pz = dx, sh = K.hit && K.t < 1.5 ? (Math.random() - 0.5) * 0.06 : 0, cam = this.g.camera;
+    // الكاميرا ما تدخل بالحيطان: إذا شي يحجب بين المشهد والكاميرا نقرّبها
+    const put = (fx, fy, fz, u, D, lx, ly, lz) => { const t = Math.max(0.7, Math.min(D, this.free(fx, fy, fz, u, D + 0.3) - 0.3)); cam.position.set(fx + u[0] * t + sh, fy + u[1] * t, fz + u[2] * t); cam.lookAt(lx, ly, lz); return true; };
+    if (K.style === 'behind' && K.t < 1.05 && K.preOk) { const u = [-dx * 0.94 + px * 0.34, 0.06, -dz * 0.94 + pz * 0.34]; return put(me.pos[0], y0 + 1.65, me.pos[2], u, 1.5, w.n.x, y0 + 1.35, w.n.z); }
+    const v = K.v || [px, 0.12, pz], k = Math.min(1, K.t / 3);
+    if (K.style === 'slash') { const a = Math.atan2(v[2], v[0]) + (K.t - 1) * 0.5, c = Math.hypot(v[0], v[2]), u = [Math.cos(a) * c, v[1], Math.sin(a) * c]; return put(mx, y0 + 1.15, mz, u, K.cd, mx, y0 + 1.0, mz); }
+    return put(mx, y0 + 1.2, mz, v, K.cd - k * 0.25, mx, y0 + 1.1 - k * 0.25, mz);
+  }
+
+
   // ---------- مهام التصفية ----------
   spawnTargets(st) {
     const A = this.g.ambient; if (this.targets || !A || !A.on) return;

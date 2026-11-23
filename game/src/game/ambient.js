@@ -9,6 +9,30 @@ const LOOKS = ['citizen', 'vendor', 'elder', 'youth', 'citizen', 'pilgrim'];
 const SPOTS = [[0, -20], [0, -2], [0, 14], [-1, 22], [12, 26], [26, 24], [40, 24], [55, 22], [66, -9], [60, -16], [74, -12], [30, -3], [20, -25], [-12, -27], [-20, -6], [-38, 22], [-14, 24], [60, 10], [84, 12]];
 let wid = 900;
 
+// الماشي إذا وصل باب حقيقي (المضيف، البيوت اللي تنفتح) يفتحه ويبقيه مفتوح لحد ما يعبر
+// خطوة مشي بتصادم: ينزلق على الحيطان والبسطات بدل ما يخترقها، ويصعد الدرج والعتبات (ارتفاع الأرض تحته)
+export function walkStep(W, n, dx, dz, st) {
+  const y = n.y || 0, R = 0.2, free = (x, z) => !W.overlap(x, y + 0.44, z, R, 1.2), inside = !free(n.x, n.z);
+  let ok = true; const nx = n.x + dx * st, nz = n.z + dz * st;
+  if (inside || free(nx, nz)) { n.x = nx; n.z = nz; }
+  else if (Math.abs(dx) > 0.15 && free(nx, n.z)) n.x = nx;
+  else if (Math.abs(dz) > 0.15 && free(n.x, nz)) n.z = nz;
+  else ok = false;
+  const gy = W.groundBelow(n.x, y + 0.46, n.z, 0.14, 1.4); if (gy !== null) n.y = gy; else n.y = Math.max(0, y - st * 3);
+  return ok;
+}
+// أقرب نقطة فاضية (إذا المكان المطلوب داخل حايط أو بسطة)
+export function freeSpot(W, x, z, y = 0) {
+  const free = (a, b) => !W.overlap(a, y + 0.44, b, 0.22, 1.2);
+  if (!W || free(x, z)) return [x, z];
+  for (let r = 0.3; r < 5; r += 0.3) for (let k = 0; k < 12; k++) { const a = k / 12 * Math.PI * 2, px = x + Math.cos(a) * r, pz = z + Math.sin(a) * r; if (free(px, pz)) return [px, pz]; }
+  return [x, z];
+}
+export function walkerDoors(g, x, y, z) {
+  const S = g.sim, W = g.world; if (!S || !S.doors || !W || !W.doors) return;
+  W.doors.forEach((d, i) => { if (Math.abs((d.y || 0) - (y || 0)) > 1.5 || Math.hypot(d.x - x, d.z - z) > 1.7) return; const st = S.doors[i]; if (!st) return; if (!st.open) S.setDoor(i, true); else st.t = Math.max(st.t, 4); });
+}
+
 export class Walker {
   constructor(game, look, x, z, o = {}) {
     this.g = game;
@@ -18,17 +42,27 @@ export class Walker {
     this.path = null; this.pi = 0; this.sp = o.sp || 1.25; this.wait = 0; this.onArrive = null;
   }
   get pos() { return [this.n.x, 0, this.n.z]; }
-  goTo(x, z, cb) { this.path = findPath(this.g.world, [this.n.x, 0, this.n.z], [x, 0, z]); this.pi = 1; this.onArrive = cb || null; }
+  goTo(x, z, cb) { this.rep = 0; this.stuckT = 0; this.path = findPath(this.g.world, [this.n.x, this.n.y || 0, this.n.z], [x, 0, z], true); this.pi = 1; this.onArrive = cb || null; }
   stop() { this.path = null; this.c.walkSp = 0; }
   face(x, z) { this.n.yaw = Math.atan2(-(x - this.n.x), -(z - this.n.z)); this.c.root.rotation.y = this.n.yaw; }
   remove() { this.g.scene.remove(this.c.root); this.dead = true; }
   update(dt, cam) {
     const n = this.n, c = this.c;
     if (this.path && this.pi < this.path.length) {
+      if ((this.dT = (this.dT || 0) - dt) <= 0) { this.dT = 0.2; walkerDoors(this.g, n.x, n.y, n.z); }
       const [tx, tz] = this.path[this.pi], dx = tx - n.x, dz = tz - n.z, d = Math.hypot(dx, dz);
       if (d < 0.25) { this.pi++; if (this.pi >= this.path.length) { this.path = null; c.walkSp = 0; const f = this.onArrive; this.onArrive = null; f && f(this); } }
       else {
-        const st = Math.min(d, this.sp * dt); n.x += dx / d * st; n.z += dz / d * st;
+        const st = Math.min(d, this.sp * dt);
+        if (this.ghost) { n.x += dx / d * st; n.z += dz / d * st; }
+        else {
+          const x0 = n.x, z0 = n.z; walkStep(this.g.world, n, dx / d, dz / d, st);
+          // علگ؟ نعيد حساب الطريق، وإذا بعده علگان نعتبره وصل (حتى ما يوقف الشغل)
+          const pr = Math.hypot(n.x - x0, n.z - z0); this.stuckT = pr < st * 0.3 ? (this.stuckT || 0) + dt : Math.max(0, (this.stuckT || 0) - dt);
+          if (this.stuckT > 1.0 && !this.rep) { this.rep = 1; const end = this.path[this.path.length - 1], cb = this.onArrive; this.goTo(end[0], end[1], cb); this.rep = 1; this.stuckT = 0; return; }
+          if (this.stuckT > 2.5) { this.stuckT = 0; this.rep = 0; this.path = null; c.walkSp = 0; const f = this.onArrive; this.onArrive = null; f && f(this); return; }
+        }
+        c.root.position.y = n.y || 0;
         let want = Math.atan2(-dx, -dz), a = want - n.yaw; while (a > Math.PI) a -= Math.PI * 2; while (a < -Math.PI) a += Math.PI * 2; n.yaw += a * Math.min(1, dt * 6);
         c.walkSp = this.sp / 1.25;
       }
@@ -102,13 +136,13 @@ export class Ambient {
       w.goTo(best.x, best.z, () => { w.hidden = true; });
     }
   }
-  spawn(look, x, z, o) { const w = new Walker(this.g, look, x, z, o); this.walkers.push(w); return w; }
+  spawn(look, x, z, o = {}) { if (o.pose !== 'sit' && !o.keep) [x, z] = freeSpot(this.g.world, x, z); const w = new Walker(this.g, look, x, z, o); this.walkers.push(w); return w; }
   update(dt) {
     if (!this.on) return;
     const cam = this.g.camera.position, R = this.R;
     for (const w of this.walkers) {
       if (w.hideT > 0) { if ((w.hideT -= dt) <= 0) { w.hidden = false; w.sp = w.sp0 || w.sp; } else if (w.hidden) continue; }
-      if (w.stroll && !w.path) { if ((w.wait -= dt) <= 0) { const s = SPOTS[Math.floor(R() * SPOTS.length)]; w.goTo(s[0] + (R() - 0.5) * 3, s[1] + (R() - 0.5) * 3, () => { w.wait = 2 + R() * 8; }); } }
+      if (w.stroll && !w.path) { if ((w.wait -= dt) <= 0) { const s = SPOTS[Math.floor(R() * SPOTS.length)], [sx, sz] = freeSpot(this.g.world, s[0] + (R() - 0.5) * 3, s[1] + (R() - 0.5) * 3); w.goTo(sx, sz, () => { w.wait = 2 + R() * 8; }); } }
       w.update(dt, cam);
     }
     this.walkers = this.walkers.filter(w => !w.dead);

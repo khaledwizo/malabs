@@ -12,7 +12,7 @@ const PRESETS = {
   storm: { sunDir: [-0.45, 0.72, 0.3], sunCol: 0xa0aabb, sunI: 0.55, hemiSky: 0x75818f, hemiGround: 0x3b3b3b, hemiI: 0.78, ambCol: 0xb8c4d4, ambI: 0.22,
     sky: [0x1b2129, 0x3f4853, 0x4d5661], fog: 0x4a535e, fogD: 0.0145, exp: 1.18, cloud: 0.96, cloudCol: 0x2d333b, night: 0, sunVis: 0, moon: 0, rain: 1, wet: 1, lamps: 1.25, glow: 1.1, amb: 'storm', bolt: 1, ghosts: 0.2, mist: 0.45, deep: 0x1a2426, grade: [0.96, 1, 1.05, 0.86] },
   horror: { sunDir: [0.34, 0.6, -0.58], sunCol: 0x9fb6e6, sunI: 1.0, hemiSky: 0x3a4a6c, hemiGround: 0x1c1c22, hemiI: 0.9, ambCol: 0x7888b8, ambI: 0.32,
-    sky: [0x04070e, 0x111a2c, 0x1e2838], fog: 0x18202c, fogD: 0.016, exp: 1.6, cloud: 0.6, cloudCol: 0x1f2633, night: 1, sunVis: 0, moon: 1, rain: 0.3, wet: 0.55, lamps: 2.1, glow: 1.6, amb: 'horror', bolt: 0.4, ghosts: 1, mist: 1, deep: 0x0a1214, grade: [0.94, 1, 1.08, 0.72] },
+    sky: [0x04070e, 0x111a2c, 0x1e2838], fog: 0x18202c, fogD: 0.016, exp: 1.6, cloud: 0.6, cloudCol: 0x1f2633, night: 1, sunVis: 0, moon: 1, rain: 0.3, wet: 0.55, lamps: 2.6, glow: 2.0, amb: 'horror', bolt: 0.4, ghosts: 1, mist: 1, deep: 0x0a1214, grade: [0.94, 1, 1.08, 0.72] },
 };
 
 export class Weather {
@@ -25,8 +25,8 @@ export class Weather {
     this.sunDir = new THREE.Vector3(...I.sun.dir).normalize();
     // طقس متغيّر: مطر قصير، غبار الإعصار، وليل هادئ
     PRESETS.rain = { ...PRESETS.storm, sunI: 1.0, hemiI: 0.85, fogD: 0.011, rain: 0.85, wet: 0.7, bolt: 0.35, exp: 1.12, cloud: 0.88, mist: 0.25 };
-    PRESETS.dust = { ...PRESETS.day, sunCol: 0xffc890, sunI: 1.5, hemiSky: 0xc8a070, hemiI: 0.8, sky: [0x8a6a48, 0xc49a6a, 0xd8b88a], fog: 0xc29a6a, fogD: 0.024, cloud: 0.8, cloudCol: 0xb08a5a, amb: 'dustwind', grade: [1.06, 0.98, 0.88, 0.95], mist: 0.2 };
-    PRESETS.night = { ...PRESETS.horror, ghosts: 0, rain: 0, wet: 0, bolt: 0, mist: 0.12, fogD: 0.011, exp: 1.5, amb: 'night', lamps: 2.0 };
+    PRESETS.dust = { ...PRESETS.day, sunCol: 0xffc890, sunI: 1.5, hemiSky: 0xc8a070, hemiI: 0.8, sky: [0x8a6a48, 0xc49a6a, 0xd8b88a], fog: 0xc29a6a, fogD: 0.032, cloud: 0.8, cloudCol: 0xb08a5a, amb: 'dustwind', grade: [1.06, 0.98, 0.88, 0.95], mist: 0.2, sand: 1 };
+    PRESETS.night = { ...PRESETS.horror, ghosts: 0, rain: 0, wet: 0, bolt: 0, mist: 0.12, fogD: 0.011, exp: 1.5, amb: 'night', lamps: 2.9, glow: 1.9 };
     this.cur = null;
     this.buildRoofMap();
     this.buildRain(); this.buildSplash(); this.buildMist(); this.buildGhost();
@@ -163,12 +163,12 @@ export class Weather {
   stateOf(id) {
     const P = PRESETS[id], c = h => new THREE.Color(h);
     return { id, P, sunDir: new THREE.Vector3(...P.sunDir).normalize(), sunCol: c(P.sunCol), sunI: P.sunI, hemiSky: c(P.hemiSky), hemiGround: c(P.hemiGround), hemiI: P.hemiI, ambCol: c(P.ambCol), ambI: P.ambI,
-      sky: P.sky.map(c), fog: c(P.fog), fogD: P.fogD, exp: P.exp, cloud: P.cloud, cloudCol: c(P.cloudCol), night: P.night, sunVis: P.sunVis, moon: P.moon, rain: P.rain, wet: P.wet, lamps: P.lamps, glow: P.glow, mist: P.mist, deep: c(P.deep), grade: P.grade.slice(), bolt: P.bolt, ghosts: P.ghosts, amb: P.amb, mistCol: c(id.startsWith('horror') ? 0x55626f : 0x9aa6b2) };
+      sky: P.sky.map(c), fog: c(P.fog), fogD: P.fogD, exp: P.exp, cloud: P.cloud, cloudCol: c(P.cloudCol), night: P.night, sunVis: P.sunVis, moon: P.moon, rain: P.rain, sand: P.sand || 0, wet: P.wet, lamps: P.lamps, glow: P.glow, mist: P.mist, deep: c(P.deep), grade: P.grade.slice(), bolt: P.bolt, ghosts: P.ghosts, amb: P.amb, mistCol: c(id.startsWith('horror') ? 0x55626f : 0x9aa6b2) };
   }
   mix(A, B, k) {
     const lc = (a, b) => a.clone().lerp(b, k), ln = (a, b) => a + (b - a) * k;
     return { id: k < 0.5 ? A.id : B.id, P: k < 0.5 ? A.P : B.P, sunDir: A.sunDir.clone().lerp(B.sunDir, k).normalize(), sunCol: lc(A.sunCol, B.sunCol), sunI: ln(A.sunI, B.sunI), hemiSky: lc(A.hemiSky, B.hemiSky), hemiGround: lc(A.hemiGround, B.hemiGround), hemiI: ln(A.hemiI, B.hemiI), ambCol: lc(A.ambCol, B.ambCol), ambI: ln(A.ambI, B.ambI),
-      sky: A.sky.map((x, i) => lc(x, B.sky[i])), fog: lc(A.fog, B.fog), fogD: ln(A.fogD, B.fogD), exp: ln(A.exp, B.exp), cloud: ln(A.cloud, B.cloud), cloudCol: lc(A.cloudCol, B.cloudCol), night: ln(A.night, B.night), sunVis: ln(A.sunVis, B.sunVis), moon: ln(A.moon, B.moon), rain: ln(A.rain, B.rain), wet: ln(A.wet, B.wet), lamps: ln(A.lamps, B.lamps), glow: ln(A.glow, B.glow), mist: ln(A.mist, B.mist), deep: lc(A.deep, B.deep), grade: A.grade.map((x, i) => ln(x, B.grade[i])), bolt: k < 0.6 ? A.bolt : B.bolt, ghosts: k < 0.5 ? A.ghosts : B.ghosts, amb: k < 0.5 ? A.amb : B.amb, mistCol: lc(A.mistCol, B.mistCol) };
+      sky: A.sky.map((x, i) => lc(x, B.sky[i])), fog: lc(A.fog, B.fog), fogD: ln(A.fogD, B.fogD), exp: ln(A.exp, B.exp), cloud: ln(A.cloud, B.cloud), cloudCol: lc(A.cloudCol, B.cloudCol), night: ln(A.night, B.night), sunVis: ln(A.sunVis, B.sunVis), moon: ln(A.moon, B.moon), rain: ln(A.rain, B.rain), sand: ln(A.sand || 0, B.sand || 0), wet: ln(A.wet, B.wet), lamps: ln(A.lamps, B.lamps), glow: ln(A.glow, B.glow), mist: ln(A.mist, B.mist), deep: lc(A.deep, B.deep), grade: A.grade.map((x, i) => ln(x, B.grade[i])), bolt: k < 0.6 ? A.bolt : B.bolt, ghosts: k < 0.5 ? A.ghosts : B.ghosts, amb: k < 0.5 ? A.amb : B.amb, mistCol: lc(A.mistCol, B.mistCol) };
   }
   apply(S) {
     this.S = S; const L = this.L, sky = this.sky.material.uniforms;
@@ -185,11 +185,15 @@ export class Weather {
     const gm = this.meshes.userData.glowMat; if (gm) gm.uniforms.gain.value = S.glow;
     // البلل يتجمّع تدريجياً (update): هنا نحفظ الهدف فقط
     this.wetTarget = S.wet; this.rainNow = S.rain; if (this.wetNow === undefined) this.wetNow = S.wet * 0.3;
-    this.rain.visible = S.rain > 0.02; this.rainU.alpha.value = 0.5 * S.rain + (S.rain > 0.02 ? 0.12 : 0) * Math.min(1, S.rain * 4);
+    // نفس جزيئات المطر تصير غبار بالعجاج: خيوط ترابية أفقية بطيئة
+    const sand = S.rain > 0.02 ? 0 : (S.sand || 0), R = this.rainU;
+    this.rain.visible = S.rain > 0.02 || sand > 0.02;
+    if (sand > 0.02) { R.alpha.value = 0.6 * sand; R.speed.value = 1.6; R.wind.value.set(11, 4); R.col.value.setHex(0xc9a06a); }
+    else { R.alpha.value = 0.5 * S.rain + (S.rain > 0.02 ? 0.12 : 0) * Math.min(1, S.rain * 4); R.speed.value = 15; R.wind.value.set(1.6, 0.6); R.col.value.setHex(0xaebccc); }
     this.splash.visible = S.rain > 0.02; this.splU.alpha.value = S.rain;
     if (this.mist) { this.mist.visible = S.mist > 0.02; this.mistU.alpha.value = 0.2 * S.mist; this.mistU.col.value.copy(S.mistCol); }
     if (this.ambKind !== S.amb) { this.ambKind = S.amb; Audio.setAmbience(S.amb); }
-    Audio.setRainLevel && Audio.setRainLevel(S.amb === 'storm' ? 0.62 * Math.min(1, S.rain + 0.1) : S.amb === 'horror' ? 0.45 * S.rain / 0.3 : 0);
+    Audio.setRainLevel && Audio.setRainLevel(S.amb === 'storm' ? 0.3 * Math.min(1, S.rain + 0.1) : S.amb === 'horror' ? 0.22 * S.rain / 0.3 : 0); // صوت المطر أخف
   }
   // الأرض تبتلّ شوي شوي: لمعان وغمقان خفيف، والبرك تبدأ نقاط صغيرة وتتوسّع ببطء
   applyWet(w) {
@@ -217,13 +221,13 @@ export class Weather {
     if (this.cycle) { this.plan = this.cyclePlan(0); return; }
     let a = (seed | 0) || 1; const r = () => { a = (a * 1103515245 + 12345) & 0x7fffffff; return a / 0x7fffffff; };
     const base = this.id, plan = [];
-    const other = base === 'storm' ? (r() < 0.5 ? 'sunset' : 'day') : base === 'horror' ? 'horrorRain' : 'storm';
+    const other = base === 'dust' ? 'day' : base === 'storm' ? (r() < 0.5 ? 'sunset' : 'day') : base === 'horror' ? 'horrorRain' : 'storm';
     let t = 140 + r() * 120; plan.push([t, other]); t += 150 + r() * 120; plan.push([t, base]); t += 150 + r() * 100; plan.push([t, other]);
     this.plan = plan; this.planBase = base;
   }
   cyclePlan(T) {
-    // عجاج 40ث ← مطر 30ث ← نهار 4د ← غروب 30ث ← ليل 3د ← ويعيد (نفسه باللوبي وبالمعارك)
-    return [[T + 40, 'rain', 5], [T + 70, 'day', 6], [T + 310, 'sunset', 8], [T + 340, 'night', 10], [T + 520, 'dust', 8], [T + 520, 'again']];
+    // عجاج 40ث ← مطر 35ث ← نهار 3د ← غروب ينزل تدريجياً ← ليل ~3د ← ويعيد (نفسه باللوبي وبالمعارك)
+    return [[T + 40, 'rain', 15], [T + 75, 'day', 25], [T + 255, 'sunset', 70], [T + 330, 'night', 110], [T + 520, 'dust', 30], [T + 520, 'again']]; // الليل ينزل تدريجياً (غروب دقيقة وربع، ليل دقيقتين)
   }
   tick(matchT) {
     if (!this.plan) return;

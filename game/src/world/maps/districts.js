@@ -209,6 +209,7 @@ export function buildDistricts(B, H) {
     H.box(X0, R, Z0 + 0.25, X0 + 0.25, R + H2, Z1 - 0.25, 'brickPale'); H.box(X0, R, Z0 + 0.25, hx, R + H2, -30.75 + 0.25, 'brickPale');
     H.box(hx - 0.25, R, -30.5, hx, R + H2, hd - 0.45, 'brickPale'); H.box(hx - 0.25, R, hd + 0.45, hx, R + H2, Z1 - 0.25, 'brickPale'); H.box(hx - 0.25, R + 2.15, hd - 0.45, hx, R + H2, hd + 0.45, 'brickPale'); H.box(X0, R, Z1 - 0.5, hx - 0.25, R + H2, Z1 - 0.25, 'brickPale');
     H.box(X0, R + H2, Z0, hx + 0.1, R + H2 + 0.15, Z1 - 0.15, 'roof');
+    H.box(72.05, R, -30.35, 73.15, R + 1.1, -29.25, null); // تصادم خزّان الماي
     H.door({ x: hx - 0.125, y: R, z: hd, axis: 'z', w: 0.88, h: 2.1, swing: -1, mat: 'woodBlue', name: 'باب السطح' });
     if (vis) {
       // الطابق الأول: قعدة عربية، ميز، تلفزيون، كنتور، مصباح

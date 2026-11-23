@@ -23,6 +23,7 @@ for (const b of SCRIPT) if (b.who) add(CAST[b.who], b.text, !!b.loud, 'intro');
 // حوارات المهام: صاحب المهمة، شخص الخطوة، مجاهدي الفلوجة، وجمل اللاعب بأصوات الشخصيات الأربع
 const ME = ['khaled', 'mohammed', 'ibrahim', 'saif'].map(k => CAST[k]);
 const who = (w, q, st) => {
+  if (w === 't') return st && st.tgt ? st.tgt.per : st && st.confront ? st.confront.per : null;
   if (w === 'g') w = q.giver;
   if (w === 'n') w = st ? (st.to === 'g' ? q.giver : st.to === 'fighters' ? 'f2' : st.to) : q.giver;
   if (typeof w === 'string' && w[0] === 'f') return FIGHTERS[+w[1]];
@@ -36,7 +37,9 @@ for (const q of expanded) {
   for (const [w, t] of q.intro || []) say(w, t, q, null, tag);
   for (const [w, t] of q.outro || []) say(w, t, q, null, tag);
   for (const st of q.steps) {
-    for (const [w, t] of [...(st.say || []), ...(st.after || [])]) say(w, t, q, st, tag);
+    for (const [w, t] of [...(st.say || []), ...(st.after || []), ...((st.confront && st.confront.lines) || [])]) say(w, t, q, st, tag);
+    // حچي المطلوبين قبل الاغتيال
+    for (const T of (st.hit && st.hit.targets) || []) for (const [w, t] of T.lines || []) say(w, t, q, { ...st, tgt: T }, tag);
     for (const Q of st.quiz || []) { say('g', Q.ok, q, st, tag); say('g', Q.no, q, st, tag); for (const o of Q.opts) say('me', o, q, st, tag); }
     if (st.choose) for (const o of st.choose.opts) say('me', 'هذا ' + o.label + '.', q, st, tag);
     if (st.choose) say('n', 'اختيار زين! تفضّل.', q, st, tag);
