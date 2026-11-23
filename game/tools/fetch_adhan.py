@@ -3,10 +3,16 @@
 وإلا CC-BY/CC-BY-SA مع ذكر المصدر) ويكتب assets/adhan.js حتى تشغّله اللعبة. إذا فشل: اللعبة تشتغل بلا أذان."""
 import json, os, sys, urllib.request, urllib.parse
 out = sys.argv[1]
-UA = {'User-Agent': 'RafidainBuild/1.0 (github actions; game asset fetch)'}
+UA = {'User-Agent': 'RafidainGameBuild/1.0 (https://github.com/khaledwizo/malabs; ci-bot) python-urllib'}
+import time
 def get(u, raw=False):
-    r = urllib.request.urlopen(urllib.request.Request(u, headers=UA), timeout=40).read()
-    return r if raw else json.loads(r)
+    for k in range(4):
+        try:
+            r = urllib.request.urlopen(urllib.request.Request(u, headers=UA), timeout=40).read()
+            return r if raw else json.loads(r)
+        except urllib.error.HTTPError as e:
+            if e.code != 429 or k == 3: raise
+            time.sleep(6 * (k + 1))
 api = 'https://commons.wikimedia.org/w/api.php?' + urllib.parse.urlencode({'action': 'query', 'generator': 'search', 'gsrsearch': 'adhan OR azan call to prayer filetype:audio', 'gsrnamespace': 6, 'gsrlimit': 40, 'prop': 'imageinfo', 'iiprop': 'url|size|mime|extmetadata', 'format': 'json'})
 try: pages = list(get(api).get('query', {}).get('pages', {}).values())
 except Exception as e: print('search failed', e); sys.exit(0)
@@ -19,7 +25,7 @@ for p in pages:
     ii = p['imageinfo'][0]; mime = ii.get('mime', '')
     if mime not in ('audio/ogg', 'application/ogg', 'audio/mpeg', 'audio/webm', 'audio/opus') or ii.get('size', 0) > 9_000_000 or ii.get('size', 0) < 150_000: continue
     t = p['title'].lower()
-    if 'shia' in t or 'شيعي' in t: continue
+    if 'shia' in t or 'شيعي' in t or not any(w in t for w in ('adhan', 'azan', 'adhaan', 'call to prayer', 'أذان', 'اذان', 'ezan')): continue
     rank, m = lic(p)
     if rank > 1: continue
     cands.append((rank, -ii['size'], p, ii, m))
