@@ -7,7 +7,7 @@ const ctx = await b.newContext({ viewport: { width: W, height: H }, isMobile: tr
 const page = await ctx.newPage(); const errs = [];
 page.on('pageerror', e => errs.push(e.message + '\n' + (e.stack || '').split('\n').slice(0, 4).join('\n')));
 page.on('console', m => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
-await page.addInitScript(() => { localStorage.setItem('rafidain.intro.v1', '1'); localStorage.removeItem('rafidain.quests.v1'); });
+await page.addInitScript(() => { localStorage.setItem('rafidain.intro.v2', '1'); localStorage.removeItem('rafidain.quests.v1'); });
 await page.addInitScript(() => localStorage.setItem('rafidain.settings.v2', JSON.stringify({ fps: 0, quality: 'low', res: '0.5', weather: 'day', teamSize: 1, difficulty: 'easy', mode: 'tdm' })));
 await page.goto('file://' + path.resolve('dist/index.html')); await page.waitForTimeout(3000);
 await page.screenshot({ path: 'test/shots/p2_home.png' });

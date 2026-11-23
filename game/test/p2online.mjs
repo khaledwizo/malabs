@@ -6,7 +6,7 @@ const broker = spawn('node', ['test/broker.mjs', '8884', '0', '0'], { stdio: 'ig
 const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 const ctx = await b.newContext({ viewport: { width: 844, height: 390 } });
 const page = await ctx.newPage(); const errs = []; page.on('pageerror', e => errs.push(e.message + (e.stack || '').split('\n').slice(0, 3).join('|')));
-await page.addInitScript(() => { localStorage.setItem('rafidain.intro.v1', '1'); localStorage.setItem('rafidain.settings.v2', JSON.stringify({ fps: 0, quality: 'low', res: '0.5', weather: 'day', teamSize: 2, difficulty: 'easy', mode: 'tdm' })); });
+await page.addInitScript(() => { localStorage.setItem('rafidain.intro.v2', '1'); localStorage.setItem('rafidain.settings.v2', JSON.stringify({ fps: 0, quality: 'low', res: '0.5', weather: 'day', teamSize: 2, difficulty: 'easy', mode: 'tdm' })); });
 await page.goto('file://' + path.resolve('dist/index.html') + '?broker=ws://localhost:8884/mqtt&nortc'); await page.waitForTimeout(2500);
 await page.evaluate(async () => { const { Social, UI, game } = window.__R; Social.party = { host: Social.id, members: [{ id: Social.id, name: 'me' }], vs: false }; Social.partyStart = () => { }; await game.hostParty(UI.matchOpts()); UI.closeScreens(); UI.hud(true); });
 await page.waitForTimeout(3000);

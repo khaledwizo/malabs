@@ -189,7 +189,7 @@ export class Quests {
     const mx = me.pos[0], mz = me.pos[2];
     const ox = other ? other.n.x : mx - Math.sin(g.yaw) * 2, oz = other ? other.n.z : mz - Math.cos(g.yaw) * 2, oy = other ? (other.sit ? 1.15 : 1.6) : 1.6;
     // نموذج اللاعب يواجه المتكلّم
-    const M = this.meModel; if (M) { const yaw = Math.atan2(-(ox - mx), -(oz - mz)); M.root.position.set(mx, me.pos[1], mz); M.update({ yaw, pitch: 0, speed: 0, vx: 0, vz: 0, crouch: 0, lean: 0, hurt: 9, onGround: true, alive: true, ads: 0, prot: false, reloading: false, fireT: 0 }, dt); }
+    const M = this.meModel; if (M) { const yaw = Math.atan2(-(ox - mx), -(oz - mz)); M.root.position.set(mx, me.pos[1], mz); const crouch = C.stage === 'act' && C.opt.act && C.opt.act.me ? 1 : 0; M.update({ yaw, pitch: crouch ? -0.5 : 0, speed: 0, vx: 0, vz: 0, crouch, lean: 0, hurt: 9, onGround: true, alive: true, ads: 0, prot: false, reloading: false, fireT: 0 }, dt); }
     let dx = ox - mx, dz = oz - mz; const d = Math.hypot(dx, dz) || 1; dx /= d; dz /= d;
     const rx = -dz, rz = dx, meSpeak = C.who === 'me';
     // فوق الكتف: خلف اللي يسمع، ينظر للي يحچي
@@ -200,8 +200,10 @@ export class Quests {
     const cands = [[ax - fx * 1.35 + rx * 0.62 * sd, ay + 0.2, az - fz * 1.35 + rz * 0.62 * sd], [ax - fx * 1.35 - rx * 0.62 * sd, ay + 0.2, az - fz * 1.35 - rz * 0.62 * sd], [cx0 + rx * 2.4, 1.7, cz0 + rz * 2.4], [cx0 - rx * 2.4, 1.7, cz0 - rz * 2.4], [mx - dx * 0.5, 1.85, mz - dz * 0.5]];
     const okCam = ([x, y, z]) => !W.overlap(x, y - 0.25, z, 0.22, 0.5) && W.los(bx, by, bz, x + (x - bx) * 0.15, y, z + (z - bz) * 0.15) && W.los(cx0, 1.5, cz0, x, y, z);
     let [px, py, pz] = cands.find(okCam) || cands[cands.length - 1];
+    // أثناء الفعل (تعبئة، عجن، دفن…): الكاميرا تدور ببطء حول المشهد
+    if (C.stage === 'act') { C.orb = (C.orb ?? Math.atan2(pz - cz0, px - cx0)) + dt * 0.3; const R0 = 2.3; const ox2 = cx0 + Math.cos(C.orb) * R0, oz2 = cz0 + Math.sin(C.orb) * R0; if (okCam([ox2, 1.55, oz2])) { px = ox2; py = 1.55; pz = oz2; } }
     if (cands.indexOf([px, py, pz]) < 0 && px === cands[4][0]) { /* من عين اللاعب */ }
-    const tgt = new THREE.Vector3(bx, by, bz);
+    const tgt = C.stage === 'act' ? new THREE.Vector3(cx0, 1.0, cz0) : new THREE.Vector3(bx, by, bz);
     if (!this.camP) { this.camP = new THREE.Vector3(px, py, pz); this.camL = tgt.clone(); }
     const k = Math.min(1, dt * 3.2); this.camP.lerp(new THREE.Vector3(px, py, pz), k); this.camL.lerp(tgt, k);
     cam.position.copy(this.camP); cam.lookAt(this.camL);

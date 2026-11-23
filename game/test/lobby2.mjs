@@ -5,7 +5,7 @@ const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', head
 const ctx = await b.newContext({ viewport: { width: 844, height: 390 }, isMobile: true, hasTouch: true });
 const page = await ctx.newPage(); const errs = [];
 page.on('pageerror', e => errs.push(e.message + '\n' + (e.stack || '').split('\n').slice(0, 4).join('\n')));
-await page.addInitScript(() => { localStorage.setItem('rafidain.intro.v1', '1'); localStorage.removeItem('rafidain.quests.v1'); });
+await page.addInitScript(() => { localStorage.setItem('rafidain.intro.v2', '1'); localStorage.removeItem('rafidain.quests.v1'); });
 await page.addInitScript(() => localStorage.setItem('rafidain.settings.v2', JSON.stringify({ fps: 0, quality: 'low', res: '0.5', weather: 'day', teamSize: 1, difficulty: 'easy', mode: 'tdm' })));
 await page.goto('file://' + path.resolve('dist/index.html')); await page.waitForTimeout(3000);
 await page.evaluate(() => window.__R.UI.startLobby()); await page.waitForTimeout(1500);

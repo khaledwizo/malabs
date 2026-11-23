@@ -200,3 +200,12 @@ PHASE 2 (لوبي + مهام + تأشير) — DONE locally, see tests test/lobb
   tourist quiz, recruit weapon choice; cinematic OTS camera + letterbox + subtitles; rewards via Economy.earn; saved 'rafidain.quests.v1').
   ambient.js (lobby only: strollers, sheep, friends meeting at chaychi). Talk (NPC chatter) runs in lobby only — silent in battle.
   Key F = use (inspect moved to I). tools/voice_lines.mjs exports quest lines (player lines for all 4 chars).
+
+PHASE 3 (المقدّمة الجديدة + كاتسينات المهام + الأصوات) — pushed
+- introdata.js rewritten (fictional): Baghdad night, 3 Baghdadis + Ibrahim the Tikriti; invaders near Tikrit/Baghdad;
+  Sheikh فاتح الرفاعي (civilians look 'sheikhF': big white turban, long white beard) issues «رد الصائل واجب شرعاً» + وصية;
+  Kufic plaque in intro mudhif; they eat; masked infiltrator with rifle fires 3 shots (sheikh falls on 2nd); aftermath; dying words;
+  dawn burial set (intro.buildBurial at x=40): empty old shrine, turban placed on tomb, vow; «بعد أشهر» fence+tiles+green dome build.
+  INTRO_KEY bumped to rafidain.intro.v2 (tests set v2). Replay from settings button unchanged. test/intro2.mjs walks all beats.
+- Lobby world: white turban on the shrine tomb. Quest acts: camera orbits during act, player model crouches for own actions.
+- voice/lines.json regenerated (intro + quests; player lines for all 4 chars) → CI Azure makes the missing ogg.

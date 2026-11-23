@@ -274,6 +274,9 @@ export function buildDistricts(B, H) {
       for (let k = 0; k <= 12; k++) { const x = cx - 1.38 + k * 0.23; for (const zz of [cz - 0.78, cz + 0.78]) B.box(x - 0.015, 0, zz - 0.015, x + 0.015, 1.6, zz + 0.015, 'brass', { col: false }); }
       for (let k = 0; k <= 6; k++) { const z = cz - 0.78 + k * 0.26; for (const xx of [cx - 1.38, cx + 1.38]) B.box(xx - 0.015, 0, z - 0.015, xx + 0.015, 1.6, z + 0.015, 'brass', { col: false }); }
       B.box(cx - 1.42, 1.6, cz - 0.82, cx + 1.42, 1.68, cz + 0.82, 'brass', { col: false });
+      // عمامة الشيخ فاتح الرفاعي البيضاء على قبره
+      for (let k = 0; k < 4; k++) B.geo(() => new THREE.TorusGeometry(0.17 - k * 0.018, 0.055 - k * 0.006, 8, 18), T(cx - 0.55, 1.08 + k * 0.04, cz, k * 0.4, 1, 1, 1, PI / 2), 'flowerWhite');
+      B.geo(() => new THREE.SphereGeometry(0.13, 12, 8, 0, PI * 2, 0, PI / 2), T(cx - 0.55, 1.12, cz, 0, 1, 0.75, 1), 'flowerWhite');
       B.geo(() => new THREE.CylinderGeometry(3.3, 3.3, 1.5, 8), T(cx, Hh + 1.15, cz, PI / 8), 'tileGreen', { uvs: 2 });
       B.geo(() => new THREE.SphereGeometry(3.35, 24, 12, 0, PI * 2, 0, PI / 2), T(cx, Hh + 1.9, cz, 0, 1, 1.15, 1), 'tileGreen', { uvs: 3 });
       B.geo(() => new THREE.CylinderGeometry(0.06, 0.2, 1.4, 8), T(cx, Hh + 6.2, cz), 'gold'); B.geo(() => new THREE.SphereGeometry(0.28, 10, 8), T(cx, Hh + 5.8, cz), 'gold');

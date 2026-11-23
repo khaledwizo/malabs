@@ -1,14 +1,16 @@
-// المقدّمة السينمائية (أول فتح للعبة): عشاء في مضيف الشيخ إبراهيم الهاشمي بتكريت، اتهام وجدال، الشيخ يسعى للصلح،
-// يد خفيّة ترمي رمّانة وسط السفرة... وتبدأ الحرب. مشهد ثلاثي الأبعاد بلقطات كاميرا وترجمة وأصوات عراقية مسجّلة إن وُجدت.
+// المقدّمة السينمائية (أول فتح للعبة): ليلة ببغداد في مضيف الشيخ فاتح الرفاعي، أخبار الغزاة على تكريت، فتوى «رد الصائل واجب شرعاً»،
+// ملثّم مدسوس يغتال الشيخ بثلاث طلقات، والدفن بالفجر بالمرقد الفارغ وعمامته على القبر... وبعد أشهر قبّة خضراء. القصة خيالية بالكامل.
 import * as THREE from 'three';
 import { CharModel, solveArm, roundBox } from './chars.js';
+import { buildGun } from './gunmodels.js';
+import { signMat } from '../gfx/mats.js';
 import { Civilian } from './civilians.js';
 import { CAST, SCRIPT } from './introdata.js';
 import { Voices, voiceId } from '../core/voices.js';
 import { Audio } from '../core/audio.js';
 import { Settings } from '../core/settings.js';
 
-export const INTRO_KEY = 'rafidain.intro.v1';
+export const INTRO_KEY = 'rafidain.intro.v2';
 export const introSeen = () => { try { return localStorage.getItem(INTRO_KEY) === '1'; } catch (e) { return true; } };
 const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
 const ease = t => t < 0 ? 0 : t > 1 ? 1 : t * t * (3 - 2 * t);
@@ -33,7 +35,7 @@ export class Intro {
   ui() {
     const d = this.el = document.createElement('div'); d.id = 'intro';
     d.innerHTML = `<div class="ib t"></div><div class="ib b"></div><div class="ic"></div><div class="is"><b></b><span></span></div><div class="if"></div>
-      <div class="itap"><div class="itt">جبهة الرافدين</div><div class="its">حكاية الليلة التي بدأت فيها الحرب</div><div class="itg">المس الشاشة للبدء</div></div><button class="iskip">تخطّي ‹</button>`;
+      <div class="itap"><div class="itt">جبهة الرافدين</div><div class="its">حكاية الليلة التي انطلقت فيها جبهة الرافدين</div><div class="itg">المس الشاشة للبدء</div></div><button class="iskip">تخطّي ‹</button>`;
     document.body.appendChild(d);
     this.card = d.querySelector('.ic'); this.sub = d.querySelector('.is'); this.flashEl = d.querySelector('.if');
     d.querySelector('.iskip').addEventListener('click', e => { e.stopPropagation(); this.finish(); });
@@ -122,14 +124,20 @@ export class Intro {
       this.actors[k] = { m, seat: s, stand: 0, talk: 0, look: 0, lookT: 0, hand: 0, react: 0, ph: Math.random() * 6 };
     }
     const sh = SEATS.sheikh;
-    this.sheikhSit = new Civilian({ id: 90, x: sh.x - 0.12, y: -0.3, z: sh.z, yaw: sh.yaw, pose: 'sit', look: 'sheikh', stool: false, seed: 77 });
-    this.sheikhStand = new Civilian({ id: 91, x: -7.35, y: 0, z: 0, yaw: -Math.PI / 2, pose: 'stand', look: 'sheikh', seed: 77 });
+    this.sheikhSit = new Civilian({ id: 90, x: sh.x - 0.12, y: -0.3, z: sh.z, yaw: sh.yaw, pose: 'sit', look: 'sheikhF', stool: false, seed: 77 });
+    this.sheikhStand = new Civilian({ id: 91, x: -7.35, y: 0, z: 0, yaw: -Math.PI / 2, pose: 'stand', look: 'sheikhF', seed: 77 });
     S.add(this.sheikhSit.root); S.add(this.sheikhStand.root); this.sheikhSit.root.visible = false; this.sheikhStand.root.visible = false;
     // اليد الخفيّة والرمّانة
     const dark = new THREE.MeshStandardMaterial({ color: 0x0c0b0a, roughness: 1 });
-    // الغريب الملثّم بالباب (واحد من العصائب) — لا شعارات ولا رايات
+    // الملثّم المدسوس بالباب — لا شعارات ولا رايات
     this.stranger = new Civilian({ id: 92, x: -8.55, y: 0, z: 0.28, yaw: -Math.PI / 2, pose: 'stand', look: 'masked', seed: 13 });
     S.add(this.stranger.root); this.stranger.root.visible = false;
+    // بندقيته بين إيديه
+    { const gun = buildGun('rafid').group; gun.scale.setScalar(1.05); gun.position.set(0.1, 0.36, -0.2); this.stranger.chest.add(gun); this.strangerGun = gun;
+      this.muzzle = new THREE.PointLight(0xffc070, 0, 5, 2); this.muzzle.position.set(0.1, 0.4, -0.95); this.stranger.chest.add(this.muzzle); }
+    // لوحة باسم الشيخ بالخط الكوفي على الجدار الجنوبي (خلف السفرة)
+    { const pl = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 0.9), signMat('الشيخ فاتح الرفاعي', { kufi: true, sub: 'مضيف أهل العلم والكرم', w: 1024, h: 384, glow: 0.35 })); pl.position.set(-2.25, 2.55, 4.6); pl.rotation.y = Math.PI; S.add(pl); this.plaque = pl; }
+    this.buildBurial();
     this.strangerLight = new THREE.PointLight(0x9ab0e0, 0, 2.6, 2); this.strangerLight.position.set(-7.6, 1.9, 0.6); S.add(this.strangerLight);
     this.doorTarget = 0; this.doorOpen = 0;
     const nade = this.nade = new THREE.Group(); S.add(nade); nade.visible = false;
@@ -163,8 +171,17 @@ export class Intro {
       case 'sheikh': return [...this.faceShot('sheikh', 0.45, 1.3), V3(0, 0, 0)];
       case 'sheikh2': return [...this.faceShot('sheikh', -0.5, 1.6, 0.15), V3(0, 0, 0)];
       case 'sheikhClose': return [...this.faceShot('sheikh', 0.22, 0.95, -0.07), V3(0, 0, 0)];
+      case 'plaque': return [V3(-2.25, 1.75, 1.6), V3(-2.25, 2.5, 4.6), V3(0.25, 0.08, 0.15)];
+      case 'dying': { const r = this.sheikhSit.root.position, h = this.sheikhSit.head.getWorldPosition(V3(0, 0, 0)), m = V3((r.x + h.x) / 2, 0.15, (r.z + h.z) / 2), d = V3(h.x - r.x, 0, h.z - r.z).normalize(); return [V3(m.x - d.z * 1.5 + d.x * 0.6, 1.45, m.z + d.x * 1.5 + d.z * 0.6), V3(m.x + d.x * 0.25, 0.15, m.z + d.z * 0.25), V3(0.05, -0.12, 0.05)]; }
+      case 'grave': { const X = this.bx; return [V3(X - 3.2, 1.75, 2.8), V3(X + 3.2, 1.1, 0), V3(0.6, 0, -0.3)]; }
+      case 'graveTurban': { const X = this.bx; return [V3(X + 1.7, 1.45, 1.25), V3(X + 3.3, 0.7, 0), V3(0.15, -0.05, -0.1)]; }
+      case 'vow': { const X = this.bx; return [V3(X + 4.2, 1.45, 0.5), V3(X + 0.9, 1.45, 0), V3(-0.1, 0, -0.15)]; }
+      case 'shrineBuilt': { const X = this.bx; return [V3(X - 6.5, 2.6, 4.8), V3(X + 3.2, 2.4, 0), V3(1.4, 0.2, -1.0)]; }
+      case 'shrineBuilt2': { const X = this.bx; return [V3(X + 0.4, 1.5, 0.35), V3(X + 3.3, 0.85, 0), V3(0.35, -0.05, -0.1)]; }
       case 'black': return null;
     }
+    const gm = /^grave(K|M)$/.exec(n);
+    if (gm) { const k = gm[1] === 'K' ? 'khaled' : 'mohammed'; return [...this.faceShot(k, gm[1] === 'K' ? 0.4 : -0.42, 1.05, 0.02), V3(0, 0, 0)]; }
     const am = /^after(M|K|K2|S2)$/.exec(n);
     if (am) { const k = { M: 'mohammed', K: 'khaled', K2: 'khaled', S2: 'saif' }[am[1]]; return [...this.faceShot(k, am[1] === 'K2' ? 0.32 : am[1] === 'S2' ? -0.3 : -0.4, am[1] === 'S2' ? 0.9 : 1.0, am[1] === 'S2' ? -0.12 : 0.03), V3(0, 0, 0)]; }
     const m = /^(khaled|mohammed|ibrahim|saif)(2?)$/.exec(n);
@@ -207,6 +224,17 @@ export class Intro {
     if (a === 'aim') { A.ibrahim.m.setWeapon('rafid'); A.saif.m.setWeapon('nisr'); A.mohammed.m.setWeapon('dijla'); for (const k of ['ibrahim', 'saif', 'mohammed']) A[k].aim = 1; Audio.play('draw', [0.7, 1.2, 1.5]); }
     if (a === 'cock') Audio.play('reload', [0.75, 1.3, 1.6]);
     if (a === 'shots') { const P = [[0.7, 1.4, 1.6], [-0.6, 1.4, -1.5], [0.6, 1.3, -1.6], [-0.7, 1.4, 1.5]]; [0, 0.09, 0.18, 0.3, 0.42, 0.55, 0.8, 0.88, 1.05, 1.2, 1.32, 1.5].forEach((d, i) => setTimeout(() => this.active && Audio.play(i % 3 === 1 ? 'pistol' : 'rifleHeavy', P[i % 4]), d * 1000)); }
+    if (a === 'drone') this.drone = true;
+    if (a === 'calm') { this.sheikhSit.raise = false; this.drone = false; }
+    if (a === 'eat') { for (const k in A) { A[k].eat = 0.001 + Object.keys(A).indexOf(k) * 0.7; A[k].lookAt = null; } }
+    if (a === 'aim') { this.stranger.aimR = true; this.strangerLight.intensity = 5; this.strangerLight.position.set(-7.7, 1.8, 0.35); Audio.play('reload', [-8.3, 1.3, 0.3]); for (const k in A) A[k].lookAt = 'door'; }
+    if (a === 'shots3') { this.shotsAt = this.t; this.shotN = 0; for (const k in A) A[k].eat = 0; }
+    if (a === 'flee') { this.stranger.aimR = false; this.stranger.root.visible = false; this.doorTarget = 0.7; Audio.play('creak'); this.strangerLight.intensity = 0; }
+    if (a === 'aftermath') this.aftermathShot();
+    if (a === 'dying') { this.key.intensity = 2.2; this.key.distance = 4; this.key.position.set(-1.9, 1.3, 0.2); }
+    if (a === 'burialSet') this.toBurial();
+    if (a === 'turban') { this.turbanT = 0; this.turban.visible = true; }
+    if (a === 'build') { this.buildT = 0; for (const k in A) A[k].m.root.visible = false; for (const c of this.mourners) c.root.visible = false; this.sun.intensity = 2.6; this.sun.color.set(0xfff0d8); }
     if (a === 'boom') { this.boomT = 0; this.expo = 2.4; this.expoT = 0; this.expoRate = 1.1; this.flash = 1; this.shake = 1; Audio.play('boom', [-0.1, 0.2, 0.1]); setTimeout(() => this.active && Audio.play('ring'), 250); for (const k in A) A[k].react = 1; this.nade.visible = false; for (const o of this.foodItems) o.visible = false; this.scorch.visible = true; for (const d of this.debris) d.visible = true; this.sheikhSit.die([1, 0, 0.2]); }
   }
   // بعد الانفجار: غبار ودخان، الشيخ على الأرض، والكل واقف بعيداً عن السفرة
@@ -220,6 +248,67 @@ export class Intro {
     this.blaze = new THREE.PointLight(0xff7a2a, 4.5, 6, 1.6); this.blaze.position.set(0, 0.45, 0.1); S.add(this.blaze);
     const fm = new THREE.MeshStandardMaterial({ color: 0x331000, emissive: 0xff6a14, emissiveIntensity: 2.4, transparent: true, opacity: 0.85 });
     this.flames = []; for (let k = 0; k < 7; k++) { const f = new THREE.Mesh(new THREE.ConeGeometry(0.06 + Math.random() * 0.05, 0.25 + Math.random() * 0.2, 6), fm); f.position.set((Math.random() - 0.5) * 0.7, 0.15, 0.1 + (Math.random() - 0.5) * 0.5); S.add(f); this.flames.push(f); }
+  }
+  // بعد الطلقات: المضيف ساكت إلا الوجاق، الأصحاب واقفين حول الشيخ
+  aftermathShot() {
+    const S = this.scene; S.fog = new THREE.Fog(0x0c0907, 4, 18);
+    for (const L of this.lamps) L.base *= 0.7;
+    const P = { khaled: [-6.2, 0.6, Math.PI / 2], mohammed: [-1.6, 1.6, Math.PI / 2 + 0.7], ibrahim: [-1.5, -1.55, Math.PI / 2 - 0.7], saif: [-4.6, -1.2, -Math.PI / 2 + 0.5] };
+    for (const k in this.actors) { const a = this.actors[k], p = P[k]; a.seat = { x: p[0], z: p[1], yaw: p[2] }; a.m.root.position.set(p[0], 0, p[1]); a.after = true; a.react = 0; a.stand = 1; a.eat = 0; }
+    this.key.intensity = 0;
+  }
+  // موقع الدفن بالفجر: مقبرة قديمة ومرقد فارغ بلا قبّة، وبعد أشهر سياج وقبّة خضراء
+  buildBurial() {
+    const S = this.scene, X = this.bx = 40, G = this.burial = new THREE.Group(); G.visible = false; S.add(G);
+    const add = (g, m, x, y, z, ry = 0, par = G) => { const o = new THREE.Mesh(g, m); o.position.set(x, y, z); o.rotation.y = ry; o.castShadow = true; o.receiveShadow = true; par.add(o); return o; };
+    const BX = (w, h, d) => new THREE.BoxGeometry(w, h, d);
+    add(BX(40, 0.1, 40), this.mat('graveDirt', 10, 10), X, -0.05, 0);
+    const brick = this.mat('brickPale', 2, 1.2), tile = this.mat('tileGreen', 2, 1), stone = this.mat('tomb', 1, 1);
+    // المرقد القديم: ثلاث جدران وفتحة واسعة باتجاهنا (غرب) وسقف مستوي
+    add(BX(3.8, 3.0, 0.35), brick, X + 3.3, 1.5, -1.9); add(BX(3.8, 3.0, 0.35), brick, X + 3.3, 1.5, 1.9); add(BX(0.35, 3.0, 4.15), brick, X + 5.2, 1.5, 0);
+    add(BX(0.4, 3.0, 0.9), brick, X + 1.45, 1.5, -1.5); add(BX(0.4, 3.0, 0.9), brick, X + 1.45, 1.5, 1.5); add(BX(0.4, 0.7, 4.15), brick, X + 1.45, 2.65, 0);
+    add(BX(4.2, 0.25, 4.3), brick, X + 3.3, 3.12, 0);
+    // القبر داخل المرقد
+    add(BX(1.9, 0.55, 0.9), stone, X + 3.3, 0.275, 0); add(BX(0.12, 0.7, 0.5), stone, X + 4.3, 0.35, 0);
+    // قبور قديمة حوالي المرقد ونخيل
+    for (let k = 0; k < 14; k++) { const x = X - 8 + (k % 7) * 2.2 + Math.random() * 0.5, z = (k < 7 ? -1 : 1) * (5 + Math.random() * 4); add(BX(1.4, 0.3, 0.6), stone, x, 0.15, z, Math.random() * 0.2); add(BX(0.1, 0.55 + Math.random() * 0.3, 0.4), stone, x + 0.7, 0.3, z); }
+    for (const [x, z] of [[X - 6, -7], [X + 8, 6], [X - 2, 9], [X + 9, -8]]) { add(new THREE.CylinderGeometry(0.16, 0.22, 7, 8), this.mat('wood', 1, 4), x, 3.5, z); for (let k = 0; k < 7; k++) { const g = new THREE.PlaneGeometry(2.2, 0.6); g.translate(1.1, 0, 0); const l = add(g, new THREE.MeshStandardMaterial({ color: 0x4f6a2a, side: THREE.DoubleSide, roughness: 0.9 }), x, 7, z, k / 7 * 6.28); l.rotation.z = -0.5; } }
+    // العمامة البيضاء
+    const tm = new THREE.MeshStandardMaterial({ color: 0xf4f2ec, roughness: 0.95 }); const tu = this.turban = new THREE.Group(); G.add(tu); tu.visible = false;
+    for (let k = 0; k < 4; k++) { const r = new THREE.Mesh(new THREE.TorusGeometry(0.15 - k * 0.016, 0.05 - k * 0.005, 8, 18), tm); r.rotation.x = Math.PI / 2; r.rotation.z = k * 0.4; r.position.y = k * 0.035; tu.add(r); }
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), tm); cap.scale.y = 0.75; cap.position.y = 0.04; tu.add(cap);
+    this.turbanFrom = V3(X + 2.25, 1.1, -0.45); this.turbanTo = V3(X + 3.0, 0.58, 0);
+    // البناء بعد أشهر: سياج نحاسي حول القبر، كاشي أخضر، قبّة، وراية
+    this.builds = [];
+    const B2 = (o, d) => { o.userData.s = [o.scale.x, o.scale.y, o.scale.z]; o.visible = false; this.builds.push([o, d]); return o; };
+    const brass = new THREE.MeshStandardMaterial({ color: 0xd2a24c, roughness: 0.3, metalness: 0.85 });
+    for (let k = 0; k <= 10; k++) for (const zz of [-0.65, 0.65]) B2(add(BX(0.03, 1.4, 0.03), brass, X + 2.2 + k * 0.22, 0.7, zz), 0.0 + k * 0.02);
+    for (let k = 0; k <= 5; k++) for (const xx of [X + 2.2, X + 4.4]) B2(add(BX(0.03, 1.4, 0.03), brass, xx, 0.7, -0.65 + k * 0.26), 0.1 + k * 0.02);
+    B2(add(BX(2.3, 0.07, 1.4), brass, X + 3.3, 1.42, 0), 0.25);
+    B2(add(BX(3.9, 0.6, 0.1), tile, X + 3.3, 2.0, -1.7), 0.3); B2(add(BX(3.9, 0.6, 0.1), tile, X + 3.3, 2.0, 1.7), 0.3); B2(add(BX(0.1, 0.6, 3.4), tile, X + 5.0, 2.0, 0), 0.3);
+    B2(add(new THREE.CylinderGeometry(1.9, 1.9, 0.9, 8), tile, X + 3.3, 3.7, 0, Math.PI / 8), 0.4);
+    B2(add(new THREE.SphereGeometry(1.95, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), tile, X + 3.3, 4.12, 0), 0.5);
+    B2(add(new THREE.CylinderGeometry(0.04, 0.12, 0.9, 8), brass, X + 3.3, 6.4, 0), 0.6);
+    B2(add(new THREE.PlaneGeometry(0.9, 0.5), new THREE.MeshStandardMaterial({ color: 0x1f7a3a, side: THREE.DoubleSide }), X + 3.75, 6.6, 0, Math.PI / 2), 0.6);
+    this.shrineGlow = new THREE.PointLight(0x9effb8, 0, 6, 1.6); this.shrineGlow.position.set(X + 3.3, 1.8, 0); G.add(this.shrineGlow);
+    // ضوء الفجر
+    this.sun = new THREE.DirectionalLight(0xffc89a, 0); this.sun.position.set(X - 20, 8, 12); this.sun.target.position.set(X + 3, 0, 0); G.add(this.sun); G.add(this.sun.target);
+    this.skyFill = new THREE.HemisphereLight(0xa8b8d8, 0x5a4634, 0); G.add(this.skyFill);
+    // المعزّين
+    this.mourners = [[X - 0.6, -1.9, -Math.PI / 2 + 0.3, 'elder'], [X - 0.9, 2.0, -Math.PI / 2 - 0.3, 'pilgrim'], [X + 0.2, 2.5, -Math.PI / 2 - 0.5, 'vendor']].map(([x, z, yaw, look], i) => { const c = new Civilian({ id: 95 + i, x, y: 0, z, yaw, pose: 'stand', look, seed: 31 + i * 9 }); c.root.visible = false; S.add(c.root); return c; });
+  }
+  toBurial() {
+    const S = this.scene, keep = new Set([this.burial, ...Object.values(this.actors).map(a => a.m.root), ...this.mourners.map(c => c.root)]);
+    for (const o of S.children) if (!keep.has(o) && !o.isLight) o.visible = false;
+    for (const L of this.lamps) L.base = 0; this.fire.intensity = 0; this.fireOff = true; this.key.intensity = 0; this.doorLight.intensity = 0;
+    if (this.blaze) this.blaze.intensity = 0;
+    this.burial.visible = true; this.sun.intensity = 1.9; this.skyFill.intensity = 0.95;
+    { const f = new THREE.PointLight(0xffd8b0, 1.6, 7, 1.6); f.position.set(this.bx + 3.6, 1.7, 0.2); this.burial.add(f); }
+    S.background = new THREE.Color(0xc9a283); S.fog = new THREE.Fog(0xc9a283, 10, 48);
+    const X = this.bx, P = { khaled: [X + 1.9, -0.55, -Math.PI / 2], mohammed: [X + 1.7, 0.75, -Math.PI / 2], saif: [X + 0.6, -1.05, -Math.PI / 2 + 0.2], ibrahim: [X + 0.5, 1.15, -Math.PI / 2 - 0.2] };
+    for (const k in this.actors) { const a = this.actors[k], p = P[k]; a.seat = { x: p[0], z: p[1], yaw: p[2] }; a.m.root.position.set(p[0], 0, p[1]); a.m.setWeapon(null); a.after = true; a.aim = 0; a.react = 0; a.stand = 1; a.m.root.visible = true; }
+    for (const c of this.mourners) c.root.visible = true;
+    this.expo = 1.0; this.expoT = 1.05;
   }
   frame(dt) {
     if (!this.active) return;
@@ -235,10 +324,10 @@ export class Intro {
   updateScene(dt) {
     const t = this.t;
     for (const L of this.lamps) { L.pl.intensity = L.base * (0.88 + Math.sin(t * 7 + L.ph) * 0.05 + Math.sin(t * 13.1 + L.ph * 2) * 0.04); }
-    this.fire.intensity = 3.0 + Math.sin(t * 9) * 0.5 + Math.sin(t * 23) * 0.3;
+    if (!this.fireOff) this.fire.intensity = 3.0 + Math.sin(t * 9) * 0.5 + Math.sin(t * 23) * 0.3;
     if (this.blaze) { this.blaze.intensity = 4.2 + Math.sin(t * 11) * 0.8 + Math.sin(t * 27) * 0.5; this.flames.forEach((f, i) => { f.scale.y = 0.8 + Math.sin(t * 9 + i * 1.7) * 0.25; f.rotation.y = t * 2 + i; }); }
     // طقطقة الجمر بالوجاق
-    if (!this.waiting && Audio.ctx && Math.random() < dt * 1.4) { try { const o = Audio.out([6.6, 0.4, -3.6], 0.05, 3, 30); Audio.nz(o, Audio.ctx.currentTime, 0.02 + Math.random() * 0.03, 700 + Math.random() * 1100, 500, 1.2, 'bandpass', 0.5, 0.002); } catch (e) { } } // طقطقة جمر خافتة ودافئة
+    if (!this.waiting && !this.fireOff && Audio.ctx && Math.random() < dt * 1.4) { try { const o = Audio.out([6.6, 0.4, -3.6], 0.05, 3, 30); Audio.nz(o, Audio.ctx.currentTime, 0.02 + Math.random() * 0.03, 700 + Math.random() * 1100, 500, 1.2, 'bandpass', 0.5, 0.002); } catch (e) { } } // طقطقة جمر خافتة ودافئة
     // الباب ينفتح ثم يتسكّر
     this.doorOpen += (this.doorTarget - this.doorOpen) * Math.min(1, dt * 1.6); for (const D of this.doors) D.g.rotation.y = D.s * this.doorOpen; this.doorLight.intensity = this.doorOpen * 4;
     // وقوف الجالسين احتراماً للشيخ
@@ -255,6 +344,17 @@ export class Intro {
       else { if (!this.bounced) { this.bounced = 1; Audio.play('bounce', [-1.3, 0, 0.35]); this.sheikhSit.focus(-0.5, 0.2, 4); } const e = Math.min(1, (T - 0.95) / 1.1), k = 1 - Math.pow(1 - e, 3); n.position.set(-1.3 + k * 1.2, 0.06 + Math.abs(Math.sin(e * 9)) * 0.07 * (1 - e), 0.35 - k * 0.23); }
       n.rotation.z -= dt * (T < 2 ? 14 * (1 - Math.min(1, T / 2)) : 0); n.rotation.x += dt * 3 * (1 - Math.min(1, T / 2));
     }
+    // الطلقات الثلاث: وميض بالباب، والشيخ يطيح بالثانية
+    if (this.shotsAt !== undefined && this.shotN < 3 && this.t >= this.shotsAt + 0.25 + this.shotN * 0.42) {
+      this.shotN++; Audio.play('rifleHeavy', [-8.3, 1.4, 0.3]); this.muzzle.intensity = 9; this.shake = Math.max(this.shake, 0.5); this.flash = Math.max(this.flash, 0.18);
+      if (this.shotN === 2) { this.sheikhSit.n.y = -0.05; this.sheikhSit.die([1, 0, 0.15]); for (const k in this.actors) this.actors[k].react = 1; }
+    }
+    if (this.muzzle && this.muzzle.intensity > 0) this.muzzle.intensity = Math.max(0, this.muzzle.intensity - dt * 60);
+    // العمامة تنحط على القبر
+    if (this.turbanT !== undefined && this.turbanT < 1) { this.turbanT = Math.min(1, this.turbanT + dt / 2.4); const e = ease(this.turbanT), a0 = this.turbanFrom, a1 = this.turbanTo; this.turban.position.set(a0.x + (a1.x - a0.x) * e, a0.y + (a1.y - a0.y) * e + Math.sin(e * Math.PI) * 0.25, a0.z + (a1.z - a0.z) * e); if (this.turbanT >= 1) Audio.play('bandage', [a1.x, a1.y, a1.z]); }
+    // بناء المرقد: السياج والقبّة والكاشي تطلع شوية شوية
+    if (this.buildT !== undefined && this.buildT < 1) { this.buildT = Math.min(1, this.buildT + dt / 3.4); const e = ease(this.buildT); for (const [o, d] of this.builds) { const k = ease(Math.min(1, Math.max(0, (this.buildT - d) / 0.4))); o.visible = k > 0.01; o.scale.set(o.userData.s[0], o.userData.s[1] * Math.max(0.01, k), o.userData.s[2]); } this.shrineGlow.intensity = 2.2 * e; }
+    for (const c of this.mourners || []) if (c.root.visible) c.update(dt, this.cam.position);
     // الشخصيات
     for (const k in this.actors) this.poseActor(k, this.actors[k], dt);
     this.sheikhSit.update(dt, this.cam.position); this.sheikhStand.update(dt, V3(0, 1, 0));
@@ -289,6 +389,7 @@ export class Intro {
     let rT = V3(0.24, 0.03 * sit - 0.45 * st, -0.38 * sit), lT = V3(-0.24, 0.03 * sit - 0.45 * st, -0.38 * sit);
     if (talking) { rT = V3(0.3 + Math.sin(t * 3.7) * 0.05, 0.16 + Math.sin(t * 5.1) * 0.07 + ang * 0.06, -0.3 + Math.sin(t * 2.3) * 0.05); if (Math.sin(t * 0.8) > 0.3) lT = V3(-0.27, 0.12 + Math.sin(t * 4.3) * 0.05, -0.3); }
     let reach = 0; if (a.handT !== undefined && !a.react) { a.handT += dt; reach = ease(a.handT / (k === 'mohammed' ? 2.4 : 1.6)) * (k === 'mohammed' ? 0.55 : 1); rT.lerp(V3(0.1, 0.12, -0.62), reach); m.torso.rotation.x += 0.4 * reach; }
+    if (a.eat > 0) { a.eat += dt; const ph = (a.eat % 2.6) / 2.6, up = ph < 0.35 ? 0 : ph < 0.55 ? (ph - 0.35) / 0.2 : ph < 0.75 ? 1 : 1 - (ph - 0.75) / 0.25; rT = V3(0.14 - up * 0.08, 0.02 + up * 0.5, -0.55 + up * 0.45); m.torso.rotation.x += 0.18 * (1 - up); m.head.rotation.x += 0.15 * (1 - up); }
     if (a.react) { rT = V3(0.12, 0.42, -0.08); lT = V3(-0.12, 0.42, -0.08); }
     solveArm(R.upper, R.fore, R.sh.position, rT, V3(0.6, -1, 0.3), 0.29, 0.29);
     solveArm(L.upper, L.fore, L.sh.position, lT, V3(-0.6, -1, 0.3), 0.29, 0.29);
