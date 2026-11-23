@@ -4,12 +4,12 @@ const KEY = 'rafidain.settings.v2';
 export const RES_OPTIONS = [
   { id: 'auto', label: 'تلقائي' },
   { id: '0.5', label: '50%' }, { id: '0.67', label: '67%' }, { id: '0.75', label: '75%' },
-  { id: '1', label: 'أصلية 100%' }, { id: '1.5', label: '150% (تنعيم)' }, { id: '2', label: '200% (فائق)' },
+  { id: '1', label: 'أصلية 100%' }, { id: '1.5', label: '150% (تنعيم)' }, { id: '2', label: 'فائقة' },
   { id: '480', label: '480p' }, { id: '720', label: '720p' }, { id: '1080', label: '1080p' }, { id: '1440', label: '1440p' },
 ];
 export const FPS_OPTIONS = [
   { id: 30, label: '30' }, { id: 40, label: '40' }, { id: 60, label: '60' }, { id: 90, label: '90' }, { id: 120, label: '120' },
-  { id: 0, label: 'تزامن الشاشة' }, { id: -1, label: 'غير محدود' },
+  { id: 0, label: 'تزامن الشاشة' }, { id: -1, label: 'أقصى ما تدعمه الشاشة' },
 ];
 // مستويات الرسوم: الظلال، الدقة، الجسيمات، المطر، التوهج، الانعكاسات
 export const QUALITY = {
@@ -19,7 +19,7 @@ export const QUALITY = {
   ultra: { label: 'فائقة', shadow: 4096, tex: 1024, aniso: 8, particles: 1.3, decals: 240, aa: true, details: 3, rain: 14000, bloom: true, env: 256, dprCap: 3, cloth: true },
 };
 export const WEATHER_OPTIONS = [
-  { id: 'random', label: 'متغيّر', sub: 'مفاجأة كل مباراة' }, { id: 'day', label: 'نهار', sub: 'شمس الظهيرة' }, { id: 'sunset', label: 'غروب', sub: 'ذهبي دافئ' },
+  { id: 'random', label: 'متغيّر', sub: 'نهار ← مطر ← إعصار ← غروب ← ليل' }, { id: 'day', label: 'نهار', sub: 'شمس الظهيرة' }, { id: 'sunset', label: 'غروب', sub: 'ذهبي دافئ' },
   { id: 'storm', label: 'عاصفة', sub: 'مطر وبرق' }, { id: 'horror', label: 'ليلة مرعبة', sub: 'ضباب وظلال' },
 ];
 

@@ -54,6 +54,15 @@ export const Audio = {
   },
   // تحت سقف: صوت المطر مكتوم
   setRainCover(k) { if (this.rainNode) this.rainNode.f.frequency.setTargetAtTime(k > 0.5 ? 750 : 9000, this.ctx.currentTime, 0.25); },
+  // مراوح الدرون: طنين متعدد مع نفخة هواء، طبقته تتبع السرعة
+  droneStart() {
+    if (!this.ctx || this.droneN) return; const c = this.ctx, t = c.currentTime, g = c.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.setTargetAtTime(0.16, t, 0.3); g.connect(this.out || c.destination);
+    const os = [[185, 'sawtooth', 0.35], [372, 'sawtooth', 0.18], [557, 'square', 0.05], [93, 'triangle', 0.4]].map(([f, ty, v]) => { const o = c.createOscillator(); o.type = ty; o.frequency.value = f; const og = c.createGain(); og.gain.value = v; const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1800; o.connect(lp); lp.connect(og); og.connect(g); o.start(); return o; });
+    const n = c.createBufferSource(); n.buffer = this.noise; n.loop = true; const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 900; bp.Q.value = 0.8; const ng = c.createGain(); ng.gain.value = 0.25; n.connect(bp); bp.connect(ng); ng.connect(g); n.start();
+    this.droneN = { g, os, n, base: [185, 372, 557, 93] };
+  },
+  droneSet(k) { const D = this.droneN; if (!D) return; const t = this.ctx.currentTime, m = 1 + Math.min(1, k) * 0.35; D.os.forEach((o, i) => o.frequency.setTargetAtTime(D.base[i] * m, t, 0.15)); },
+  droneStop() { const D = this.droneN; if (!D) return; this.droneN = null; const t = this.ctx.currentTime; D.g.gain.setTargetAtTime(0.0001, t, 0.2); setTimeout(() => { try { D.os.forEach(o => o.stop()); D.n.stop(); D.g.disconnect(); } catch (e) { } }, 900); },
   setRainLevel(v) { if (this.rainNode) this.rainNode.g.gain.setTargetAtTime(v, this.ctx.currentTime, 1.5); },
   setListener(x, y, z, fx, fy, fz) {
     const L = this.listener; if (!L) return;
@@ -161,6 +170,14 @@ export const Audio = {
     };
     if (kind === 'menu' || kind === 'day' || kind === 'sunset') {
       loop(this.brown, 'lowpass', 480, 0.7, 0.35); // نسيم هادئ فقط (أُزيلت زقزقة الطيور المصطنعة)
+    } else if (kind === 'night') {
+      loop(this.brown, 'lowpass', 300, 0.7, 0.26);
+      const cr = loop(this.noise, 'bandpass', 4300, 18, 0.035); // صراصير الليل
+      const pulse = () => { if (this.ambKind !== kind) return; const t = c.currentTime; cr.g.gain.setTargetAtTime(Math.random() < 0.5 ? 0.05 : 0.005, t, 0.08); this.ambTimer = setTimeout(pulse, 180 + Math.random() * 600); }; pulse();
+    } else if (kind === 'tornado') {
+      // هدير الإعصار: ريح عميقة وصفير وعصف
+      const roar = loop(this.brown, 'bandpass', 200, 0.6, 1.0); const hiss = loop(this.noise, 'bandpass', 900, 1.2, 0.28);
+      const gust = () => { if (this.ambKind !== kind) return; const t = c.currentTime; roar.f.frequency.setTargetAtTime(150 + Math.random() * 180, t, 0.6); hiss.g.gain.setTargetAtTime(0.15 + Math.random() * 0.3, t, 0.5); this.ambTimer = setTimeout(gust, 700 + Math.random() * 900); }; gust();
     } else if (kind === 'storm') {
       this.rainNode = loop(this.rainBuf || this.noise, 'lowpass', 9000, 0.5, 0.9);
       const wind = loop(this.brown, 'bandpass', 380, 0.9, 0.3);
@@ -257,6 +274,10 @@ const SOUNDS = {
   questDone: (A, pos, t) => { const o = A.out(null, 0.45); [523, 659, 784, 1046].forEach((f, k) => A.osc(o, t + k * 0.11, 0.32, f, f, 'triangle', 0.32, 0.01)); },
   questNew: (A, pos, t) => { const o = A.out(null, 0.4); A.osc(o, t, 0.18, 660, 660, 'triangle', 0.3, 0.01); A.osc(o, t + 0.16, 0.3, 990, 990, 'triangle', 0.28, 0.01); },
   questFail: (A, pos, t) => { const o = A.out(null, 0.4); A.osc(o, t, 0.25, 440, 330, 'triangle', 0.3, 0.01); A.osc(o, t + 0.22, 0.4, 330, 220, 'triangle', 0.28, 0.01); },
+  dig: (A, pos, t) => { const o = A.out(null, 0.5); A.nz(o, t, 0.12, 700, 250, 0.8, 'lowpass', 0.9, 0.003); A.nz(o, t + 0.1, 0.25, 400, 120, 0.6, 'lowpass', 0.6, 0.01); },
+  scoop: (A, pos, t) => { const o = A.out(null, 0.4); A.nz(o, t, 0.3, 2600, 1200, 1.4, 'bandpass', 0.5, 0.01); },
+  pour: (A, pos, t) => { const o = A.out(null, 0.3); A.nz(o, t, 0.55, 1800, 2400, 2.5, 'bandpass', 0.5, 0.05); },
+  shutter: (A, pos, t) => { const o = A.out(null, 0.6); A.nz(o, t, 0.03, 5000, 3000, 1, 'highpass', 0.9, 0.001); A.nz(o, t + 0.07, 0.04, 4000, 2500, 1, 'highpass', 0.7, 0.001); },
   buy: (A, pos, t) => { const o = A.out(null, 0.5); A.osc(o, t, 0.06, 1500, 1500, 'triangle', 0.35); A.osc(o, t + 0.07, 0.12, 2200, 2200, 'triangle', 0.3); A.nz(o, t, 0.08, 6000, 3000, 2, 'bandpass', 0.15, 0.002); }, // صوت عدّ فلوس
   ui: (A, pos, t) => { const o = A.out(null, 0.3); A.osc(o, t, 0.05, 1200, 1500, 'sine', 0.4); },
   uiBack: (A, pos, t) => { const o = A.out(null, 0.3); A.osc(o, t, 0.06, 900, 700, 'sine', 0.4); },

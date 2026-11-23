@@ -40,12 +40,14 @@ export const HUD_HTML = `
     <div id="domBar"></div>
     <div id="compass"><div id="compassStrip"></div><i class="needle"></i><span id="bearing">0</span></div>
   </div>
-  <div id="tl"><div class="hb" id="hPause">${I.pause}</div><div class="hb" id="hScore">${I.score}</div><div class="hb" id="hNvg">NV</div><div id="fps"></div><div id="net"></div></div>
+  <div id="tl"><div class="hb" id="hPause">${I.pause}</div><div class="hb" id="hScore">${I.score}</div><div class="hb" id="hNvg">NV</div><div class="hb" id="hDrone">🛸<i id="hDroneCd"></i></div><div id="fps"></div><div id="net"></div></div>
   <div id="feed"></div>
   <div id="qTrack"></div>
   <div id="lobbyBar"><b id="lobbyMoney"></b><small>سوق المجاهدين · لوبي خاص</small></div>
+  <div id="mg"><div class="vf"><i></i><i></i><i></i><i></i><b>●REC</b></div><div class="mgbox"><b class="mgt"></b><p class="mgi"></p><div class="mgp"><i></i></div><div class="mgw"><span>0</span><em></em><i></i><b>0 غم</b></div><div class="mgb"></div></div><div class="mgm"></div><div class="fl"></div></div>
+  <div id="droneHud"><div class="dvf"><i></i><i></i><i></i><i></i></div><b class="rec">● REC · درون استطلاع</b><div class="dinfo"><span id="dT">30</span><span id="dAlt">0م</span><span id="dDist">0م</span></div><small>الجويستك للحركة · اسحب للتلفّت · القفز يصعد · الانحناء ينزل</small><button class="btn" id="dBack">↩ رجّع الدرون</button></div>
   <div id="useHint"><kbd>F</kbd><span id="useHintL"></span></div>
-  <div id="cine"><i class="lb t"></i><i class="lb b"></i><div class="cbox"><b class="cname"></b><p class="ctext"></p><div class="copts"></div><div class="cact"><i></i><em></em><b></b></div><small class="ctap">اضغط للتكملة</small></div></div>
+  <div id="cine"><i class="lb t"></i><i class="lb b"></i><div class="cbox"><img class="cimg" alt=""><b class="cname"></b><p class="ctext"></p><div class="copts"></div><div class="cact"><i></i><em></em><b></b></div><small class="ctap">اضغط للتكملة</small></div></div>
   <div id="mini"><canvas id="minimap" width="256" height="256"></canvas><span class="mlab">الخريطة</span></div>
   <div id="banner"><b></b><small></small></div>
   <div id="toast"></div>
@@ -89,6 +91,7 @@ export const HUD = {
     const controls = [
       C('hPause', { round: false, tapUp: true, pad: 12, tap: () => game.pause() }),
       C('hNvg', { round: false, tapUp: true, pad: 10, tap: () => game.toggleNvg() }),
+      C('hDrone', { round: false, tapUp: true, pad: 10, tap: () => game.toggleDrone() }),
       C('hScore', { round: false, tapUp: true, pad: 12, tap: () => { this.showScore(!this.scoreOn); } }),
       C('mini', { round: false, tapUp: true, tap: () => ui.openMap() }),
       C('rsLoad', { round: false, tapUp: true, tap: () => ui.open('loadout') }),
@@ -112,7 +115,8 @@ export const HUD = {
     this.controls = controls;
     Input.bindTouch($('touch'), controls, $('stick'), $('knob'));
     // الفأرة على سطح المكتب
-    for (const id of ['hPause', 'hNvg', 'hScore', 'mini', 'rsLoad', 'warmLoad']) $(id).addEventListener('click', e => { if (Input.isTouch) return; e.stopPropagation(); controls.find(c => c.id === id).tap(); });
+    $('dBack').addEventListener('click', e => { e.stopPropagation(); game.toggleDrone(); });
+    for (const id of ['hPause', 'hNvg', 'hDrone', 'hScore', 'mini', 'rsLoad', 'warmLoad']) $(id).addEventListener('click', e => { if (Input.isTouch) return; e.stopPropagation(); controls.find(c => c.id === id).tap(); });
     slotsEl.addEventListener('click', e => { if (Input.isTouch) return; const b = e.target.closest('[data-slot]'); if (b) game.queueSlot(+b.dataset.slot); });
     this.layout();
     addEventListener('resize', () => this.layout());
@@ -149,7 +153,8 @@ export const HUD = {
     // زر الاستعمال واللوبي
     const U = g.useInfo, ul = U ? U.label : '';
     if (this.useL !== ul) { this.useL = ul; $('bUse').classList.toggle('show', !!U); $('useHint').classList.toggle('on', !!U && !Input.isTouch); if (U) { $('useL').textContent = ul; $('useHintL').textContent = ul; } }
-    document.body.classList.toggle('cine', !!g.cine);
+    { const D = g.drone; if (D) { const el = $('hDrone'); el.classList.toggle('act', D.on); el.classList.toggle('cd', !D.ready && !D.on); $('hDroneCd').textContent = !D.ready && !D.on ? Math.ceil(D.cdLeft) : ''; if (D.on) { $('dT').textContent = '⏱ ' + Math.max(0, Math.ceil(30 - D.t)); $('dAlt').textContent = '↑ ' + Math.round(D.pos.y) + 'م'; $('dDist').textContent = '↔ ' + Math.round(Math.hypot(D.pos.x - D.home[0], D.pos.z - D.home[2])) + 'م'; } } }
+    document.body.classList.toggle('cine', !!g.cine); const mgOn = !!(g.mg && !g.mg.closed); document.body.classList.toggle('mg', mgOn); document.body.classList.toggle('mglook', mgOn && g.mg.allowLook);
     if (g.lobby) { const m = Economy.money; if (this.lm !== m) { this.lm = m; $('lobbyMoney').textContent = fmtIQD(m); } }
     // الوقت والنتيجة
     const t = Math.max(0, Math.ceil(sim.phaseT));

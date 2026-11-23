@@ -475,7 +475,7 @@ export function buildDistricts(B, H) {
   if (vis) B.box(34, 0, 27.4, 46, 0.035, 32.6, 'grass', { col: false, faces: 'py' });
   B.npc({ x: 38.6, z: 27.9, yaw: -0.4, pose: 'stand', look: 'shepherd' });
   // 31 السائح الأجنبي يصوّر النهر
-  B.npc({ x: 12.5, z: 31.6, yaw: PI, pose: 'stand', look: 'tourist' });
+  B.npc({ x: 12.5, z: 31.6, yaw: 0, pose: 'stand', look: 'tourist' });
   // 32 أبو زينب أبو الموبايلات (خبير تصليح الهواتف) بساحة الساعة
   if (vis) { B.boxB(71.5, 0, -12.6, 1.2, 0.75, 0.6, 'woodDark', { col: false }); for (let k = 0; k < 4; k++) B.boxB(71.05 + k * 0.3, 0.75, -12.6, 0.1, 0.012, 0.18, k % 2 ? 'glassDark' : 'gunmetal', { col: false }); sign('تصليح موبايلات', 71.5, 1.05, -12.29, 0, 1.2, { bg: '#123a5a', border: '#9fd8ff' }); }
   B.col(70.9, 0, -12.9, 72.1, 0.75, -12.3, MAT.wood, F.THIN);

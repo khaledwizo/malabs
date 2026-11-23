@@ -28,7 +28,9 @@ const who = (w, q, st) => {
   return typeof w === 'number' ? PERSONAS[w] : null;
 };
 const say = (w, t, q, st, tag) => { if (!t || t[0] === '(') return; if (w === 'me') { for (const P of ME) add(P, t, false, tag + ':me'); return; } const P = who(w, q, st); if (P) add(P, t, false, tag); };
-for (const q of QUESTS) {
+const BAKER_I = 37;
+const expanded = []; for (const q of QUESTS) { if (!q.vars) { expanded.push(q); continue; } for (const v of q.vars) expanded.push({ ...q, giver: v.giver, intro: v.intro, outro: [['g', 'هاي حقّه وهاي حلاوتك، الله يحفظك.']], steps: [{ to: BAKER_I, say: v.say }, { to: 'g', say: v.back }] }); }
+for (const q of expanded) {
   const tag = 'quest:' + q.id;
   for (const [w, t] of q.intro || []) say(w, t, q, null, tag);
   for (const [w, t] of q.outro || []) say(w, t, q, null, tag);

@@ -1,5 +1,6 @@
 // طبقة الاتصال: ترحيل عبر وسيط MQTT عام (يعمل خلف أي شبكة) + ترقية تلقائية إلى اتصال مباشر WebRTC عند الإمكان
 import { connectAny, brokerList, Mqtt, utf8 } from './mqtt.js';
+import { Lan } from './lan.js';
 
 const ICE = [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }, { urls: 'stun:stun.cloudflare.com:3478' }];
 const NS = 'rafidain/v2/';
@@ -17,10 +18,23 @@ export class HostLink {
   constructor(room, opt = {}) { this.room = room; this.mqs = []; this.peers = new Map(); this.onmsg = null; this.onstatus = opt.onStatus || (() => { }); this.useRtc = opt.rtc !== false && !NO_RTC && typeof RTCPeerConnection !== 'undefined'; this.urls = opt.brokers || brokerList(); this.closed = false; }
   async open() {
     this.onstatus('الاتصال بالوسطاء…');
+    this.openLan();
     const res = await Promise.allSettled(this.urls.map(u => this.connectOne(u)));
-    if (!res.some(r => r.status === 'fulfilled')) throw new Error('لا يوجد اتصال بالإنترنت أو الوسطاء محجوبة');
+    if (!res.some(r => r.status === 'fulfilled') && !this.lanIp) throw new Error('لا يوجد اتصال بالإنترنت أو الوسطاء محجوبة');
     this.report();
     return this;
+  }
+  // نفس الشبكة (واي فاي أو نقطة اتصال) بلا إنترنت: سيرفر WebSocket داخل التطبيق + إعلان للأجهزة القريبة
+  openLan() {
+    if (!Lan.ok) return;
+    this.lanIp = Lan.host(this.room, this.lanName || 'سيرفر الرافدين', this.lanInfo || {});
+    if (!this.lanIp) return;
+    const byConn = new Map();
+    window.__lan = {
+      open: () => { },
+      msg: (id, t) => { let x; try { x = JSON.parse(t); } catch (e) { return; } if (!x || !x.from) return; byConn.set(id, x.from); const p = this.peers.get(x.from) || { dc: null, via: 'lan', mq: null }; p.lan = id; p.via = 'lan'; this.peers.set(x.from, p); this.handle(x.from, x, 'lan'); },
+      close: id => { const cid = byConn.get(id); byConn.delete(id); if (cid && this.peers.get(cid) && this.peers.get(cid).lan === id && this.onmsg) this.onmsg(cid, { k: 'bye', from: cid }, 'lan'); },
+    };
   }
   async connectOne(url) {
     const m = new Mqtt(url); await m.connect();
@@ -32,7 +46,7 @@ export class HostLink {
     return m;
   }
   async retry(url) { if (this.closed) return; try { await this.connectOne(url); this.report(); } catch (e) { setTimeout(() => this.retry(url), 5000); } }
-  report() { const n = this.mqs.length; this.onstatus(n ? `متصل بالإنترنت عبر ${n} ${n > 1 ? 'وسطاء' : 'وسيط'} · بانتظار اللاعبين` : 'انقطع الإنترنت — إعادة المحاولة…'); }
+  report() { const n = this.mqs.length, lan = this.lanIp ? ` · على الشبكة المحلية ${this.lanIp}` : ''; this.onstatus(n ? `متصل بالإنترنت عبر ${n} ${n > 1 ? 'وسطاء' : 'وسيط'}${lan} · بانتظار اللاعبين` : this.lanIp ? `بلا إنترنت — يعمل على الشبكة المحلية ${this.lanIp} · بانتظار اللاعبين` : 'انقطع الإنترنت — إعادة المحاولة…'); }
   // لاعب على نفس الهاتف (المضيف): الرسائل تمرّ مباشرة بلا إنترنت
   addLocal(cid, fn) { this.peers.set(cid, { local: fn, via: 'local' }); }
   handle(from, m, via, mq) {
@@ -56,6 +70,7 @@ export class HostLink {
   sendTo(cid, m, forceRelay) {
     const p = this.peers.get(cid), s = JSON.stringify(m);
     if (p && p.local) { queueMicrotask(() => p.local(JSON.parse(s))); return; }
+    if (p && p.lan) { Lan.send(p.lan, s); return; }
     if (!forceRelay && p && p.dc && p.dc.readyState === 'open') { try { p.dc.send(s); return; } catch (e) { } }
     for (const q of this.mqFor(p)) q.publish(NS + this.room + '/to/' + cid, s);
   }
@@ -64,6 +79,7 @@ export class HostLink {
     const s = JSON.stringify(m), via = new Set();
     for (const p of this.peers.values()) {
       if (p.local) { queueMicrotask(() => p.local(JSON.parse(s))); continue; }
+      if (p.lan) { Lan.send(p.lan, s); continue; }
       if (p.dc && p.dc.readyState === 'open') { try { p.dc.send(s); continue; } catch (e) { } }
       for (const q of this.mqFor(p)) via.add(q);
     }
@@ -72,7 +88,7 @@ export class HostLink {
   drop(cid) { const p = this.peers.get(cid); if (p && p.pc) p.pc.close(); this.peers.delete(cid); }
   via(cid) { const p = this.peers.get(cid); return p ? p.via : 'relay'; }
   get remotes() { let n = 0; for (const p of this.peers.values()) if (!p.local) n++; return n; }
-  close() { this.closed = true; for (const p of this.peers.values()) if (p.pc) p.pc.close(); this.peers.clear(); for (const q of this.mqs) { q.onclose = null; q.close(); } this.mqs = []; }
+  close() { this.closed = true; if (this.lanIp) { Lan.stop(); this.lanIp = ''; } for (const p of this.peers.values()) if (p.pc) p.pc.close(); this.peers.clear(); for (const q of this.mqs) { q.onclose = null; q.close(); } this.mqs = []; }
 }
 
 // ---------- جهة اللاعب ----------

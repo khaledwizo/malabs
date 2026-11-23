@@ -94,6 +94,13 @@ export class TalkManager {
     if (!live || !this.on) { this.stopAll(); for (const u of this.units) u.q.length = 0; this.renderBubbles(); return; }
     const cam = g.camera.position, me = g.mp, alive = !!(me && me.alive);
     for (const c of this.civs) { c.greetCD -= dt; c.callCD -= dt; }
+    // «التحديق»: الشخص يحچي بس لمّا توقف وتباوع عليه (مركز الشاشة قريب من راسه) — مو كل ما تمشي يمّه
+    { const f = V; g.camera.getWorldDirection(f); const moving = me && Math.hypot(me.vel ? me.vel[0] : 0, me.vel ? me.vel[2] : 0) > 2.6;
+      for (const c of this.civs) {
+        const dx = c.n.x - cam.x, dy = c.n.y + (c.sit ? 1.1 : 1.55) - cam.y, dz = c.n.z - cam.z, d = Math.hypot(dx, dy, dz);
+        const look = d < 7 && c.here && (dx * f.x + dy * f.y + dz * f.z) / d > Math.cos(d < 2.5 ? 0.32 : 0.17);
+        c.stare = look && !moving ? (c.stare || 0) + dt : Math.max(0, (c.stare || 0) - dt * 2);
+      } }
     this.floorGap -= dt; this.callGap -= dt;
     for (const u of this.units) if (u.hold && !u.m.some(c => c.here)) u.hold = false;
     // الأقرب أولاً: هو اللي ياخذ الدور إذا صار السوق ساكت
@@ -119,7 +126,7 @@ export class TalkManager {
         if (!u.q.length && (C.L.kind === 'convo' || C.L.kind === 'story')) u.cd = 9 + Math.random() * 10;
       } else {
         // اقتربت وهم يحچون: يرحّب بك بعد ما يخلّصون
-        if (alive && !u.pendingGreet) for (const c of live) if (c.greetCD <= 0 && c.greets < 2 && Math.hypot(c.n.x - cam.x, c.n.z - cam.z) < GREET_R) { u.pendingGreet = c; break; }
+        if (alive && !u.pendingGreet) for (const c of live) if (c.greetCD <= 0 && c.greets < 2 && (c.stare || 0) > 1.0) { u.pendingGreet = c; break; }
         return;
       }
     }
@@ -137,30 +144,30 @@ export class TalkManager {
     if (!this.free(u)) {
       if (u.cd > 0) u.cd -= dt;
       // غيرهم يحچي: إذا مرّيت يمّهم يرحّبون بيك بعد ما يخلص
-      if (alive && !u.pendingGreet) for (const c of live) if (c.greetCD <= 0 && c.greets < 2 && Math.hypot(c.n.x - cam.x, c.n.z - cam.z) < GREET_R) { u.pendingGreet = c; break; }
+      if (alive && !u.pendingGreet) for (const c of live) if (c.greetCD <= 0 && c.greets < 2 && (c.stare || 0) > 1.0) { u.pendingGreet = c; break; }
       return;
     }
     // ترحيب مؤجّل: بعد ما خلّصوا حچيهم
     if (u.pendingGreet) {
       const c = u.pendingGreet; u.pendingGreet = null;
-      if (alive && c.here && Math.hypot(c.n.x - cam.x, c.n.z - cam.z) < 8) { c.greetCD = 45; c.greets++; const t = this.fresh(c, c.per.greet); if (t) { this.speak(u, { c, text: t, kind: 'greet' }); return; } }
+      if (alive && c.here && Math.hypot(c.n.x - cam.x, c.n.z - cam.z) < 8) { c.greetCD = 60; c.greets++; const t = this.fresh(c, c.per.greet); if (t) { this.speak(u, { c, text: t, kind: 'greet' }); return; } }
     }
     // ترحيب عند الاقتراب
     if (alive) for (const c of live) {
       if (c.greetCD > 0 || c.greets >= 2 || c.cower > 0) continue;
-      if (Math.hypot(c.n.x - cam.x, c.n.z - cam.z) < GREET_R && this.visible(c)) { c.greetCD = 45; c.greets++; const t = this.fresh(c, c.per.greet); if (t) { this.speak(u, { c, text: t, kind: 'greet' }); u.cd = Math.max(u.cd, 2.5); return; } }
+      if ((c.stare || 0) > 1.0 && this.visible(c)) { c.greetCD = 60; c.greets++; const t = this.fresh(c, c.per.greet); if (t) { this.speak(u, { c, text: t, kind: 'greet' }); u.cd = Math.max(u.cd, 2.5); return; } }
     }
     if (u.cd > 0) { u.cd -= dt; return; }
     // مجموعة: سالفة جديدة حين تدخل دائرتهم
     if (!u.solo) {
-      if (d < START_R && u.convoLeft.length && live.length === u.m.length) { const ci = u.convoLeft.shift(); for (const [r, t] of u.convos[ci]) this.enqueue(u, u.m[r], t, 'convo'); this.take(u); }
+      if (d < START_R && u.convoLeft.length && live.length === u.m.length && live.some(c => (c.stare || 0) > 1.4)) { const ci = u.convoLeft.shift(); for (const [r, t] of u.convos[ci]) this.enqueue(u, u.m[r], t, 'convo'); this.take(u); }
       return;
     }
     // فرد: قصّة لمن يقف يمّه، أو نداء على البضاعة
     const c = u.m[0], dc = Math.hypot(c.n.x - cam.x, c.n.z - cam.z);
-    if (dc < STORY_R && alive) u.dwell += dt; else u.dwell = 0;
+    if (dc < STORY_R && alive && (c.stare || 0) > 0.6) u.dwell += dt; else u.dwell = 0;
     if (u.dwell > 1.2 && u.storyLeft.length) { const si = u.storyLeft.shift(); for (const t of c.per.story[si]) this.enqueue(u, c, t, 'story'); this.take(u); u.dwell = 0; return; }
-    if (c.per.call && c.callCD <= 0 && this.callGap <= 0 && dc < CALL_R && dc > 5.2) { c.callCD = 22 + Math.random() * 18; this.callGap = 9 + Math.random() * 7; const t = this.fresh(c, c.per.call); if (t) { this.speak(u, { c, text: t, kind: 'call' }); u.cd = 3; } }
+    if (c.per.call && c.callCD <= 0 && this.callGap <= 0 && dc < CALL_R && dc > 5.2) { c.callCD = 60 + Math.random() * 40; this.callGap = 25 + Math.random() * 15; const t = this.fresh(c, c.per.call); if (t) { this.speak(u, { c, text: t, kind: 'call' }); u.cd = 3; } }
   }
   release(u) { if (u.hold && !u.cur && !u.q.length && !(u.gap > 0)) { u.hold = false; if (u.dd < FLOOR_R) this.floorGap = 1.6 + Math.random() * 1.4; } }
   busyNear(u, cam) { for (const o of this.units) if (o !== u && (o.q.length || (o.cur && o.cur.L.kind !== 'call')) && Math.hypot(o.cx - cam.x, o.cz - cam.z) < START_R) return true; return false; }

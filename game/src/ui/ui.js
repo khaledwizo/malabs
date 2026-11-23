@@ -7,6 +7,7 @@ import { Economy, WPRICE, AMMO, AMMO_ORDER, ITEMS, FREE_MEDS, ammoOf, fmtIQD } f
 import { Audio } from '../core/audio.js';
 import { Input } from '../core/input.js';
 import { HUD, HUD_HTML } from './hud.js';
+import { Lan } from '../net/lan.js';
 import { Social, fmtId, validId } from '../net/social.js';
 
 const $ = s => document.querySelector(s);
@@ -59,6 +60,7 @@ const TEMPLATE = HUD_HTML + `
     <div class="tabs" id="frTabs"><button data-t="list" class="on">أصدقائي</button><button data-t="req">الطلبات <i class="badge" id="frReqN"></i></button></div>
     <div id="frBody" class="flist"></div>
     <p class="note" id="frNet"></p>
+    <div class="lanbox"><h5>🛜 على نفس الشبكة — بلا إنترنت</h5><div id="lanList" class="flist"></div><div class="menu row"><button class="btn primary sm" id="lanHost">استضف معركة على الشبكة</button></div><small id="lanNote" class="note"></small></div>
     <details class="srvjoin"><summary>سيرفر خاص (تطبيق «سيرفر الرافدين» على هاتف آخر)</summary><div class="addf"><input id="srvCode" maxlength="8" placeholder="رمز الغرفة" dir="ltr" autocomplete="off" style="text-transform:uppercase"><button class="btn" id="srvGo">دخول</button></div></details>
   </div>
 </section>
@@ -82,12 +84,14 @@ const TEMPLATE = HUD_HTML + `
         <h5>القنابل (اثنتان)</h5><div class="chips" id="loNade0"></div><div class="chips" id="loNade1"></div>
       </div>
     </div></div>
+  <div class="stage" id="loStage"><small>☝ اسحب لتدوير السلاح</small></div>
 </section>
 
 <section class="scr" id="s-shop">
-  <div class="panel wide"><div class="head"><h2>المتجر</h2><span class="wallet" id="shopMoney"></span><button class="x" data-back>✕</button></div>
+  <div class="panel side shop"><div class="head"><h2>المتجر</h2><span class="wallet" id="shopMoney"></span><button class="x" data-back>✕</button></div>
     <div class="tabs" id="shopTabs"><button data-t="wpn" class="on">الأسلحة</button><button data-t="ammo">العتاد</button><button data-t="nade">القنابل</button><button data-t="med">الصحة</button><button data-t="gear">المعدّات</button></div>
     <div id="shopBody" class="shopgrid"></div></div>
+  <div class="stage" id="shopStage"><b id="shopPvName"></b><small>☝ اسحب للتدوير · اضغط أي غرض لمعاينته</small></div>
 </section>
 
 <section class="scr" id="s-settings">
@@ -170,6 +174,11 @@ export const UI = {
     $('#frIn').addEventListener('keydown', e => { if (e.key === 'Enter') this.addFriend(); });
     $('#frIn').addEventListener('input', e => { const d = e.target.value.replace(/\D/g, '').slice(0, 10); e.target.value = d.replace(/(\d{4})(\d{0,4})(\d{0,2})/, (m, a, b, c) => [a, b, c].filter(Boolean).join(' ')); });
     $('#frCopy').addEventListener('click', () => this.copy(Social.id));
+    $('#lanHost').addEventListener('click', async () => {
+      Audio.play('ui'); this.frMsg('نشغّل سيرفر على هاتفك…');
+      try { await this.game.hostLan(this.matchOpts()); this.closeScreens(); this.hud(true); this.toast2('السيرفر شغّال على الشبكة — أصدقاؤك يدخلون من «الأصدقاء» ← نفس الشبكة'); }
+      catch (e) { this.frMsg(e.message || 'تعذّر تشغيل السيرفر', 'bad'); }
+    });
     $('#srvGo').addEventListener('click', async () => {
       const code = $('#srvCode').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, ''); if (code.length < 4) { this.frMsg('اكتب رمز الغرفة كما يظهر في تطبيق السيرفر', 'bad'); return; }
       this.frMsg('جارٍ الاتصال بالسيرفر…');
@@ -195,7 +204,7 @@ export const UI = {
     if (id === 'chars') { this.game.menuView('chars', Settings.char); this.buildChars(); }
     if (id === 'home') { this.game.menuView('menu'); this.buildHome(); }
     if (id === 'settings') this.buildSettings();
-    if (id === 'friends') this.buildFriends();
+    if (id === 'friends') { this.buildFriends(); this.lanWatch(); }
     if (id !== 'loadout') this.game.menuWeaponId = null;
   },
   back() {
@@ -314,18 +323,23 @@ export const UI = {
     $('#shopMoney').textContent = fmtIQD(W.money);
     $('#shopTabs').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.t === tab));
     let h = '';
-    const item = (title, sub, price, act, owned, extra = '') => `<div class="sitem ${owned ? 'own' : 'locked'}"><b>${title}</b><small>${sub}</small>${extra}${owned === true ? '<span class="own">✔ مملوك</span>' : `<span class="pr">${fmtIQD(price)}</span><button class="btn sm primary" data-buy="${act}" ${Economy.can(price) ? '' : 'disabled'}>شراء</button>`}</div>`;
+    const item = (title, sub, price, act, owned, extra = '', pv = '') => `<div class="sitem ${owned ? 'own' : 'locked'}" data-pv="${pv}"><b>${title}</b><small>${sub}</small>${extra}${owned === true ? '<span class="own">✔ مملوك</span>' : `<span class="pr">${fmtIQD(price)}</span><button class="btn sm primary" data-buy="${act}" ${Economy.can(price) ? '' : 'disabled'}>شراء</button>`}</div>`;
     if (tab === 'wpn') {
       const ids = Object.keys(WPRICE).sort((a, b) => WPRICE[a] - WPRICE[b]);
-      h = ids.map(id => { const d = WEAPONS[id], t = ammoOf(id); return item(esc(d.name), `${CLASS_NAME[d.cls]} · عتاد ${AMMO[t].short}`, WPRICE[id], 'w:' + id, Economy.owns(id) || undefined); }).join('');
+      h = ids.map(id => { const d = WEAPONS[id], t = ammoOf(id); return item(esc(d.name), `${CLASS_NAME[d.cls]} · عتاد ${AMMO[t].short}`, WPRICE[id], 'w:' + id, Economy.owns(id) || undefined, '', 'gun:' + id); }).join('');
     } else if (tab === 'ammo') {
-      h = AMMO_ORDER.map(t => { const A = AMMO[t]; return `<div class="sitem"><b>${A.name}</b><small>مخزونك: ${W.ammo[t] || 0} طلقة · مجاني بكل قيم: ${A.free}</small><span class="pr">${A.pack} طلقة = ${fmtIQD(A.price)}</span><div class="menu row"><button class="btn sm primary" data-buy="a:${t}:1" ${Economy.can(A.price) ? '' : 'disabled'}>+${A.pack}</button><button class="btn sm" data-buy="a:${t}:5" ${Economy.can(A.price * 5) ? '' : 'disabled'}>+${A.pack * 5}</button></div></div>`; }).join('');
+      h = AMMO_ORDER.map(t => { const A = AMMO[t]; return `<div class="sitem" data-pv="item:ammo:${t}"><b>${A.name}</b><small>مخزونك: ${W.ammo[t] || 0} طلقة · مجاني بكل قيم: ${A.free}</small><span class="pr">${A.pack} طلقة = ${fmtIQD(A.price)}</span><div class="menu row"><button class="btn sm primary" data-buy="a:${t}:1" ${Economy.can(A.price) ? '' : 'disabled'}>+${A.pack}</button><button class="btn sm" data-buy="a:${t}:5" ${Economy.can(A.price * 5) ? '' : 'disabled'}>+${A.pack * 5}</button></div></div>`; }).join('');
     } else if (tab === 'nade' || tab === 'med') {
-      h = Object.entries(ITEMS).filter(([k, I]) => I.kind === tab).map(([k, I]) => `<div class="sitem"><b>${I.name}</b><small>عندك: ${W.items[k] || 0}${tab === 'med' ? ` · مجاني بكل قيم: ${k === 'bandage' ? FREE_MEDS.b : FREE_MEDS.s}` : ''}</small><span class="pr">${fmtIQD(I.price)}</span><div class="menu row"><button class="btn sm primary" data-buy="i:${k}:1" ${Economy.can(I.price) ? '' : 'disabled'}>+1</button><button class="btn sm" data-buy="i:${k}:5" ${Economy.can(I.price * 5) ? '' : 'disabled'}>+5</button></div></div>`).join('');
+      h = Object.entries(ITEMS).filter(([k, I]) => I.kind === tab).map(([k, I]) => `<div class="sitem" data-pv="${tab === 'nade' ? 'nade' : 'item'}:${k}"><b>${I.name}</b><small>عندك: ${W.items[k] || 0}${tab === 'med' ? ` · مجاني بكل قيم: ${k === 'bandage' ? FREE_MEDS.b : FREE_MEDS.s}` : ''}</small><span class="pr">${fmtIQD(I.price)}</span><div class="menu row"><button class="btn sm primary" data-buy="i:${k}:1" ${Economy.can(I.price) ? '' : 'disabled'}>+1</button><button class="btn sm" data-buy="i:${k}:5" ${Economy.can(I.price * 5) ? '' : 'disabled'}>+5</button></div></div>`).join('');
     } else {
-      h = Object.entries(ITEMS).filter(([k, I]) => I.kind === 'gear').map(([k, I]) => item(I.name, I.desc || '', I.price, 'i:' + k + ':1', W[k] || undefined)).join('');
+      h = Object.entries(ITEMS).filter(([k, I]) => I.kind === 'gear').map(([k, I]) => item(I.name, I.desc || '', I.price, 'i:' + k + ':1', W[k] || undefined, '', 'item:' + k)).join('');
     }
     $('#shopBody').innerHTML = h;
+    // المعاينة: أول غرض بالتبويب، أو اللي تضغطه
+    const pv = el => { if (!el) return; const v = el.dataset.pv; if (!v) return; const i = v.indexOf(':'), kind = v.slice(0, i), id = v.slice(i + 1); this.game.menuShow(kind, id); $('#shopBody').querySelectorAll('.sitem').forEach(x => x.classList.toggle('pv', x === el)); $('#shopPvName').textContent = el.querySelector('b').textContent; this.shopPv = v; };
+    const items = [...$('#shopBody').querySelectorAll('.sitem[data-pv]')];
+    pv(items.find(x => x.dataset.pv === this.shopPv) || items[0]);
+    items.forEach(el => el.addEventListener('click', e => { if (e.target.closest('button')) return; Audio.play('ui'); pv(el); }));
     $('#shopBody').querySelectorAll('[data-buy]').forEach(b => b.onclick = () => {
       const [k, a, n] = b.dataset.buy.split(':'); let ok = false;
       if (k === 'w') ok = Economy.buyWeapon(a); else if (k === 'a') ok = Economy.buyAmmo(a, +n || 1); else ok = Economy.buyItem(a, +n || 1);
@@ -337,6 +351,25 @@ export const UI = {
     const el = $('#endReward') || (() => { const d = document.createElement('div'); d.id = 'endReward'; d.className = 'endreward'; const h = $('#endHead'); h && h.after(d); return d; })();
     el.innerHTML = r.lines.map(([l, v]) => `<div><span>${l}</span><b>+${fmtIQD(v)}</b></div>`).join('') + `<div class="tot"><span>المكافأة</span><b>+${fmtIQD(r.total)}</b></div>`;
     this.buildWallet();
+  },
+  // ---------- نفس الشبكة ----------
+  lanWatch() {
+    clearInterval(this.lanIv);
+    const draw = () => {
+      if (this.screen !== 'friends') { clearInterval(this.lanIv); Lan.scan(false); return; }
+      const el = $('#lanList'), note = $('#lanNote'); if (!el) return;
+      if (!Lan.ok) { el.innerHTML = '<div class="empty">اللعب على الشبكة المحلية بتطبيق أندرويد فقط.</div>'; $('#lanHost').disabled = true; return; }
+      Lan.scan(true); const L = Lan.found().filter(h => h.room);
+      const MN = { tdm: 'قتل', dom: 'سيطرة', rounds: 'جولات' };
+      el.innerHTML = L.length ? L.map(h => `<div class="fr"><i class="av">🛜</i><div class="fi"><b>${esc(h.name || 'سيرفر')}</b><small>${h.info && MN[h.info.mode] ? MN[h.info.mode] + ' · ' : ''}${h.info ? (h.info.humans || 0) + ' لاعب' : ''} · <span dir="ltr">${esc(h.ip)}</span></small></div><button class="btn sm primary" data-lan="${esc(h.room)}">دخول</button></div>`).join('') : '<div class="empty">ندوّر على ألعاب بنفس الواي فاي… (خلّي صاحبك يضغط «استضف»)</div>';
+      note.textContent = 'عنوانك على الشبكة: ' + (Lan.ip() || '—') + ' · الكل لازم يكونون على نفس الواي فاي أو نقطة الاتصال';
+      el.querySelectorAll('[data-lan]').forEach(b => b.onclick = async () => {
+        const h = L.find(x => x.room === b.dataset.lan); this.frMsg('جارٍ الدخول على سيرفر الشبكة…');
+        try { const ns = await this.game.joinOnline({ room: h.room, lanHost: h, name: Settings.name, char: Settings.char, loadout: this.matchLoadout(h.info && h.info.mode || Settings.mode), team: Settings.team || 0, onStatus: t => this.frMsg(t) }); this.closeScreens(); this.hud(true); this.game.startOnline(ns); }
+        catch (e) { this.frMsg(e.message || 'تعذّر الاتصال', 'bad'); }
+      });
+    };
+    draw(); this.lanIv = setInterval(draw, 1200);
   },
   // ---------- الأصدقاء ----------
   frTab: 'list',
@@ -428,7 +461,7 @@ export const UI = {
     root.querySelectorAll('.wpn[data-w]').forEach(b => b.onclick = () => { Audio.play('ui'); if (b.dataset.k === 'p') { if (L.primary !== b.dataset.w) { L.primary = b.dataset.w; L.scope = null; L.att = {}; } } else L.secondary = b.dataset.w; this.loFocus = b.dataset.w; const v = validLoadout(L, mode); Object.assign(L, v); save(); });
     root.querySelectorAll('[data-s]').forEach(b => b.onclick = () => { Audio.play('ui'); L.scope = b.dataset.s; save(); });
     root.querySelectorAll('[data-a]').forEach(b => b.onclick = () => { Audio.play('ui'); L.att = { ...L.att, [b.dataset.a]: b.dataset.v }; save(); });
-    root.querySelectorAll('[data-n]').forEach(b => b.onclick = () => { Audio.play('ui'); const i = +b.dataset.i; const arr = [L.nades[0], L.nades[1]]; arr[i] = b.dataset.n || undefined; L.nades = arr.filter(Boolean); save(); });
+    root.querySelectorAll('[data-n]').forEach(b => b.onclick = () => { Audio.play('ui'); if (b.dataset.n) { this.game.menuShow('nade', b.dataset.n); this.loNadePv = 1; } const i = +b.dataset.i; const arr = [L.nades[0], L.nades[1]]; arr[i] = b.dataset.n || undefined; L.nades = arr.filter(Boolean); save(); });
   },
   // ---------- الإعدادات ----------
   setTab: 'aim',

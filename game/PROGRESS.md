@@ -209,3 +209,19 @@ PHASE 3 (المقدّمة الجديدة + كاتسينات المهام + ال�
   INTRO_KEY bumped to rafidain.intro.v2 (tests set v2). Replay from settings button unchanged. test/intro2.mjs walks all beats.
 - Lobby world: white turban on the shrine tomb. Quest acts: camera orbits during act, player model crouches for own actions.
 - voice/lines.json regenerated (intro + quests; player lines for all 4 chars) → CI Azure makes the missing ogg.
+
+FIX ROUND after P3 (user feedback) + PHASE 4
+- Loadout/shop: 3D showcase (game/showcase.js) in free stage area (#loStage/#shopStage), auto-fit, drag-rotate 360°, items/nades/ammo models.
+- Anti z-fighting: builder.box expands visual boxes by mm per material/order (opts.exact to skip); world camera near 0.1.
+- Loop: always rAF ("unlimited" = display max), frame-skip caps; render ratio capped (≤ max(dpr,2), ≤3).
+- Lablabi 1000 / tea 500 IQD in battle (client charges on heal event), free & unlimited in lobby.
+- Weather 'random' = cycle: day→rain 30s→day→dust+tornado 15s→sunset→night→day (weather.cyclePlan, startTornado). Compass letters unclipped.
+- NPC chatter only when you stare (talk.js c.stare). Quest engine: robust line timing (voice fail fallback, read time), markers hidden in cine/mg,
+  spacing (no same giver/place consecutively), fisher auto-opens talk, bakery single varied quest with cooldown.
+- Hands-on minigames (game/minigame.js): scoop/weigh, knead, river water vs oil slick, dig+bury (persistent graves), bandage, gas regulator,
+  photo of tourist with Malwiya (snapshot shown as polaroid). Carry gas cylinder (forced walk). Hidden bag search.
+- Phase 4: drone (game/drone.js, V key / 🛸 button, 30s, 60s cooldown, spots enemies); minimap shows enemies only when they fire or drone-spotted;
+  bots call out targets to teammates + switch to pistol when empty; LAN play without internet (LanHub.java in app+server: WS 47800 + UDP beacon 47801,
+  net/lan.js, HostLink.openLan, NetSim tries LAN first; friends screen «على نفس الشبكة» list + «استضف معركة على الشبكة»);
+  host migration (server broadcasts {k:'hp'}; on loss lowest human pid hosts same room with score resume; test/migrate.mjs);
+  online consecutive matches now settle (client re-sends supply after 'supply' event; sim.start refreshes p.sup).

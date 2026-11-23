@@ -34,6 +34,7 @@ import java.util.Locale;
 /** غلاف بسيط: يعرض اللعبة (assets/index.html) في WebView بملء الشاشة. */
 public class MainActivity extends Activity {
     private WebView web;
+    private LanHub lan;
     private long lastBack = 0;
     // نطق كلام أهل السوق: 0 قيد التهيئة، 1 جاهز بصوت عربي، -1 غير متاح (تبقى الهمهمة والفقاعات)
     private TextToSpeech tts;
@@ -108,6 +109,7 @@ public class MainActivity extends Activity {
                 return true;
             }
         });
+        lan = new LanHub(this, code -> runOnUiThread(() -> { if (web != null) web.evaluateJavascript(code, null); }));
         web.addJavascriptInterface(new Bridge(), "RafidainAndroid");
         setContentView(web);
         // منع إيماءة الرجوع من حافتي الشاشة كي لا تسرق لمسات عصا الحركة والتصويب
@@ -165,6 +167,7 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        try { if (lan != null) lan.stop(); } catch (Exception e) { }
         if (tts != null) { try { tts.shutdown(); } catch (Exception e) { } tts = null; }
         if (web != null) { web.destroy(); web = null; }
         super.onDestroy();
@@ -187,6 +190,17 @@ public class MainActivity extends Activity {
 
     /** ما تستدعيه اللعبة من JavaScript: window.NabdAndroid */
     private class Bridge {
+        // ---------- لعب على نفس الشبكة (LanHub) ----------
+        @JavascriptInterface public String lanStart(String room, String name, String info) { return lan.start(room, name, info); }
+        @JavascriptInterface public void lanInfo(String info) { lan.setInfo(info); }
+        @JavascriptInterface public void lanStop() { lan.stop(); }
+        @JavascriptInterface public void lanSend(int id, String text) { lan.send(id, text); }
+        @JavascriptInterface public void lanBroadcast(String text) { lan.broadcast(text); }
+        @JavascriptInterface public void lanKick(int id) { lan.kick(id); }
+        @JavascriptInterface public void lanScan(boolean on) { lan.scan(on); }
+        @JavascriptInterface public String lanFound() { return lan.found(); }
+        @JavascriptInterface public String lanIp() { return LanHub.localIp(); }
+
         @JavascriptInterface
         @SuppressWarnings("deprecation")
         public void vibrate(int ms) {

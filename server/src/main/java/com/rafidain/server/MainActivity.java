@@ -25,6 +25,7 @@ import android.widget.Toast;
 /** تطبيق السيرفر: يشغّل محاكاة المباراة (assets/server.html) ويبقى مستيقظاً. */
 public class MainActivity extends Activity {
     private WebView web;
+    private LanHub lan;
     private long lastBack = 0;
 
     @Override
@@ -54,6 +55,7 @@ public class MainActivity extends Activity {
                 return true;
             }
         });
+        lan = new LanHub(this, code -> runOnUiThread(() -> { if (web != null) web.evaluateJavascript(code, null); }));
         web.addJavascriptInterface(new Bridge(), "RafidainServer");
         setContentView(web);
         web.loadUrl("file:///android_asset/server.html");
@@ -69,6 +71,7 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        try { if (lan != null) lan.stop(); } catch (Exception e) { }
         KeepAlive.stop(this);
         if (web != null) { web.destroy(); web = null; }
         super.onDestroy();
@@ -84,6 +87,17 @@ public class MainActivity extends Activity {
     }
 
     private class Bridge {
+        // ---------- لعب على نفس الشبكة (LanHub) ----------
+        @JavascriptInterface public String lanStart(String room, String name, String info) { return lan.start(room, name, info); }
+        @JavascriptInterface public void lanInfo(String info) { lan.setInfo(info); }
+        @JavascriptInterface public void lanStop() { lan.stop(); }
+        @JavascriptInterface public void lanSend(int id, String text) { lan.send(id, text); }
+        @JavascriptInterface public void lanBroadcast(String text) { lan.broadcast(text); }
+        @JavascriptInterface public void lanKick(int id) { lan.kick(id); }
+        @JavascriptInterface public void lanScan(boolean on) { lan.scan(on); }
+        @JavascriptInterface public String lanFound() { return lan.found(); }
+        @JavascriptInterface public String lanIp() { return LanHub.localIp(); }
+
         @JavascriptInterface
         public void room(final String code) { runOnUiThread(() -> KeepAlive.start(MainActivity.this, code)); }
 

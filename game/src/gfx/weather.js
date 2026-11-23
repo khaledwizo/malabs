@@ -23,6 +23,10 @@ export class Weather {
     PRESETS.sunset.sunDir = I.sun.dir; PRESETS.sunset.sunCol = I.sun.color; PRESETS.sunset.sunI = I.sun.intensity; PRESETS.sunset.hemiSky = I.sky.top;
     PRESETS.sunset.sky = [I.sky.top, I.sky.mid, I.sky.bottom]; PRESETS.sunset.fog = I.sky.fog; PRESETS.sunset.fogD = I.sky.fogDensity;
     this.sunDir = new THREE.Vector3(...I.sun.dir).normalize();
+    // طقس متغيّر: مطر قصير، غبار الإعصار، وليل هادئ
+    PRESETS.rain = { ...PRESETS.storm, sunI: 1.0, hemiI: 0.85, fogD: 0.011, rain: 0.85, wet: 0.7, bolt: 0.35, exp: 1.12, cloud: 0.88, mist: 0.25 };
+    PRESETS.dust = { ...PRESETS.day, sunCol: 0xffc890, sunI: 1.5, hemiSky: 0xc8a070, hemiI: 0.8, sky: [0x8a6a48, 0xc49a6a, 0xd8b88a], fog: 0xc29a6a, fogD: 0.024, cloud: 0.8, cloudCol: 0xb08a5a, amb: 'tornado', grade: [1.06, 0.98, 0.88, 0.95], mist: 0.2 };
+    PRESETS.night = { ...PRESETS.horror, ghosts: 0, rain: 0, wet: 0, bolt: 0, mist: 0.12, fogD: 0.011, exp: 1.5, amb: 'night', lamps: 2.0 };
     this.cur = null;
     this.buildRoofMap();
     this.buildRain(); this.buildSplash(); this.buildMist(); this.buildGhost();
@@ -150,7 +154,8 @@ export class Weather {
     this.ghostState = null;
   }
   pick(id) {
-    if (!id || id === 'random') { const r = Math.random(); id = r < 0.28 ? 'day' : r < 0.58 ? 'sunset' : r < 0.8 ? 'storm' : 'horror'; }
+    this.cycle = !id || id === 'random'; // المتغيّر: يبدأ نهار ويمشي بالدورة (شوف schedule)
+    if (this.cycle) id = 'day';
     if (id === 'menu') id = 'sunset';
     return PRESETS[id] ? id : 'sunset';
   }
@@ -208,19 +213,50 @@ export class Weather {
   blendTo(id, dur = 25) { if (!PRESETS[id] || !this.S) return; this.blend = { from: this.S, to: this.stateOf(id), t: 0, dur }; this.id = id; }
   // جدول تغيّر الطقس خلال المباراة (نفسه عند كل اللاعبين لأنه مبني على البذرة)
   schedule(seed) {
+    // المتغيّر: نهار ← مطر 30 ثانية ← صحو ← إعصار 15 ثانية ← غروب ← ليل ← فجر... ويتكرّر (نفسه عند الكل)
+    if (this.cycle) { this.plan = this.cyclePlan(0); return; }
     let a = (seed | 0) || 1; const r = () => { a = (a * 1103515245 + 12345) & 0x7fffffff; return a / 0x7fffffff; };
     const base = this.id, plan = [];
     const other = base === 'storm' ? (r() < 0.5 ? 'sunset' : 'day') : base === 'horror' ? 'horrorRain' : 'storm';
     let t = 140 + r() * 120; plan.push([t, other]); t += 150 + r() * 120; plan.push([t, base]); t += 150 + r() * 100; plan.push([t, other]);
     this.plan = plan; this.planBase = base;
   }
+  cyclePlan(T) {
+    return [[T + 45, 'rain', 5], [T + 75, 'day', 6], [T + 92, 'dust', 4], [T + 93, 'tornado'], [T + 108, 'day', 6], [T + 130, 'sunset', 22], [T + 185, 'night', 25], [T + 330, 'day', 30], [T + 360, 'again']];
+  }
   tick(matchT) {
     if (!this.plan) return;
     while (this.plan.length && matchT >= this.plan[0][0]) {
-      const [, id] = this.plan.shift();
+      const [t0, id, dur] = this.plan.shift();
+      if (id === 'again') { this.plan = this.cyclePlan(t0 - 45 + 15); continue; }
+      if (id === 'tornado') { this.startTornado(15); continue; }
+      if (dur) { this.blendTo(id, dur); continue; }
       if (id === 'horrorRain') { PRESETS.horrorRain = PRESETS.horrorRain || { ...PRESETS.horror, rain: 0.9, wet: 0.9, bolt: 1, fogD: 0.019 }; this.blendTo('horrorRain', 20); }
       else this.blendTo(id, 28);
     }
+  }
+  // الإعصار: قمع غبار يدور ويعبر الخريطة 15 ثانية بعيد عن اللاعب، وبعدين يختفي
+  startTornado(dur) {
+    if (!this.tor) {
+      const u = this.torU = { t: { value: 0 }, op: { value: 0 }, col: { value: new THREE.Color(0xb48e60) } };
+      const m = new THREE.ShaderMaterial({ uniforms: u, transparent: true, depthWrite: false, side: THREE.DoubleSide, fog: false,
+        vertexShader: 'varying vec2 vUv; varying float vY; uniform float t; void main(){ vUv=uv; vec3 p=position; float h=uv.y; p.x+=sin(h*6.0+t*1.7)*1.6*h; p.z+=cos(h*5.0+t*1.3)*1.4*h; vY=h; gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0); }',
+        fragmentShader: 'varying vec2 vUv; varying float vY; uniform float t,op; uniform vec3 col; float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5);} float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+1.0),f.x),f.y);} void main(){ vec2 q=vec2(vUv.x*8.0+t*2.6-vUv.y*3.0, vUv.y*6.0-t*1.2); float d=n(q)*0.6+n(q*2.3)*0.4; float a=smoothstep(0.25,0.85,d)*(0.35+0.65*smoothstep(0.0,0.15,vY))*smoothstep(1.0,0.75,vY); gl_FragColor=vec4(col*(0.7+0.5*d),a*op*0.85); }' });
+      const g = new THREE.CylinderGeometry(9, 1.2, 38, 32, 24, true); g.translate(0, 19, 0);
+      this.tor = new THREE.Mesh(g, m); this.tor.renderOrder = 3; this.scene.add(this.tor);
+      const dg = new THREE.CylinderGeometry(4.5, 5.5, 3, 24, 4, true); dg.translate(0, 1.5, 0); this.torDust = new THREE.Mesh(dg, m); this.tor.add(this.torDust);
+    }
+    const cam = this.camera.position, side = cam.z > 0 ? -1 : 1, z = Math.max(-30, Math.min(26, cam.z + side * (28 + Math.random() * 10)));
+    const dir = Math.random() < 0.5 ? 1 : -1;
+    this.torS = { t: 0, dur, x0: -dir * 95, x1: dir * 95, z }; this.tor.visible = true; Audio.setAmbience('tornado');
+  }
+  updateTornado(dt) {
+    const S = this.torS; if (!S || !this.tor) return;
+    S.t += dt; const k = S.t / S.dur; this.torU.t.value += dt;
+    this.tor.position.set(S.x0 + (S.x1 - S.x0) * k, 0, S.z + Math.sin(S.t * 0.7) * 4);
+    this.tor.rotation.y += dt * 2.2; this.torU.op.value = Math.min(1, S.t / 2, (S.dur - S.t) / 2);
+    this.shakeK = Math.max(0, 1 - Math.hypot(this.tor.position.x - this.camera.position.x, this.tor.position.z - this.camera.position.z) / 60);
+    if (k >= 1) { this.tor.visible = false; this.torS = null; this.ambKind = null; this.shakeK = 0; }
   }
   // خريطة بيئة من السماء للانعكاسات (تُحدّث عند تغيّر الطقس)
   updateEnv() {
@@ -274,7 +310,7 @@ export class Weather {
   }
   inHaunt(cam, pad = 12) { for (const z of this.info.haunt || []) if (cam.x > z[0] - pad && cam.x < z[2] + pad && cam.z > z[1] - pad && cam.z < z[3] + pad) return true; return false; }
   update(dt, t) {
-    this.t = t;
+    this.t = t; this.updateTornado(dt);
     if (this.blend) { const B = this.blend; B.t += dt; const k = Math.min(1, B.t / B.dur), e = k * k * (3 - 2 * k); this.apply(this.mix(B.from, B.to, e)); if (k >= 1) { this.blend = null; this.updateEnv(); } }
     // تجمّع الماء: يرتفع مع المطر (~3 دقائق للبلل الكامل) وينشف أبطأ بعد ما يوقف
     if (this.wetTarget !== undefined) { const tg = this.wetTarget, w = this.wetNow ?? 0; this.wetNow = tg > w ? Math.min(tg, w + dt / 180 * (0.4 + (this.rainNow || 0))) : Math.max(tg, w - dt / 260); this.applyWet(this.wetNow); }

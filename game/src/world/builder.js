@@ -15,6 +15,7 @@ const MATCOL = {
 class NullBatch { get count() { return 0; } addGeo() { } vert() { return 0; } quad() { } }
 export const NULL_GFX = { mats: {}, Batch: NullBatch, boxInto() { }, nul: true };
 
+const ZH = {}; const zfE = (mat, k) => { let h = ZH[mat]; if (h === undefined) { h = 0; for (let i = 0; i < mat.length; i++) h = (h * 31 + mat.charCodeAt(i)) >>> 0; h = ZH[mat] = h % 5; } return 0.0014 * (1 + h) + 0.0011 * (k % 3); };
 export class Builder {
   constructor(gfx) {
     this.w = new World();
@@ -70,6 +71,9 @@ export class Builder {
   box(x0, y0, z0, x1, y1, z1, mat, o = {}) {
     if (x0 > x1) [x0, x1] = [x1, x0]; if (y0 > y1) [y0, y1] = [y1, y0]; if (z0 > z1) [z0, z1] = [z1, z0];
     if (o.col !== false) { const i = this.w.add(x0, y0, z0, x1, y1, z1, o.cm ?? MATCOL[mat] ?? 0, o.flags || 0); if (this.cur && i >= 0) this.cur.boxes.push(i); }
+    // ضد الوميض (z-fighting): نكبّر الصندوق المرئي بملّيمترات تختلف حسب المادّة وترتيب الصندوق،
+    // حتى ما يتطابق وجهان على نفس المستوى (التصادم ما يتأثر)
+    if (this.vis && o.vis !== false && mat && !o.exact) { const e = zfE(mat, this.zc = (this.zc || 0) + 1); x0 -= e; z0 -= e; x1 += e; z1 += e; y1 += e; if (y0 > 0.01) y0 -= e; }
     if (this.vis && o.vis !== false && mat) this.track(mat, () => this.gfx.boxInto(this.batch(mat), x0, y0, z0, x1, y1, z1, o.tile || this.tile(mat), o.faces || 'pxnxpynypznz', o.ao === undefined ? (y0 < 0.2 ? y0 : null) : o.ao, o.uo || 0, o.vo || 0));
     return this;
   }

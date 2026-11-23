@@ -4,6 +4,7 @@ import { Sim } from '../sim/sim.js';
 import { defaultLoadout, MODES } from '../sim/weapons.js';
 import { CHAR_ORDER } from '../game/chardefs.js';
 import { HostLink } from './link.js';
+import { Lan } from './lan.js';
 import { PROTO, decCmd, encSnap, encRoster, slimEvent } from './proto.js';
 
 const STEP = 1 / 60, SNAP_EVERY = 3, EV_REPEAT = 3, TIMEOUT = 10, MAX_HUMANS = 10;
@@ -19,17 +20,21 @@ export class GameServer {
     this.clients = new Map(); // cid → عميل
     this.pid = 100; this.botN = 0; this.eid = 0; this.evq = [];
     this.status = 'جارٍ الاتصال بالوسيط…'; this.onchange = opt.onChange || (() => { }); this.log = opt.log || (() => { });
+    this.lanName = opt.name || 'سيرفر الرافدين';
     this.ticks = 0; this.tickRate = 0; this.started = now(); this.overT = 0; this.rosterT = 0; this.brokers = opt.brokers;
     this.newSim();
   }
   async start() {
     const L = this.link = new HostLink(this.room, { brokers: this.brokers, onStatus: s => { this.status = s; this.onchange(); } });
+    L.lanName = this.lanName; L.lanInfo = this.lanInfo();
+    this.lanIv = setInterval(() => { if (this.link && this.link.lanIp) Lan.info(this.lanInfo()); }, 2000);
     L.onmsg = (cid, m, via) => { try { this.onMsg(cid, m, via); } catch (e) { this.log('خطأ: ' + e.message); } };
     await L.open();
     this.run();
     return this;
   }
-  stop() { clearInterval(this.iv); this.iv = null; if (this.link) { for (const cid of this.clients.keys()) this.link.sendTo(cid, { k: 'bye' }, true); this.link.close(); } }
+  lanInfo() { return { mode: this.cfg.mode, size: this.cfg.size, humans: this.humans() }; }
+  stop() { clearInterval(this.iv); clearInterval(this.lanIv); this.iv = null; if (this.link) { for (const cid of this.clients.keys()) this.link.sendTo(cid, { k: 'bye' }, true); this.link.close(); } }
   // ---------- المحاكاة ----------
   newSim() {
     const c = this.cfg;
@@ -72,6 +77,7 @@ export class GameServer {
     const sim = this.sim;
     if (!this.humans()) return;
     if (sim.phase === 'wait') sim.start();
+    if (this.resume && this.ticks > 30) { sim.score = this.resume.score.slice(); this.resume = null; } // نقل الاستضافة: نكمّل النتيجة
     sim.step(STEP);
     this.ticks++;
     if (sim.phase === 'over') {
@@ -112,7 +118,13 @@ export class GameServer {
     for (const [cid, cl] of this.clients) if (t - cl.last > TIMEOUT) { this.log('انقطع: ' + cl.name); this.remove(cid); }
     if ((this.rosterT -= 1) <= 0) { this.rosterT = 2; this.sendRoster(); }
   }
-  sendRoster() { if (this.link) this.link.broadcast(encRoster(this.sim, new Map([...this.clients.values()].map(c => [c.pid, c.rtt || 0])))); }
+  sendRoster() {
+    if (!this.link) return;
+    this.link.broadcast(encRoster(this.sim, new Map([...this.clients.values()].map(c => [c.pid, c.rtt || 0]))));
+    // مين المضيف؟ (لاعب على نفس هاتف السيرفر) — حتى اللاعبين يعرفون منو يستلم إذا طلع
+    let hp = -1; for (const [cid, cl] of this.clients) { const pe = this.link.peers.get(cid); if (pe && pe.local) hp = cl.pid; }
+    this.link.broadcast({ k: 'hp', pid: hp, cfg: { size: this.cfg.size, rounds: this.cfg.rounds, time: this.cfg.time, roundTime: this.cfg.roundTime, difficulty: this.cfg.difficulty } });
+  }
   // ---------- الرسائل ----------
   onMsg(cid, m, via) {
     let cl = this.clients.get(cid);

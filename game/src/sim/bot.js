@@ -100,6 +100,8 @@ export class Bot {
     if (best) {
       if (best !== this.target) { this.target = best; this.react = this.D.react * (0.7 + Math.random() * 0.6) * (bd > 40 ? 1.35 : 1) + (s.t - (this.spawnT ?? -9) < 3 ? 0.6 : 0); this.err(bd > 30 ? 1.8 : 1.2); this.burstN = 0; }
       this.lastSeen = best.pos.slice(); this.lastSeenT = s.t;
+      // نداء للفريق: «عدو هنا!» — الزملاء القريبين اللي ما عدهم هدف يتوجّهون للمكان (تطويق)
+      if (s.t - (this.calloutT ?? -9) > 2.5) { this.calloutT = s.t; for (const m of s.players.values()) { if (m === p || !m.alive || m.team !== p.team || !m.bot || !m.brain) continue; const b = m.brain; if (b.target || Math.hypot(m.pos[0] - p.pos[0], m.pos[2] - p.pos[2]) > 45) continue; b.heard = best.pos.slice(); b.heardT = s.t; } }
     } else if (this.target && s.t - this.lastSeenT > 0.4) this.target = null;
   }
   // ---------- القرار ----------
@@ -113,7 +115,7 @@ export class Bot {
     if (this.flashed > 0) { this.target = null; }
     const w = s.curW(p), wd = w ? WEAPONS[w.id] : null;
     // اختيار السلاح
-    if (p.slot !== 1 && p.inv[1] && (p.inv[1].mag > 0 || p.inv[1].reserve > 0) && !this.nading) cmd.slot = 1;
+    if (p.slot !== 1 && p.inv[1] && (p.inv[1].mag > 0 || p.inv[1].reserve > 0) && !this.nading && !(this.pistolSw && this.target)) cmd.slot = 1;
     else if (p.slot === 1 && p.inv[1] && p.inv[1].mag === 0 && p.inv[1].reserve === 0) cmd.slot = 2;
     if (this.target && this.target.alive) {
       const q = this.target, e = s.eye(p);
@@ -146,7 +148,9 @@ export class Bot {
           if (dist > 20 && wd.auto && this.burstN > D.burst) { this.burstN = 0; this.pauseT = 0.25 + Math.random() * 0.3; }
         }
         this.pauseT -= dt;
-        if (w.mag === 0) cmd.reload = true;
+        // المخزن فرغ والعدو قريب: يطلّع المسدس أسرع من التلقيم
+        if (w.mag === 0) { if (p.slot === 1 && dist < 18 && p.inv[2] && p.inv[2].mag > 0 && !this.pistolSw) { cmd.slot = 2; this.pistolSw = s.t; } else cmd.reload = true; }
+        if (this.pistolSw && s.t - this.pistolSw > 6) this.pistolSw = 0;
       }
       // حركة قتالية: تمايل جانبي، انحناء عند البعد
       this.strafeT -= dt;

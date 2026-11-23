@@ -6,7 +6,7 @@ import { Settings } from './settings.js';
 const KEYMAP = {
   KeyW: 'fwd', ArrowUp: 'fwd', KeyS: 'back', ArrowDown: 'back', KeyA: 'left', ArrowLeft: 'left', KeyD: 'right', ArrowRight: 'right',
   Space: 'jump', ControlLeft: 'crouch', KeyC: 'crouch', ShiftLeft: 'walk', KeyR: 'reload', KeyG: 'grenade', KeyQ: 'leanL', KeyE: 'leanR',
-  Digit1: 'slot1', Digit2: 'slot2', Digit3: 'slot3', Digit4: 'slot4', KeyX: 'swap', Tab: 'score', Escape: 'pause', KeyF: 'use', KeyI: 'inspect', KeyB: 'loadout', KeyM: 'map',
+  Digit1: 'slot1', Digit2: 'slot2', Digit3: 'slot3', Digit4: 'slot4', KeyX: 'swap', Tab: 'score', Escape: 'pause', KeyF: 'use', KeyI: 'inspect', KeyV: 'drone', KeyB: 'loadout', KeyM: 'map',
 };
 const TOUCH_K = 0.0046, MOUSE_K = 0.0021; // راديان لكل بكسل قبل الحساسية
 

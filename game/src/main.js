@@ -25,7 +25,7 @@ renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.08;
 renderer.shadowMap.enabled = Q.shadow > 0; renderer.shadowMap.type = THREE.PCFShadowMap;
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.05, 1200);
+const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.1, 1200);
 const kit = gfxKit(Q);
 const B = new Builder(kit);
 const info = buildSouq(B);
@@ -44,7 +44,8 @@ function applyRes() {
   if (r === 'auto') ratio = Math.min(dpr, Q.dprCap || 1.5) * (qualityId() === 'low' ? 0.85 : 1);
   else if (+r <= 4) ratio = dpr * +r;
   else ratio = +r / innerHeight;
-  ratio = Math.max(0.25, Math.min(ratio, 4));
+  // ما نرسم بأكثر من دقة الشاشة الأصلية على الموبايل (الزيادة ما تبين وتثقّل وتسبّب لاگ)، وبالحاسبة حد أقصى 2×
+  ratio = Math.max(0.25, Math.min(ratio, Math.max(dpr, 2), 3));
   renderer.setPixelRatio(ratio); renderer.setSize(innerWidth, innerHeight, false);
   camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
   const s = renderer.getDrawingBufferSize(new THREE.Vector2()); resText = `${s.x}×${s.y}`;

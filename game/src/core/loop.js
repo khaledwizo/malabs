@@ -13,21 +13,18 @@ export const Loop = {
     this.schedule();
   },
   stop() { this.running = false; cancelAnimationFrame(this.raf); clearTimeout(this.timer); },
+  // كل الإطارات على تزامن الشاشة (rAF): «غير محدود» = أقصى تحديث تدعمه الشاشة (90/120 هرتز)،
+  // والحدود الأقل نتخطّى بيها إطارات. الرسم خارج تزامن الشاشة يكدّس شغل المعالج الرسومي ويسبّب تعليق وتأخير باللمس.
   schedule() {
     if (!this.running) return;
-    const cap = +Settings.fps;
     if (document.hidden) { this.timer = setTimeout(() => this.tick(), 250); return; }
-    if (cap === 0) { this.raf = requestAnimationFrame(() => this.tick()); return; }
-    if (cap < 0) { this.mc.port2.postMessage(0); return; }
-    const target = 1000 / cap, wait = this.last + target - performance.now();
-    if (wait > 2) this.timer = setTimeout(() => this.tick(), wait - 1.5);
-    else if (wait > 0) this.mc.port2.postMessage(0);
-    else this.tick();
+    this.raf = requestAnimationFrame(t => this.tick(t));
   },
-  tick() {
+  tick(ts) {
     if (!this.running) return;
-    const cap = +Settings.fps, now = performance.now();
-    if (cap > 0 && now - this.last < 1000 / cap - 0.3) { this.mc.port2.postMessage(0); return; }
+    const cap = +Settings.fps, now = ts || performance.now();
+    // نسمح بهامش 2.5م.ث حتى ما نطيّح إطار كامل بسبب ارتجاف التوقيت (مثلاً 60 على شاشة 60)
+    if (cap > 0 && now - this.last < 1000 / cap - 2.5) { this.schedule(); return; }
     let dt = (now - this.last) / 1000; this.last = now;
     if (dt > 0.1) dt = 0.1;
     this.frames++; this.acc += dt; this.worst = Math.max(this.worst, dt);

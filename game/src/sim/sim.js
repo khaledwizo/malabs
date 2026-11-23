@@ -79,7 +79,7 @@ export class Sim {
     };
     // مخزون اللاعب لهذا القيم (للبوتات لا حدود)
     const sup = !p.bot && o.loadout && o.loadout.supply ? cleanSupply(o.loadout.supply) : null;
-    if (sup) { p.sup = sup; p.meds = sup.meds; }
+    if (sup) { p.sup = sup; p.meds = sup.meds; p.supSrc = o.loadout.supply; }
     this.players.set(id, p);
     if (p.bot) p.brain = new Bot(this, p, this.difficulty);
     if (this.phase === 'buy' || this.phase === 'wait') this.spawn(p);
@@ -183,9 +183,11 @@ export class Sim {
     for (const u of this.w.usables || []) {
       if (Math.hypot(u.x - p.pos[0], u.z - p.pos[2]) > u.r) continue;
       const eat = u.kind === 'lablabi', f = p.food || (p.food = { e: 3, t: 8 });
-      if (eat ? f.e <= 0 : f.t <= 0) { this.events.push({ t: 'foodOut', id: p.id, k: u.kind }); return; }
-      if (p.hp >= p.maxHp - 1) { this.events.push({ t: 'foodFull', id: p.id, k: u.kind }); return; }
-      if (eat) f.e--; else f.t--;
+      // باللوبي: مجاني وبلا حد. بالمعركة: حدّ لكل قيم (والفلوس تنحسب عند اللاعب)
+      const free = this.rules === 'lobby';
+      if (!free && (eat ? f.e <= 0 : f.t <= 0)) { this.events.push({ t: 'foodOut', id: p.id, k: u.kind }); return; }
+      if (!free && p.hp >= p.maxHp - 1) { this.events.push({ t: 'foodFull', id: p.id, k: u.kind }); return; }
+      if (!free) { if (eat) f.e--; else f.t--; }
       p.healT = eat ? 6 : 3; p.healK = eat ? 3 : 4; p.ads = false; p.reloadT = 0;
       this.events.push({ t: 'heal', id: p.id, k: p.healK, left: eat ? f.e : f.t }); return;
     }
@@ -243,7 +245,11 @@ export class Sim {
   start() {
     this.round = 0; this.score = [0, 0]; this.matchOver = false; this.winner = -1;
     this.resetWorld(true);
-    for (const p of this.players.values()) { p.kills = p.deaths = p.assists = p.dmgDone = p.hs = p.kh = p.kb = 0; p.food = { e: 3, t: 8 }; }
+    for (const p of this.players.values()) {
+      p.kills = p.deaths = p.assists = p.dmgDone = p.hs = p.kh = p.kb = 0; p.food = { e: 3, t: 8 };
+      // قيم جديد بنفس الجلسة (أونلاين): مخزون جديد إذا اللاعب بعث واحد
+      const S = !p.bot && p.loadout && p.loadout.supply; if (S && S !== p.supSrc) { p.sup = cleanSupply(S); p.meds = p.sup.meds; p.supSrc = S; }
+    }
     this.initDom();
     this.newRound();
   }

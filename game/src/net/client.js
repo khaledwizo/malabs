@@ -5,6 +5,7 @@ import { Sim, LEAN } from '../sim/sim.js';
 import { MODES } from '../sim/weapons.js';
 import { eyeHeight } from '../sim/move.js';
 import { ClientLink, LocalLink, newId } from './link.js';
+import { Lan, LanClientLink } from './lan.js';
 import { brokerList } from './mqtt.js';
 import { PROTO, encCmd, decPlayer } from './proto.js';
 
@@ -51,7 +52,21 @@ export class NetSim {
       this.pingIv = setInterval(() => { if (this.link) this.link.send({ k: 'pi', c: now(), r: 0 }); }, 1000);
       return this;
     }
-    let err = 'تعذّر الوصول إلى الإنترنت';
+    let err = 'تعذّر الوصول إلى الإنترنت — وما لگينا الغرفة على نفس الشبكة';
+    // أولاً: نفس الشبكة (أسرع وما يحتاج إنترنت)
+    const lh = this.opt.lanHost || await Lan.find(this.room, 1500);
+    if (lh) {
+      const L = this.link = new LanClientLink(lh, { cid, onStatus: say });
+      L.onmsg = m => { try { this.onMsg(m); } catch (e) { console.warn(e); } };
+      L.onclosed = () => this.lost('انقطع الاتصال بسيرفر الشبكة');
+      try {
+        await L.open(); this.state = 'joining';
+        const ok = await new Promise(res => { this._join = res; this.sayHi(); setTimeout(() => res(false), 5000); });
+        this._join = null;
+        if (ok === true) { Lan.scan(false); this.pingIv = setInterval(() => { if (this.link) this.link.send({ k: 'pi', c: now(), r: Math.round(this.ping * 1000) }); if (this.state === 'joined' && now() - this.lastSnap > 8) this.lost('توقف السيرفر عن الرد'); }, 1000); return this; }
+        clearTimeout(this.hiT); L.onclosed = null; L.close();
+      } catch (e) { }
+    }
     for (const url of list) {
       if (this.state === 'closed') break;
       const L = this.link = new ClientLink(this.room, { cid, brokers: [url], onStatus: say });
@@ -92,6 +107,7 @@ export class NetSim {
       case 'wl': this.welcome(m); break;
       case 'who': if (this.state === 'joined') this.sayHi(); break;
       case 'po': { const r = now() - m.c; if (r >= 0 && r < 10) this.ping = this.ping ? this.ping * 0.75 + r * 0.25 : r; break; }
+      case 'hp': this.hostPid = m.pid; this.hostCfg = m.cfg; break;
       case 'ro': for (const [id, name, bot, team, ch, rtt] of m.p) { this.roster.set(id, { name, bot: !!bot, team, char: ch, rtt }); const p = this.players.get(id); if (p) { p.name = name; p.bot = !!bot; } }
         if (this.mini && m.br) { for (const i of m.br) if (this.mini.props[i] && this.mini.props[i].alive) { this.worldEvent({ t: 'break', id: i }); this.events.push({ t: 'break', id: i, silent: 1 }); } }
         if (this.mini && m.nd) { for (const i of m.nd) if (this.mini.npcs[i] && this.mini.npcs[i].alive) { this.worldEvent({ t: 'npcDie', id: i }); this.events.push({ t: 'npcDie', id: i, silent: 1 }); } }

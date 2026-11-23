@@ -22,11 +22,15 @@ import { Civilian } from './civilians.js';
 import { TalkManager } from './talk.js';
 import { Economy, fmtIQD } from './economy.js';
 import { DoorVis } from './doors.js';
+import { Showcase } from './showcase.js';
+import { Drone } from './drone.js';
 import { Waypoints } from './waypoint.js';
 import { Quests } from './quests.js';
 import { Ambient } from './ambient.js';
 
 const STEP = 1 / 60;
+// أسعار الأكل بالمعركة (باللوبي مجاني)
+const FOOD_PRICE = { lablabi: 1000, tea: 500 };
 const BOT_NAMES = ['يوسف', 'حيدر', 'زيد', 'عمر', 'مصطفى', 'ليث', 'أنمار', 'كرار', 'بلال', 'طارق', 'سجّاد', 'مرتضى', 'حسين', 'رعد', 'وسام', 'ياسر', 'نوفل', 'عمّار', 'قاسم', 'سلمان'];
 const ease = t => t * t * (3 - 2 * t);
 const angTo = (a, b) => { let d = b - a; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; return d; };
@@ -58,6 +62,7 @@ export class Game {
     this.talk = new TalkManager(this, this.civs);
     // المرحلة 2: الأبواب، التأشير، المهام، وحياة السوق
     this.ui = UI; this.lobby = false; this.cine = false;
+    this.drone = new Drone(this);
     this.doorsVis = new DoorVis(this); this.wps = new Waypoints(this); this.ambient = new Ambient(this); this.quests = new Quests(this);
   }
   // اللوبي الخاص: تجوّل بالسوق بلا قتال — المهام والحچي ويّا الناس هنا بس
@@ -71,11 +76,25 @@ export class Game {
     const D = this.doorsVis.near(me.pos);
     if (D) { const i = this.doorsVis.list.indexOf(D), o = this.doorsVis.stateOf(i); return { label: o ? 'سكّر الباب' : 'افتح الباب', fn: () => { this.queued.use = true; } }; }
     for (const u of this.world.usables || []) if (Math.hypot(u.x - me.pos[0], u.z - me.pos[2]) < u.r) {
-      const f = me.food, left = f ? (u.kind === 'lablabi' ? f.e : f.t) : null;
-      return { label: (u.kind === 'lablabi' ? '🥣 كُل لبلبي' : '🫖 اشرب چاي') + (left != null ? ` (${left})` : ''), fn: () => { this.queued.use = true; } };
+      const f = me.food, left = f && !this.lobby ? (u.kind === 'lablabi' ? f.e : f.t) : null, price = this.lobby ? 0 : FOOD_PRICE[u.kind];
+      if (price && !Economy.can(price)) return { label: `ما عندك ${fmtIQD(price)}`, fn: () => UI.toast('ما عندك فلوس كافية — اربح من المعارك والمهام') };
+      return { label: (u.kind === 'lablabi' ? '🥣 كُل لبلبي' : '🫖 اشرب چاي') + (price ? ` · ${fmtIQD(price)}` : ' · مجاني') + (left != null ? ` (${left})` : ''), fn: () => { this.queued.use = true; } };
     }
     return null;
   }
+  // الغرض المشيول (قنينة الغاز) بأسفل الشاشة
+  drawCarry() {
+    if (!this.carryV) {
+      const s = new THREE.Scene(), cam = new THREE.PerspectiveCamera(50, 1, 0.01, 5); s.add(new THREE.HemisphereLight(0xfff2dc, 0x3a2c20, 1.3)); const k = new THREE.DirectionalLight(0xffffff, 2); k.position.set(0.5, 1, 0.6); s.add(k);
+      const g = new THREE.Group(); g.position.set(0.18, -0.42, -0.55); s.add(g);
+      const m = new THREE.MeshStandardMaterial({ color: 0x2a7a3a, roughness: 0.5, metalness: 0.3 }); const c = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.38, 18), m); g.add(c); const t = new THREE.Mesh(new THREE.SphereGeometry(0.13, 18, 8, 0, Math.PI * 2, 0, Math.PI / 2), m); t.position.y = 0.19; g.add(t);
+      const v = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.025, 0.05, 10), new THREE.MeshStandardMaterial({ color: 0xc9a24a, metalness: 0.9, roughness: 0.3 })); v.position.y = 0.34; g.add(v);
+      this.carryV = { s, cam, g };
+    }
+    const V = this.carryV, me = this.mp, sp = me ? Math.hypot(me.vel[0], me.vel[2]) : 0; V.g.position.y = -0.42 + Math.abs(Math.sin(this.t * 6)) * 0.02 * Math.min(1, sp); V.g.rotation.z = Math.sin(this.t * 3) * 0.04 * Math.min(1, sp);
+    V.cam.aspect = innerWidth / innerHeight; V.cam.updateProjectionMatrix(); const r = this.renderer; r.autoClear = false; r.clearDepth(); r.render(V.s, V.cam); r.autoClear = true;
+  }
+  toggleDrone() { if (this.lobby || !this.sim) return; if (this.drone.on) { this.drone.stop(); return; } if (!this.drone.ready) { UI.toast(`الدرون يشحن… ${Math.ceil(this.drone.cdLeft)} ث`); return; } if (this.drone.start()) UI.toast('درون الاستطلاع: 30 ثانية — أي عدو تشوفه ينكشف بالخريطة'); }
   useAction() { const U = this.useInfo; if (U) { Audio.play('ui'); U.fn(); } }
   // ---------- القوائم: كاميرا سينمائية وعرض الشخصيات ----------
   buildLineup() {
@@ -83,7 +102,14 @@ export class Game {
     CHAR_ORDER.forEach((id, i) => { const m = new CharModel(id, i % 2); m.root.position.set(L.x + i * L.dx, 0, L.z); m.setWeapon(['rafid', 'saqr', 'zawba', 'nisr'][i], i === 1 ? 'x8' : null); this.scene.add(m.root); this.lineup.push(m); });
   }
   menuView(mode, ch) { if (mode === 'chars' && this.menuMode !== 'chars') this.menuSnap = true; this.menuMode = mode; if (ch) this.menuChar = ch; this.menuFrameT = 0; }
-  menuWeapon(id, scope, att) { this.menuWeaponId = id; this.vm.setChar(Settings.char); this.vm.setWeapon(id, scope, att); }
+  menuWeapon(id, scope, att) { this.menuWeaponId = id; this.menuShow('gun', id, scope, att); }
+  // المعاينة: سلاح، قنبلة، أو غرض (ضماد، إبرة، نظّارة، عتاد)
+  menuShow(kind, id, scope, att) { this.show = id ? { kind, id, scope, att } : null; if (!this.showcase) this.showcase = new Showcase(this.renderer); if (id) this.showcase.set(kind, id, scope, att); }
+  renderShowcase(dt) {
+    const scr = UI.screen, el = scr === 'loadout' ? document.getElementById('loStage') : scr === 'shop' ? document.getElementById('shopStage') : null;
+    if (!el || !this.show || !this.showcase) return;
+    this.showcase.attach(el); this.showcase.render(dt, el.getBoundingClientRect());
+  }
   updateMenu(dt) {
     this.menuT += dt;
     const cam = this.camera, L = this.info.lineup || { x: -2.4, z: 23.6, dx: 1.6 };
@@ -152,16 +178,55 @@ export class Game {
     Social.lateJoin = id => { const h = this.hostInfo; if (!h) return; if (h.teams[id] === undefined) h.teams[id] = Social.party && Social.party.vs ? Object.keys(h.teams).length % 2 : 0; Social.send(id, { k: 'start', room: h.room, team: h.teams[id], mode: h.mode, weather: h.weather }); };
     this.startOnline(ns, wx);
   }
+  // استضافة على نفس الشبكة (واي فاي أو نقطة اتصال) — تشتغل حتى بلا إنترنت
+  async hostLan(o) {
+    const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let room = ''; for (let i = 0; i < 5; i++) room += A[Math.floor(Math.random() * A.length)];
+    const wx = this.weather ? this.weather.pick(o.weather) : o.weather;
+    if (this.hostSrv) { this.hostSrv.stop(); this.hostSrv = null; }
+    const srv = new GameServer(this.world, { room, name: o.name, cfg: { mode: o.mode, size: Math.max(2, o.size || 2), rounds: o.roundsToWin, time: o.timeLimit, roundTime: o.roundTime, difficulty: o.difficulty, fill: true } });
+    await srv.start();
+    this.hostSrv = srv; this.hostInfo = { room, teams: {}, mode: o.mode, weather: wx };
+    const ns = await this.joinOnline({ local: srv, room, name: o.name, char: o.char, loadout: o.loadout, team: 0 });
+    this.startOnline(ns, wx);
+    return room;
+  }
+  // نقل الاستضافة: إذا طلع المضيف، أول لاعب بالترتيب يصير سيرفر بنفس رمز الغرفة ويكمّل بالنتيجة، والباقين يرجعون يدخلون
+  async migrate(ns, why) {
+    const fail = msg => { this.quit(); UI.showMenu(); UI.toast2(msg || why || 'انقطع الاتصال بالمعركة'); };
+    if (this.hostSrv || this.migrating || ns.matchOver) return fail();
+    const room = ns.room, mode = ns.mode, hp = ns.hostPid, cfg = ns.hostCfg || {}, score = (ns.score || [0, 0]).slice(), myTeam = this.mp ? this.mp.team : 0;
+    const humans = [...ns.roster.entries()].filter(([id, r]) => !r.bot && id !== hp && ns.players.has(id)).map(([id]) => id).sort((a, b) => a - b);
+    if (!room || !humans.includes(ns.me)) return fail();
+    this.migrating = true;
+    const base = { room, name: Settings.name, char: Settings.char, loadout: UI.matchLoadout(mode), team: myTeam };
+    try {
+      if (humans[0] === ns.me) {
+        UI.toast2('المضيف طلع — صرت إنت المضيف، نكمّل المعركة…');
+        this.quit(true, true);
+        const srv = new GameServer(this.world, { room, name: Settings.name, cfg: { mode, size: cfg.size || 2, rounds: cfg.rounds || ns.roundsToWin, time: cfg.time || ns.timeLimit, roundTime: cfg.roundTime, difficulty: cfg.difficulty || Settings.difficulty, fill: true } });
+        srv.resume = { score }; await srv.start(); this.hostSrv = srv; this.hostInfo = { room, teams: {}, mode };
+        const n2 = await this.joinOnline({ ...base, local: srv }); this.migrating = false; this.startOnline(n2);
+      } else {
+        UI.toast2('المضيف طلع — ننقل الاستضافة لـ ' + ((ns.roster.get(humans[0]) || {}).name || 'لاعب') + '…');
+        this.quit(true, true);
+        let n2 = null;
+        for (let k = 0; k < 4 && !n2; k++) { await new Promise(r => setTimeout(r, 2500)); try { n2 = await this.joinOnline(base); } catch (e) { } }
+        this.migrating = false;
+        if (n2) this.startOnline(n2); else fail('ما گدرنا ننقل الاستضافة — انقطعت المعركة');
+      }
+    } catch (e) { this.migrating = false; fail('تعذّر نقل الاستضافة'); }
+  }
   startOnline(ns, weather) {
     this.quit(true, true);
     this.wxSeed = [...String(ns.room || '')].reduce((a, c) => (a * 31 + c.charCodeAt(0)) & 0xffff, 7);
     Social.presence('game');
-    ns.onlost = why => { this.quit(); UI.showMenu(); UI.toast2(why || 'انقطع الاتصال بالمعركة'); };
+    ns.onlost = why => this.migrate(ns, why);
     this.sim = ns; this.me = ns.me;
     this.begin(this.mp, weather || ns.weather);
     UI.banner(MODES[ns.mode] ? MODES[ns.mode].name : 'معركة', 'فريقك: نحن المجاهدين', '', 2.6);
   }
   quit(keep, keepSrv) {
+    if (this.drone) { this.drone.stop(); this.drone.seen.clear(); this.drone.cdUntil = -1; }
     // خروج قبل نهاية القيم: نخصم المصروف من المخزون (بلا مكافأة)
     if (this.sim && !this.sim.matchOver && Economy.start && !Economy.settled) {
       const me = this.sim.players && this.sim.players.get(this.me);
@@ -200,7 +265,8 @@ export class Game {
     if (!this.sim) { this.updateMenu(dt); this.renderMenu(dt); Input.endFrame(); return; }
     if (this.sim.online) this.me = this.sim.me; // قد يتغير رقمنا إن أعيد تشغيل السيرفر
     const sim = this.sim, me = this.mp;
-    const blocked = this.paused || !!UI.screen || !!this.cine;
+    const mg = this.mg && !this.mg.closed ? this.mg : null;
+    const blocked = this.paused || !!UI.screen || !!this.cine || (mg && !mg.allowLook);
     this.useInfo = this.computeUse(me);
     if (Input.take('use') && !blocked) this.useAction();
     if (Input.take('pause') && !this.paused) { if (UI.mapOpen) UI.closeMap(); else this.pause(); }
@@ -212,7 +278,11 @@ export class Game {
     if (me && (me.reloadT > 0 || !me.alive)) Input.setAds(false);
     // النظر: الحساسية تُقسّم على قوة المنظار
     const [lx, ly] = Input.takeLook();
-    if (!blocked && me && me.alive) {
+    // الدرون: الجويستك والسحب يحرّكونه، واللاعب يگعد بمكانه
+    if (Input.take('drone') && !blocked) this.toggleDrone();
+    const droneOn = this.drone.on;
+    if (droneOn) this.drone.control(dt, Input.mx, Input.mz, Input.held('jump'), Input.held('crouch') || Input.on('crouch'), blocked ? 0 : lx * Settings.sens, blocked ? 0 : ly * Settings.sens);
+    if (!blocked && me && me.alive && !droneOn) {
       const mag = this.magOf(me), a = ease(me.adsT);
       let f = 1;
       if (mag >= 2.9) f = Settings.scopeSens * 1.5 / mag;
@@ -222,12 +292,13 @@ export class Game {
       this.pitch = Math.max(-1.45, Math.min(1.45, this.pitch));
     }
     if (!this.paused || sim.online) {
-      const idle = blocked;
+      const idle = blocked || !!mg || droneOn;
       const lean = (Input.held('leanL') || Input.on('leanL')) ? -1 : (Input.held('leanR') || Input.on('leanR')) ? 1 : 0;
       const cmd = idle ? { mx: 0, mz: 0, yaw: this.yaw, pitch: this.pitch, jump: false, crouch: !!(me && me.crouch > 0.5 && Input.on('crouch')), walk: false, fire: false, ads: false, reload: false, slot: 0, swap: false, lean: 0 } : {
         mx: Input.mx, mz: Input.mz, yaw: this.yaw, pitch: this.pitch, jump: Input.held('jump'), crouch: Input.held('crouch') || Input.on('crouch'), walk: Input.held('walk'),
         fire: Input.held('fire') || this.autoFire(me), ads: Input.ads, reload: Input.take('reload'), slot: 0, swap: Input.take('swap') || Input.wheel !== 0, lean,
       };
+      if (this.carry && !idle) { cmd.walk = true; cmd.jump = false; cmd.fire = false; } // شايل شي ثگيل
       if (!idle) for (let s = 1; s <= 4; s++) if (Input.take('slot' + s)) cmd.slot = s;
       if (!idle && Input.take('grenade')) cmd.slot = me && me.slot === 4 ? (me.prevSlot || 1) : 4;
       if (this.queued.slot) { cmd.slot = this.queued.slot === (me && me.slot) && me.slot === 4 ? me.prevSlot : this.queued.slot; }
@@ -363,7 +434,7 @@ export class Game {
         case 'reset': this.resetWorldVis(); break;
         case 'npcHit': { const c = this.civs && this.civs[e.id]; if (c && e.p && !c.away) { const d = me ? [e.p[0] - me.pos[0], 0, e.p[2] - me.pos[2]] : [0, 0, 1]; this.fx.blood(e.p, d, 25, false, this.world); Audio.play('flesh', e.p); } break; }
         case 'npcDie': { const c = this.civs && this.civs[e.id]; if (!c) break; c.die(e.d); if (!e.silent) { setTimeout(() => { this.fx.bloodPool([c.n.x, c.n.y, c.n.z], this.world, 0.55 + Math.random() * 0.25); Audio.play('bodyFall', [c.n.x, 0.3, c.n.z]); }, 650); if (e.k === this.me) UI.toast('قتلت أحد أهل السوق!'); } break; }
-        case 'heal': if (e.k >= 3) { if (e.id === this.me) UI.toast(e.k === 3 ? `تاكل لبلبي حار… (باقي ${e.left ?? '?'})` : `تشرب استكان چاي… (باقي ${e.left ?? '?'})`); Audio.play('ui'); break; } if (e.id === this.me) this.vm.healT = e.k === 2 ? 4 : 2.4; Audio.play(e.k === 2 ? 'syringe' : 'bandage', e.id === this.me ? null : this.posOf(e.id)); break;
+        case 'heal': if (e.k >= 3) { if (e.id === this.me && !this.lobby) { const pr = FOOD_PRICE[e.k === 3 ? 'lablabi' : 'tea']; Economy.spend(pr); } if (e.id === this.me) { const pr = this.lobby ? 'مجاناً' : `${fmtIQD(FOOD_PRICE[e.k === 3 ? 'lablabi' : 'tea'])} · باقي ${e.left ?? '?'}`; UI.toast(e.k === 3 ? `تاكل لبلبي حار… (${pr})` : `تشرب استكان چاي… (${pr})`); } Audio.play('ui'); break; } if (e.id === this.me) this.vm.healT = e.k === 2 ? 4 : 2.4; Audio.play(e.k === 2 ? 'syringe' : 'bandage', e.id === this.me ? null : this.posOf(e.id)); break;
         case 'foodOut': if (e.id === this.me) UI.toast(e.k === 'lablabi' ? 'خلصت حصّتك من اللبلبي بهالمعركة' : 'خلصت حصّتك من الچاي بهالمعركة'); break;
         case 'foodFull': if (e.id === this.me) UI.toast('صحّتك كاملة، ما تحتاج'); break;
         case 'mark': this.wps.onMark(e, this.mp); break;
@@ -393,7 +464,7 @@ export class Game {
           Audio.play(win ? 'roundWin' : 'roundLose');
           break;
         }
-        case 'supply': if (e.id === this.me) { const r = Economy.settle(e); if (r) UI.showReward && UI.showReward(r); } break;
+        case 'supply': if (e.id === this.me) { const r = Economy.settle(e); if (r) UI.showReward && UI.showReward(r); if (this.sim && this.sim.online) setTimeout(() => { if (this.sim && this.sim.online && this.sim.setLoadout) { const L = UI.matchLoadout(this.sim.mode); this.sim.setLoadout(this.me, L); } }, 1500); } break; // القيم الجاي بنفس الجلسة: مخزون جديد
         case 'matchOver': setTimeout(() => { if (this.sim) { Input.exitLock(); UI.endScreen(this.sim, this.mp); } }, 400); break;
       }
     }
@@ -418,7 +489,7 @@ export class Game {
       if (!m || m.id !== p.char || m.team !== p.team) { if (m) this.scene.remove(m.root); m = new CharModel(p.char, p.team); this.models.set(p.id, m); this.scene.add(m.root); }
       const pv = this.prev.get(p.id) || [p.pos[0], p.pos[1], p.pos[2], p.crouch, p.lean || 0];
       m.root.position.set(pv[0] + (p.pos[0] - pv[0]) * alpha, pv[1] + (p.pos[1] - pv[1]) * alpha, pv[2] + (p.pos[2] - pv[2]) * alpha);
-      const firstPerson = p.id === this.me && p.alive;
+      const firstPerson = p.id === this.me && p.alive && !this.drone.on;
       m.root.visible = !firstPerson && (p.alive || m.dead !== undefined);
       if (!firstPerson) {
         const wid = sim.curId(p); m.setWeapon(wid, p.slot === 1 ? p.scope : null);
@@ -467,6 +538,7 @@ export class Game {
       HUD.spec('');
     } else this.spectate(dt);
     if (this.cine && this.quests.camera(dt)) { zoom = 1; this.scoped = false; }
+    if (this.drone.on) { this.drone.applyCamera(cam); zoom = 1; this.scoped = false; }
     // مجال الرؤية: الإعداد أفقي ثم يُحوّل إلى عمودي، والمنظار يقسّمه
     const aspect = innerWidth / innerHeight, hf = Settings.fov * Math.PI / 180;
     let vf = 2 * Math.atan(Math.tan(hf / 2) / aspect); vf = Math.max(vf, 0.9);
@@ -480,7 +552,10 @@ export class Game {
     this.updateWorldAnim(dt);
     if (this.talk) this.talk.update(dt);
     // الرسم: العالم ثم السلاح
-    this.draw(me && me.alive && !this.scoped && !this.lobby && !this.cine);
+    this.draw(me && me.alive && !this.scoped && !this.lobby && !this.cine && !this.drone.on);
+    if (this.mg && !this.mg.closed) this.mg.render(this.renderer);
+    if (this.carry) this.drawCarry();
+    if (this.wantSnap) { const f = this.wantSnap; this.wantSnap = null; let img = null; try { img = this.renderer.domElement.toDataURL('image/jpeg', 0.72); } catch (e) { } f(img); }
     HUD.update(dt, this);
     // الخرائط
     if ((this.miniT = (this.miniT || 0) - dt) <= 0) { this.miniT = 1 / 15; this.mapView.drawMini(document.getElementById('minimap'), this); }
@@ -494,9 +569,10 @@ export class Game {
   }
   draw(withVM) {
     const r = this.renderer;
-    if (this.post && this.post.enabled) { this.post.render(this.scene, this.camera, withVM ? this.vm : null); return; }
+    if (this.post && this.post.enabled) { this.post.render(this.scene, this.camera, withVM ? this.vm : null); if (UI.screen === 'loadout' || UI.screen === 'shop') this.renderShowcase(1 / 60); return; }
     r.autoClear = true; r.render(this.scene, this.camera);
     if (withVM) { r.autoClear = false; r.clearDepth(); r.render(this.vm.scene, this.vm.cam); r.autoClear = true; }
+    if (UI.screen === 'loadout' || UI.screen === 'shop') this.renderShowcase(1 / 60);
   }
   surfaceAt(pos) {
     const h = this.world.ray(pos[0], pos[1] + 0.3, pos[2], 0, -1, 0, 0.8, F.NOBULLET, {});
@@ -534,21 +610,11 @@ export class Game {
   renderMenu(dt) {
     this.fx.update(dt, this.camera); this.updateWorldAnim(dt); if (this.talk) this.talk.update(dt);
     const r = this.renderer;
-    const showGun = UI.screen === 'loadout' && this.menuWeaponId;
-    if (this.post && this.post.enabled && !showGun) { this.post.render(this.scene, this.camera, null); return; }
-    r.autoClear = true; r.render(this.scene, this.camera);
-    if (showGun) {
-      r.autoClear = false; r.clearDepth();
-      const vm = this.vm; vm.cam.aspect = innerWidth / innerHeight; vm.cam.fov = 50; vm.cam.updateProjectionMatrix();
-      vm.inspectT = -1; vm.update({ dt, speed: 0, onGround: true, ads: 0, scoped: false });
-      vm.gunHolder.position.set(-0.36, 0.0, -1.0); vm.gunHolder.scale.setScalar(1); vm.gunHolder.rotation.set(0.1, Math.PI / 2 + Math.sin(this.t * 0.6) * 0.45, 0);
-      if (vm.arms) for (const a of vm.arms) { a.upper.visible = a.fore.visible = false; }
-      vm.root.visible = true; r.render(vm.scene, vm.cam);
-      if (vm.arms) for (const a of vm.arms) { a.upper.visible = a.fore.visible = true; }
-      r.autoClear = true;
-    }
+    if (this.post && this.post.enabled) this.post.render(this.scene, this.camera, null);
+    else { r.autoClear = true; r.render(this.scene, this.camera); }
+    this.renderShowcase(dt);
   }
-  updateWorldAnim(dt) { if (this.onAnim) this.onAnim(dt, this.t); this.updateCivs(dt); this.updateCps(dt); this.doorsVis.update(dt); this.wps.update(dt); this.ambient.update(dt); this.quests.update(dt); }
+  updateWorldAnim(dt) { if (this.onAnim) this.onAnim(dt, this.t); this.updateCivs(dt); this.updateCps(dt); if (this.sim) this.drone.update(dt); this.doorsVis.update(dt); this.wps.update(dt); this.ambient.update(dt); this.quests.update(dt); }
   // علامات نقاط السيطرة بالعالم: حلقة على الأرض بلون المسيطر وعمود ضوء خفيف وحرف فوقها
   updateCps(dt) {
     const C = (this.sim && this.sim.cps) || [], me = this.mp;

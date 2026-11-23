@@ -48,8 +48,9 @@ export class MapView {
     if (p.team === me.team) return true;
     const d = Math.hypot(p.pos[0] - me.pos[0], p.pos[2] - me.pos[2]);
     const sp = Math.hypot(p.vel[0], p.vel[2]);
-    if (d < 24 && sp > 2.8 && p.crouch < 0.5) return true;
+    // العدو يبين بس لمّا يرمي (بلا كاتم)، أو إذا كشفه الدرون
     const s = shotAt.get(p.id); if (s && !s.q && now - s.t < 3) return true;
+    const dr = this.g && this.g.drone && this.g.drone.seen.get(p.id); if (dr !== undefined && this.g.t - dr < 8) return true;
     return false;
   }
   cpMark(x, X, Z, r, c, my, fs) {
@@ -105,7 +106,7 @@ export class MapView {
     const now = g.t;
     for (const p of g.sim.players.values()) {
       if (p.id === g.me || !p.alive) continue;
-      if (!this.revealed(p, me, g.shotAt, now)) continue;
+      this.g = g; if (!this.revealed(p, me, g.shotAt, now)) continue;
       const dx = (p.pos[0] - me.pos[0]) * sc + S / 2, dz = (p.pos[2] - me.pos[2]) * sc + S / 2;
       const edge = dx < 6 || dz < 6 || dx > S - 6 || dz > S - 6;
       const X = Math.max(6, Math.min(S - 6, dx)), Z = Math.max(6, Math.min(S - 6, dz));
@@ -145,7 +146,7 @@ export class MapView {
       const now = g.t;
       for (const p of g.sim.players.values()) {
         if (!p.alive || p.id === g.me) continue;
-        if (!this.revealed(p, me, g.shotAt, now)) continue;
+        this.g = g; if (!this.revealed(p, me, g.shotAt, now)) continue;
         if (p.team === me.team) this.arrow(x, this.px(p.pos[0]), this.pz(p.pos[2]), p.yaw, TEAMS[p.team].color, 13);
         else { x.fillStyle = '#ff3b3b'; x.beginPath(); x.arc(this.px(p.pos[0]), this.pz(p.pos[2]), 10, 0, Math.PI * 2); x.fill(); }
       }

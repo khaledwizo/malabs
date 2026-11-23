@@ -66,7 +66,8 @@ export class Waypoints {
   update(dt) {
     this.t += dt;
     const g = this.g, me = g.mp, cam = g.camera.position;
-    const put = (b, m) => { if (!m) { b.hide(); return; } b.set(m.x, m.y ?? 0, m.z); b.update(this.t, Math.hypot(m.x - cam.x, m.z - cam.z)); };
+    const hideAll = g.cine || g.mg; // بالمشهد السينمائي واللعبة ما نبيّن العلامات
+    const put = (b, m) => { if (!m || hideAll) { b.hide(); return; } b.set(m.x, m.y ?? 0, m.z); b.update(this.t, Math.hypot(m.x - cam.x, m.z - cam.z)); };
     put(this.b.mine, this.mine); put(this.b.quest, this.quest);
     const seen = new Set();
     for (const [id, m] of this.team) { seen.add(id); let b = this.tb.get(id); if (!b) { b = new Beacon(g.scene, WP_COL.team); this.tb.set(id, b); } put(b, m); }
