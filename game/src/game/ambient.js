@@ -1,4 +1,4 @@
-// حياة السوق باللوبي: مارّة يتمشّون، أصحاب يلتقون عالچايخانة ويطلبون چاي، وخرفان أبو فرحان ترعى
+// حياة السوق باللوبي: مارّة يتمشّون، أصحاب يلتقون عالمقهى ويطلبون شاي، وخرفان أبو فرحان ترعى
 // كلها مرئية فقط (ما تدخل المحاكاة) — لذلك تظهر باللوبي بس
 import * as THREE from 'three';
 import { Civilian } from './civilians.js';
@@ -88,11 +88,24 @@ export class Ambient {
     if (this.friends) for (const o of this.friends.all) o.remove(); this.friends = null;
   }
   // يضيف شخص مؤقّت (مثل مجاهدي الفلوجة بالمهمة)
+  // رمي قريب: المارّة يركضون لأقرب باب ويتخبّون، ويرجعون بعد شوية
+  flee(pos) {
+    const doors = this.g.world.doors || [];
+    for (const w of this.walkers) {
+      if (!w.stroll || w.hideT > 0) continue;
+      if (Math.hypot(w.n.x - pos[0], w.n.z - pos[2]) > 24) continue;
+      let best = null, bd = 45; for (const d of doors) { const dd = Math.hypot(d.x - w.n.x, d.z - w.n.z); if (dd < bd) { bd = dd; best = d; } }
+      if (!best) continue;
+      w.sp0 = w.sp0 || w.sp; w.sp = 4.6; w.hideT = 40 + Math.random() * 25;
+      w.goTo(best.x, best.z, () => { w.hidden = true; });
+    }
+  }
   spawn(look, x, z, o) { const w = new Walker(this.g, look, x, z, o); this.walkers.push(w); return w; }
   update(dt) {
     if (!this.on) return;
     const cam = this.g.camera.position, R = this.R;
     for (const w of this.walkers) {
+      if (w.hideT > 0) { if ((w.hideT -= dt) <= 0) { w.hidden = false; w.sp = w.sp0 || w.sp; } else if (w.hidden) continue; }
       if (w.stroll && !w.path) { if ((w.wait -= dt) <= 0) { const s = SPOTS[Math.floor(R() * SPOTS.length)]; w.goTo(s[0] + (R() - 0.5) * 3, s[1] + (R() - 0.5) * 3, () => { w.wait = 2 + R() * 8; }); } }
       w.update(dt, cam);
     }
@@ -100,7 +113,7 @@ export class Ambient {
     for (const s of this.sheep) if (Math.hypot(s.g.position.x - cam.x, s.g.position.z - cam.z) < 50) s.update(dt);
     this.updateFriends(dt);
   }
-  // الأصحاب: كل واحد يجي من صوب، يتلاقون عالطاولة، يسلّمون، يگعدون ويطلبون چاي، وبعدين يمشون
+  // الأصحاب: كل واحد يجي من صوب، يتلاقون عالطاولة، يسلّمون، يگعدون ويطلبون شاي، وبعدين يمشون
   updateFriends(dt) {
     const g = this.g, talk = g.talk, F = this.friends;
     const say = (c, t, d = 2.6) => { if (talk) { talk.bubble(c, t, d); c.say(d); } };
@@ -134,7 +147,7 @@ export class Ambient {
 }
 
 const FRIEND_SETS = [
-  { names: ['أبو كرم', 'أبو جاسم'], looks: ['citizen', 'elder'], lines: ['السلام عليكم يا أبو جاسم!', 'وعليكم السلام هلا بيك أبو كرم، شلونك؟', 'أبو سلام! استكانين چاي من إيدك الحلوة.', 'تدلّلون، هسّه يجي الچاي المهيّل!', 'يلّا نشوفك باچر بنفس المكان.'] },
-  { names: ['علي', 'مصطفى'], looks: ['youth', 'citizen'], lines: ['هلا مصطفى! صارلي ساعة أدوّر عليك!', 'هلا علوّي، الطريق زحمة يمعود.', 'أبو سلام، ثنين چاي، واحد بلا شكر.', 'من عيوني، تدلّلون شباب!', 'يلّا، الله وياك، أشوفك باچر.'] },
-  { names: ['حجي رزاق', 'حجي ناصر'], looks: ['elder', 'elder'], lines: ['السلام عليكم ورحمة الله.', 'وعليكم السلام، هلا بالغالي، تفضّل اگعد.', 'أبو سلام، چاي مهيّل الله يخلّيك.', 'على راسي حجي، هسّه.', 'الله ويّاك، سلّملي على أهلك.'] },
+  { names: ['أبو كرم', 'أبو جاسم'], looks: ['citizen', 'elder'], lines: ['السلام عليكم يا أبو جاسم!', 'وعليكم السلام هلا بيك أبو كرم، شلونك؟', 'أبو سلام! استكانين شاي من إيدك الحلوة.', 'تدلّلون، هسّه يجي الشاي المهيّل!', 'يلّا نشوفك باچر بنفس المكان.'] },
+  { names: ['علي', 'مصطفى'], looks: ['youth', 'citizen'], lines: ['هلا مصطفى! صارلي ساعة أدوّر عليك!', 'هلا علوّي، الطريق زحمة يمعود.', 'أبو سلام، ثنين شاي، واحد بلا شكر.', 'من عيوني، تدلّلون شباب!', 'يلّا، الله وياك، أشوفك باچر.'] },
+  { names: ['حجي رزاق', 'حجي ناصر'], looks: ['elder', 'elder'], lines: ['السلام عليكم ورحمة الله.', 'وعليكم السلام، هلا بالغالي، تفضّل اگعد.', 'أبو سلام، شاي مهيّل الله يخلّيك.', 'على راسي حجي، هسّه.', 'الله ويّاك، سلّملي على أهلك.'] },
 ];

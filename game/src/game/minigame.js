@@ -103,7 +103,7 @@ export class MiniGame {
     if (this.kn >= 16) this.finish();
   }
 
-  // ================= الغرف (چاي، حمّص، سماد، طحين، خبز) =================
+  // ================= الغرف (شاي، حمّص، سماد، طحين، خبز) =================
   build_scoop(d) {
     const R = this.root, c = new THREE.Color(d.color || 0x3a2416);
     const sack = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.15, 0.24, 14, 1, true), S(0xc8b48a, { side: THREE.DoubleSide, roughness: 1 })); sack.position.set(-0.17, 0, -0.05); R.add(sack);

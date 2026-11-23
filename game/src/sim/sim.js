@@ -2,6 +2,7 @@
 // لا رسوميات هنا — نفس الكود يعمل على هاتف المضيف (في الخلفية) وفي اللعب المحلي ضد البوتات
 import { CLS_AMMO, cleanSupply } from './weapons.js';
 import { WEAPONS, NADES, MODES, validLoadout, defaultLoadout, withAtt } from './weapons.js';
+const GAS_BLAST = { radius: 7.5, dmg: 190 }; // انفجار قنينة الغاز أقوى من الرمانة
 import { PH, stepMove, eyeHeight } from './move.js';
 import { raySphere, rayBox, F, MAT } from '../world/collide.js';
 import { Bot } from './bot.js';
@@ -45,10 +46,14 @@ export class Sim {
     this.npcs.forEach((n, i) => { n.alive = true; n.hp = 70; const w = (W.npcs || [])[i]; if (w && w.box >= 0 && !n.away) W.restore(w.box); });
     if (ev) this.events.push({ t: 'reset' });
   }
-  hitProp(pid, dmg, at) {
+  hitProp(pid, dmg, at, by) {
     const st = this.props[pid]; if (!st || !st.alive) return;
     st.hp -= dmg;
-    if (st.hp <= 0) { st.alive = false; for (const b of this.w.props[pid].boxes) this.w.disable(b); this.events.push({ t: 'break', id: pid, k: this.w.props[pid].kind, p: at || this.w.props[pid].c }); }
+    if (st.hp <= 0) {
+      st.alive = false; const P = this.w.props[pid]; for (const b of P.boxes) this.w.disable(b); this.events.push({ t: 'break', id: pid, k: P.kind, p: at || P.c });
+      // قنينة غاز: انفجار بعد لحظة (المطلق يتحمّل الضرر)
+      if (P.kind === 'gas' && P.c && !this.pred) this.nades.push({ id: this.nid++, kind: 'gas', owner: by ?? -1, team: -1, pos: [P.c[0], P.c[1] + 0.1, P.c[2]], vel: [0, 0, 0], t: 0, fuse: 0.08 + Math.random() * 0.12, rest: 0 });
+    }
   }
   // صناديق إصابة شخص من أهل السوق (جالس أو واقف)
   hitNpc(n, ox, oy, oz, d, maxT) {
@@ -175,7 +180,7 @@ export class Sim {
     this.events.push({ t: 'door', i, open, by: by ?? -1 });
     return true;
   }
-  // زر «استعمال»: أقرب باب، وإلا بسطة لبلبي أو چاي
+  // زر «استعمال»: أقرب باب، وإلا بسطة لبلبي أو شاي
   use(p) {
     let bd = 2.3, bi = -1;
     (this.w.doors || []).forEach((d, i) => { const dd = Math.hypot(d.x - p.pos[0], d.z - p.pos[2]); if (dd < bd && Math.abs(p.pos[1] - d.y) < 2) { bd = dd; bi = i; } });
@@ -244,6 +249,7 @@ export class Sim {
   }
   start() {
     this.round = 0; this.score = [0, 0]; this.matchOver = false; this.winner = -1;
+    for (const p of this.players.values()) p.droneUsed = false;
     this.resetWorld(true);
     for (const p of this.players.values()) {
       p.kills = p.deaths = p.assists = p.dmgDone = p.hs = p.kh = p.kb = 0; p.food = { e: 3, t: 8 };
@@ -462,7 +468,7 @@ export class Sim {
       if (!wh) return { end: [x + d[0] * wt, y + d[1] * wt, z + d[2] * wt], kind: 'none', n: [0, 0, 0], mat: -1 };
       // جسم قابل للكسر (صندوق، جرّة، شاهد قبر…): يتلقى الضرر
       const pid = this.w.propOf ? this.w.propOf[wh.i] : -1;
-      if (pid >= 0) this.hitProp(pid, wd.dmg * dmgMul * (wd.pellets ? 1 : 1), [wh.x, wh.y, wh.z]);
+      if (pid >= 0) this.hitProp(pid, wd.dmg * dmgMul * (wd.pellets ? 1 : 1), [wh.x, wh.y, wh.z], p.id);
       const cost = PEN_COST[wh.mat] ?? 4;
       const th = this.w.thickness(wh.i, wh.x, wh.y, wh.z, d[0], d[1], d[2]);
       const need = (wh.flags & F.THIN ? cost * 0.5 : cost) * Math.min(th, 2);
@@ -526,6 +532,15 @@ export class Sim {
     }
   }
   // ---------- القنابل ----------
+  // رمانة الدرون: مرة وحدة بكل قيم، ضمن مدى الدرون فوق اللاعب
+  dropNade(id, pos) {
+    const p = this.players.get(id); if (!p || !p.alive || p.droneUsed || !Array.isArray(pos)) return;
+    const [x, y, z] = pos.map(Number); if (![x, y, z].every(isFinite)) return;
+    if (Math.hypot(x - p.pos[0], z - p.pos[2]) > 92 || y < p.pos[1] - 2 || y > p.pos[1] + 46 || y < 0.4) return;
+    p.droneUsed = true;
+    const n = { id: this.nid++, kind: 'frag', owner: p.id, team: p.team, pos: [x, y, z], vel: [0, -2, 0], t: 0, fuse: Math.min(NADES.frag.fuse, 1.4 + y * 0.03), rest: 0, drone: 1 };
+    this.nades.push(n); this.events.push({ t: 'dnade', id: p.id, nid: n.id, p: [x, y, z] });
+  }
   handleNade(p, c, dt) {
     const kind = p.inv[4][0];
     if (!kind) { p.slot = p.prevSlot || 2; return; }
@@ -567,19 +582,19 @@ export class Sim {
     for (let i = this.fires.length - 1; i >= 0; i--) { const f = this.fires[i]; f.t += dt; if (f.t > f.life || this.smokes.some(s => Math.hypot(s.x - f.x, s.z - f.z) < s.r)) this.fires.splice(i, 1); }
   }
   explode(n) {
-    const o = this.players.get(n.owner), [x, y, z] = n.pos, N = NADES[n.kind];
-    this.events.push({ t: 'boom', kind: n.kind, p: [x, y, z], nid: n.id });
-    if (n.kind === 'frag') {
+    const gas = n.kind === 'gas', kind = gas ? 'frag' : n.kind, o = this.players.get(n.owner), [x, y, z] = n.pos, N = gas ? GAS_BLAST : NADES[kind];
+    this.events.push({ t: 'boom', kind, p: [x, y, z], nid: n.id, gas: gas ? 1 : 0 });
+    if (kind === 'frag') {
       for (const q of this.players.values()) {
         if (!q.alive) continue;
         const c = [q.pos[0], q.pos[1] + 1, q.pos[2]], d = Math.hypot(c[0] - x, c[1] - y, c[2] - z);
         if (d > N.radius) continue;
         if (!this.w.los(x, y + 0.2, z, c[0], c[1], c[2])) continue;
         const dmg = N.dmg * Math.pow(1 - d / N.radius, 1.3);
-        if (o && q.team === o.team && q !== o) continue;
-        this.damage(q, o, dmg, 'frag', false, false, false, 0.6, 'chest', [(c[0] - x) / (d || 1), 0.4, (c[2] - z) / (d || 1)]);
+        if (o && q.team === o.team && q !== o && !gas) continue;
+        this.damage(q, o, dmg, gas ? 'gas' : 'frag', false, false, false, 0.6, 'chest', [(c[0] - x) / (d || 1), 0.4, (c[2] - z) / (d || 1)]);
       }
-      (this.w.props || []).forEach((pr, i) => { if (!this.props[i].alive) return; const dd = Math.hypot(pr.c[0] - x, pr.c[1] - y, pr.c[2] - z); if (dd < N.radius * 0.8) this.hitProp(i, N.dmg * 1.5 * (1 - dd / N.radius), pr.c); });
+      (this.w.props || []).forEach((pr, i) => { if (!this.props[i].alive) return; const dd = Math.hypot(pr.c[0] - x, pr.c[1] - y, pr.c[2] - z); if (dd < N.radius * 0.8) this.hitProp(i, N.dmg * 1.5 * (1 - dd / N.radius), pr.c, n.owner); });
       (this.w.npcs || []).forEach((nn, i) => { if (!nn.kill || !this.npcs[i].alive || this.npcs[i].away) return; const dd = Math.hypot(nn.x - x, nn.z - z); if (dd < N.radius && this.w.los(x, y + 0.2, z, nn.x, nn.y + 1, nn.z)) this.damageNpc(i, o, N.dmg * (1 - dd / N.radius), [(nn.x - x) / (dd || 1), 0.3, (nn.z - z) / (dd || 1)], [nn.x, nn.y + 1, nn.z]); });
     } else if (n.kind === 'smoke') this.smokes.push({ x, y, z, r: N.radius, t: 0, life: N.life });
     else if (n.kind === 'molotov') {

@@ -35,6 +35,8 @@ onmessage = async ev => {
       rep = setInterval(report, 1000);
     } else if (!srv) return;
     else if (m.t === 'pump') srv.loopOnce();
+    // معركة منقولة من هاتف لاعب: نبني نفس الحالة (اللاعبين والبوتات بأسمائهم ومواقعهم والنتيجة والوقت)
+    else if (m.t === 'resume') { if (!srv.resumed && m.R) { srv.resume = m.R; srv.newSim(); } }
     else if (m.t === 'rtcEv') srv.link && srv.link.proxyEvent && srv.link.proxyEvent(m.e, m.from, m.x);
     else if (m.t === 'kick') { for (const [cid, cl] of srv.clients) if (cl.u === m.u) { srv.link.sendTo(cid, { k: 'err', msg: m.msg || 'أخرجك مدير السيرفر' }, true); srv.remove(cid); } }
     else if (m.t === 'stop') { clearInterval(rep); srv.stop(); srv = null; post({ t: 'stopped' }); setTimeout(() => close(), 300); }

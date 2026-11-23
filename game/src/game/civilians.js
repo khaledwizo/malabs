@@ -16,6 +16,15 @@ const _qa = new THREE.Quaternion(), _qb = new THREE.Quaternion(), _qc = new THRE
 const SKINS = ['#c48a64', '#b98060', '#d69670', '#a87452', '#c99272'];
 // ألوان ثياب أهل المهن الجدد
 const LOOKC = { lablabi: [228, 226, 218], shepherd: [112, 88, 62], tourist: [196, 176, 134], repair: [72, 84, 98], elder2: [240, 238, 232], citizen: [150, 140, 122], youth: [58, 70, 92], gravedigger: [84, 76, 64], spice: [124, 72, 40], pharmacist: [246, 248, 246], baker: [236, 226, 204] };
+// وضعيات الصلاة (على طريقة السنّة): الذراعان [أعلى x، أعلى z، الساعد x]، الانحناء، الرأس، طول الثوب وارتفاع الصدر
+const PRAY = {
+  stand: { a: [[-0.35, 0.3, -1.9], [-0.35, -0.3, -1.9]], cx: 0, hx: 0.18, s: 1, cy: 1 },
+  raise: { a: [[-0.4, -0.6, -2.45], [-0.4, 0.6, -2.45]], cx: 0, hx: 0, s: 1, cy: 1 },
+  ruku: { a: [[-1.25, 0.08, -0.1], [-1.25, -0.08, -0.1]], cx: 1.5, hx: 0.15, s: 1, cy: 1 },
+  sujud: { a: [[-2.3, 0.4, -0.55], [-2.3, -0.4, -0.55]], cx: 1.9, hx: 0.25, s: 0.42, cy: 0.42 },
+  sit: { a: [[-0.9, 0.12, -0.55], [-0.9, -0.12, -0.55]], cx: 0.05, hx: 0.15, s: 0.55, cy: 0.55 },
+};
+PRAY.salamR = { ...PRAY.sit, hy: 1.1 }; PRAY.salamL = { ...PRAY.sit, hy: -1.1 };
 const ROBES = [[232, 230, 224], [196, 192, 182], [128, 110, 88], [86, 96, 104], [150, 138, 118], [70, 62, 54]];
 
 export class Civilian {
@@ -86,10 +95,10 @@ export class Civilian {
       this.arms.push({ up, fo, s });
     }
     if (sit && n.look !== 'tea' && R() < 0.35) { const gl = mesh(geo('chai', () => new THREE.CylinderGeometry(0.025, 0.02, 0.07, 8)), std('chai', { color: 0x9a3a10, roughness: 0.15, transparent: true, opacity: 0.85 }), 0, -0.31, -0.03, this.arms[1].fo); this.cup = gl; }
-    // أدوات المهنة: إبريق الچاي، المسبحة، مرشّة الماء
+    // أدوات المهنة: إبريق الشاي، المسبحة، مرشّة الماء
     const Rh = this.arms[1].fo;
     if (n.look === 'tea' && !sit) {
-      // الچايچي: قوري فرفوري باليمنى (يمسكه من الإذن) وصينية استكانات باليسرى — يبقيان أفقيين مهما تحرّكت اليد
+      // بيّاع الشاي: قوري فرفوري باليمنى (يمسكه من الإذن) وصينية استكانات باليسرى — يبقيان أفقيين مهما تحرّكت اليد
       const porc = std('porc', { color: 0xf3f0ea, roughness: 0.25 }), blue = std('porcB', { color: 0x2d5ba6, roughness: 0.3 });
       const pot = this.pot = new THREE.Group(); pot.position.set(0, -0.3, 0); Rh.add(pot);
       const body = mesh(geo('qBody', () => { const P = []; for (let i = 0; i <= 10; i++) { const t = i / 10; P.push(new THREE.Vector2(0.035 + Math.sin(t * Math.PI) * 0.03 - t * 0.012, t * 0.1)); } return new THREE.LatheGeometry(P, 14); }), porc, 0, -0.1, -0.07, pot);
@@ -132,7 +141,7 @@ export class Civilian {
       for (const s2 of [-1, 1]) { const tr = mesh(roundBox(0.035, 0.4, 0.02, 0.008), gm, s2 * 0.11, 0.33, -0.14, chest); tr.rotation.z = s2 * 0.12; }
     }
     mergeChildren(body);
-    // أصحاب المحال (والچايچي وزبائنه) يرجعون لبيوتهم بالليل؛ غيرهم يحملون مظلّة بالمطر
+    // أصحاب المحال (وبيّاع الشاي وزبائنه) يرجعون لبيوتهم بالليل؛ غيرهم يحملون مظلّة بالمطر
     this.shop = ['vendor', 'nursery', 'tea', 'spice', 'pharmacist', 'lablabi', 'repair', 'baker'].includes(n.look);
     this.umbOK = !this.shop && n.pose !== 'pray' || (n.look === 'tea' && sit);
     this.umbSeed = R();
@@ -225,7 +234,7 @@ export class Civilian {
           else if (this.beads) { P[1][2] = -0.95 + Math.sin(t * 2.4) * 0.12; P[1][0] = -0.6; } // يعدّ حبّات المسبحة
         } else {
           const per = 7 + (n.id % 5), ph = (t + n.id * 1.7) % per, w = ph < 1.8 ? Math.sin(ph / 1.8 * Math.PI) : 0;
-          if (n.look === 'tea') { P[1][0] = -0.3 - 0.55 * w; P[1][1] = -0.3 + 0.12 * w; P[1][2] = -1.1 + 0.2 * w; P[0][0] = -0.3 - 0.2 * w; this.pour = 1.0 * w; } // يصبّ الچاي من القوري
+          if (n.look === 'tea') { P[1][0] = -0.3 - 0.55 * w; P[1][1] = -0.3 + 0.12 * w; P[1][2] = -1.1 + 0.2 * w; P[0][0] = -0.3 - 0.2 * w; this.pour = 1.0 * w; } // يصبّ الشاي من القوري
           else if (n.look === 'vendor') { P[0][0] -= 0.45 * w; P[1][0] -= 0.55 * w; P[0][2] += 0.6 * w; P[1][2] += 0.55 * w; cx = 0.18 * w; } // يرتّب البضاعة
           else if (n.look === 'nursery') { P[1][0] = -0.35 - 0.5 * w; P[1][2] = -1.0 + 0.5 * w; if (this.can) this.can.rotation.x = 0.8 * w; } // يسقي الشتلات
           else if (n.look === 'fisher') { if (w > 0) { P[1][0] = -2.0 * w + 0.42 * (1 - w); P[1][1] = -0.3 * w; P[1][2] = -1.9 * w - 1.05 * (1 - w); hx = -0.1 * w; } } // يظلّل عينيه ويتأمّل دجلة
@@ -249,16 +258,18 @@ export class Civilian {
       if (this.throwT !== undefined) { this.throwT += dt; const T = this.throwT; if (T < 0.45) { const e = T / 0.45; P[1] = [-1.1 - 1.6 * e, -0.15 - 0.2 * e, -1.5 + 0.2 * e]; } else if (T < 0.7) { const e = (T - 0.45) / 0.25; P[1] = [-2.7 + 1.9 * e, -0.35, -1.3 + 1.1 * e]; } else P[1] = [-0.8, -0.3, -0.2]; }
       // المشي (المارّة وأهل المهام): تأرجح الذراعين وهزّة الجسم
       if (this.walkSp > 0.05) { const ph = (this.walkPh = (this.walkPh || 0) + dt * this.walkSp * 5.2), w = Math.min(1, this.walkSp); if (!(this.talkT > 0)) { P[0][0] += Math.sin(ph) * 0.38 * w; P[1][0] -= Math.sin(ph) * 0.38 * w; } this.root.position.y = n.y + Math.abs(Math.sin(ph)) * 0.035 * w; sway = Math.sin(ph) * 0.025 * w; }
-      // يجلس على الطاولة (الأصحاب بالچايخانة)
+      // يجلس على الطاولة (الأصحاب بالمقهى)
       // الخوف من الرمي: ينحني ويغطّي رأسه
       if (this.cower > 0) { const e = Math.min(1, this.cower * 2, (this.cowerMax - this.cower) * 4 + 0.2); P[0] = [-2.6 * e + P[0][0] * (1 - e), 0.35 * e + P[0][1] * (1 - e), -1.7 * e + P[0][2] * (1 - e)]; P[1] = [-2.6 * e + P[1][0] * (1 - e), -0.35 * e + P[1][1] * (1 - e), -1.7 * e + P[1][2] * (1 - e)]; cx = 0.5 * e; hx = 0.5 * e; }
       this.chest.rotation.y += (chestY - this.chest.rotation.y) * k;
     }
+    if (this.prayP && !this.sit) { const Q = PRAY[this.prayP] || PRAY.stand; P[0] = Q.a[0].slice(); P[1] = Q.a[1].slice(); cx = Q.cx; hx = Q.hx; hy = Q.hy || 0; this.look = 0; }
     const kk = this.throwT !== undefined && this.throwT < 0.8 ? 1 : k;
     this.arms.forEach((a, i) => { const k = i === 1 ? kk : kk === 1 ? Math.min(1, dt * 7) : kk; a.up.rotation.x += (-P[i][0] - a.up.rotation.x) * k; a.up.rotation.z += (P[i][1] - a.up.rotation.z) * k; a.fo.rotation.x += (-P[i][2] - a.fo.rotation.x) * k; });
     this.head.rotation.x += (-hx - this.head.rotation.x) * k; this.head.rotation.y += (hy - this.head.rotation.y) * k; // hx موجب = يطأطئ
     this.chest.rotation.x += (-cx - this.chest.rotation.x) * k; // cx موجب = ينحني للأمام
     if (!this.sit) this.root.rotation.z = sway;
+    if (!this.sit && (this.prayP || this.body.scale.y !== 1)) { const Q = PRAY[this.prayP] || { s: 1, cy: 1 }, kp = Math.min(1, dt * 6); this.body.scale.y += (Q.s - this.body.scale.y) * kp; this.chest.position.y += (Q.cy - this.chest.position.y) * kp; if (!this.prayP && Math.abs(this.body.scale.y - 1) < 0.01) { this.body.scale.y = 1; this.chest.position.y = 1; } }
     if (this.pot || this.tray) { if (!(this.talkT > 0 || this.wave > 0) || n.look !== 'tea') this.pour = this.pour || 0; else this.pour = 0; this.levelHeld(); }
     if (this.umb && this.umb.visible) { this.root.updateMatrixWorld(true); const qr = this.root.getWorldQuaternion(_qa); this.umb.quaternion.copy(this.umb.parent.getWorldQuaternion(_qb).invert().multiply(qr)).multiply(_qc.setFromAxisAngle(_X, -0.12)); }
   }

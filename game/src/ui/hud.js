@@ -43,9 +43,9 @@ export const HUD_HTML = `
   <div id="tl"><div class="hb" id="hPause">${I.pause}</div><div class="hb" id="hScore">${I.score}</div><div class="hb" id="hNvg">NV</div><div class="hb" id="hDrone">🛸<i id="hDroneCd"></i></div><div id="fps"></div><div id="net"></div></div>
   <div id="feed"></div>
   <div id="qTrack"></div>
-  <div id="lobbyBar"><b id="lobbyMoney"></b><small>سوق المجاهدين · لوبي خاص</small></div>
+  <div id="lobbyBar" title="ثروتك"><i>💰</i><b id="lobbyMoney"></b></div>
   <div id="mg"><div class="vf"><i></i><i></i><i></i><i></i><b>●REC</b></div><div class="mgbox"><b class="mgt"></b><p class="mgi"></p><div class="mgp"><i></i></div><div class="mgw"><span>0</span><em></em><i></i><b>0 غم</b></div><div class="mgb"></div></div><div class="mgm"></div><div class="fl"></div></div>
-  <div id="droneHud"><div class="dvf"><i></i><i></i><i></i><i></i></div><b class="rec">● REC · درون استطلاع</b><div class="dinfo"><span id="dT">30</span><span id="dAlt">0م</span><span id="dDist">0م</span></div><small>الجويستك للحركة · اسحب للتلفّت · القفز يصعد · الانحناء ينزل</small><button class="btn" id="dBack">↩ رجّع الدرون</button></div>
+  <div id="droneHud"><div class="dvf"><i></i><i></i><i></i><i></i></div><b class="rec">● REC · درون استطلاع</b><div class="dinfo"><span id="dT">30</span><span id="dAlt">0م</span><span id="dDist">0م</span></div><small>الجويستك للحركة · اسحب للتلفّت · القفز يصعد · الانحناء ينزل</small><button class="btn" id="dBack">↩ رجّع الدرون</button><button class="btn" id="dBomb">💣 ارمِ الرمانة</button></div>
   <div id="useHint"><kbd>F</kbd><span id="useHintL"></span></div>
   <div id="cine"><i class="lb t"></i><i class="lb b"></i><div class="cbox"><img class="cimg" alt=""><b class="cname"></b><p class="ctext"></p><div class="copts"></div><div class="cact"><i></i><em></em><b></b></div><small class="ctap">اضغط للتكملة</small></div></div>
   <div id="mini"><canvas id="minimap" width="256" height="256"></canvas><span class="mlab">الخريطة</span></div>
@@ -116,6 +116,8 @@ export const HUD = {
     Input.bindTouch($('touch'), controls, $('stick'), $('knob'));
     // الفأرة على سطح المكتب
     $('dBack').addEventListener('click', e => { e.stopPropagation(); game.toggleDrone(); });
+    $('dBomb').addEventListener('click', e => { e.stopPropagation(); if (game.drone.drop()) HUD.toast('انرمت الرمانة!'); });
+    $('dBomb').addEventListener('touchstart', e => { e.stopPropagation(); }, { passive: true });
     for (const id of ['hPause', 'hNvg', 'hDrone', 'hScore', 'mini', 'rsLoad', 'warmLoad']) $(id).addEventListener('click', e => { if (Input.isTouch) return; e.stopPropagation(); controls.find(c => c.id === id).tap(); });
     slotsEl.addEventListener('click', e => { if (Input.isTouch) return; const b = e.target.closest('[data-slot]'); if (b) game.queueSlot(+b.dataset.slot); });
     this.layout();
@@ -187,7 +189,7 @@ export const HUD = {
     $('bBand').classList.toggle('dis', !md.b || hp >= mx); $('bSyr').classList.toggle('dis', !md.s || hp >= mx);
     const healing = me.alive && me.healT > 0;
     $('healov').classList.toggle('on', healing);
-    if (healing) { const tot = me.healK === 2 ? 4 : me.healK === 3 ? 6 : me.healK === 4 ? 3 : 2.4, k = 1 - me.healT / tot; $('healArc').style.strokeDashoffset = (170 * (1 - k)).toFixed(1); $('healTx').textContent = (me.healK === 2 ? 'إبرة' : me.healK === 3 ? 'لبلبي' : me.healK === 4 ? 'چاي' : 'ضمادة') + ' ' + me.healT.toFixed(1); }
+    if (healing) { const tot = me.healK === 2 ? 4 : me.healK === 3 ? 6 : me.healK === 4 ? 3 : 2.4, k = 1 - me.healT / tot; $('healArc').style.strokeDashoffset = (170 * (1 - k)).toFixed(1); $('healTx').textContent = (me.healK === 2 ? 'إبرة' : me.healK === 3 ? 'لبلبي' : me.healK === 4 ? 'شاي' : 'ضمادة') + ' ' + me.healT.toFixed(1); }
     // تكبير المنظار المتغيّر
     const zs = me.slot === 1 && me.scope && SCOPES[me.scope] && SCOPES[me.scope].zoom && g.scoped;
     $('bZoomIn').classList.toggle('show', !!zs); $('bZoomOut').classList.toggle('show', !!zs);
@@ -250,7 +252,7 @@ export const HUD = {
   // ---------- الإشعارات ----------
   feed(k, v, w, hs, wall, mine) {
     const el = $('feed'), row = document.createElement('div');
-    const wn = w === 'fall' ? 'سقوط' : w === 'frag' ? 'رمّانة' : w === 'molotov' ? 'نار' : WEAPONS[w] ? WEAPONS[w].name : '';
+    const wn = w === 'fall' ? 'سقوط' : w === 'gas' ? 'قنينة غاز' : w === 'frag' ? 'رمّانة' : w === 'molotov' ? 'نار' : WEAPONS[w] ? WEAPONS[w].name : '';
     const kt = k ? `<b class="t${k.team}">${esc(k.name)}</b>` : '';
     row.className = 'kf' + (mine ? ' mine' : '');
     row.innerHTML = `${kt}<span class="w">${esc(wn)}${hs ? ' <i class="hs">◎</i>' : ''}${wall ? ' <i>⟂</i>' : ''}</span><b class="t${v.team}">${esc(v.name)}</b>`;

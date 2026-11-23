@@ -201,7 +201,10 @@ export function buildDistricts(B, H) {
       for (let k = 0; k < 3; k++) { const a = k * 2.1; B.geo(() => new THREE.CylinderGeometry(0.07, 0.11, 0.24, 10), T(x0 + 3.2 + Math.cos(a) * 0.28, 0.22, dz + Math.sin(a) * 0.28), 'brass'); B.geo(() => new THREE.ConeGeometry(0.07, 0.12, 10), T(x0 + 3.2 + Math.cos(a) * 0.28, 0.4, dz + Math.sin(a) * 0.28), 'brass'); }
       // اللوحة بالكوفي على الجدار المقابل للباب
       signs.push({ text: 'الشيخ فاتح الرفاعي', x: x0 + t + 0.02, y: 2.7, z: dz, ry: PI / 2, w: 3.6, h: 1.35, opt: { kufi: true, sub: 'مضيف أهل العلم والكرم', w: 1024, h: 384, glow: 0.45 } });
-      sign('مضيف الشيخ فاتح الرفاعي', x1 + 0.03, 3.1, dz, PI / 2, 2.6);
+      // اللافتة الخارجية الكاملة فوق الباب (يندلّ عليها الناس من الشارع) + سهم دلالة بالطريق
+      signs.push({ text: 'مضيف الشيخ فاتح الرفاعي', x: x1 + 0.04, y: 3.45, z: dz, ry: PI / 2, w: 6.6, h: 1.3, opt: { kufi: true, sub: 'رحمه الله · أهلاً وسهلاً بالضيوف', w: 1560, h: 308, glow: 0.35 } });
+      B.box(-44.6, 0, -16.15, -44.45, 2.4, -16.0, 'beam', { col: false });
+      sign('مضيف الشيخ فاتح الرفاعي ↑', -44.5, 2.55, -16.1, PI / 2, 2.4, { bg: '#1d3a24', border: '#e8d6a0' });
       B.light(-59, 3.5, -12, 0xffc27a, 2.4, 10, 2); B.glow(-59, 3.6, -12, 0.5, 0xffc27a, 2);
     }
   }
@@ -421,7 +424,7 @@ export function buildDistricts(B, H) {
   B.box(76, 0, 20, 80, 2.7, 23, 'plasterWhite');
   if (vis) { B.box(75.6, 2.7, 19.6, 80.4, 2.9, 23.6, 'woodBlue', { col: false }); B.box(76.6, 1.0, 23.0, 79.4, 1.9, 23.03, 'dark', { col: false }); B.box(76.4, 0.95, 23.0, 79.6, 1.05, 23.4, 'woodDark', { col: false }); teaStove(76.95, 1.05, 23.2, PI); for (let k = 0; k < 7; k++) estikan(77.55 + k * 0.28, 1.05, 23.2, k < 4 ? 0.9 : 0, 0.5 + k); B.geo(() => new THREE.PlaneGeometry(4.6, 1.3), T(78, 2.5, 23.7, 0, 1, 1, 1, -1.1), 'clothCream', { uvs: 0.5 }); }
   sign('شاي الشريعة', 78, 2.38, 23.04, 0, 2.6, { bg: '#7a1a1f', border: '#f3d98a' });
-  table(74.6, 24.8); table(81.2, 24.6); table(77.7, 27.2); // الثالثة: يلتقي عليها الأصحاب ويطلبون چاي
+  table(74.6, 24.8); table(81.2, 24.6); table(77.7, 27.2); // الثالثة: يلتقي عليها الأصحاب ويطلبون شاي
   // مرسى العبّارة
   B.box(62, -0.1, 33.6, 66, 0.15, 40, 'wood', { cm: MAT.wood });
   B.col(61.9, 0.15, 39.9, 66.1, 1, 40.1); B.col(61.9, 0.15, 33.6, 62, 1, 40); B.col(66, 0.15, 33.6, 66.1, 1, 40);
@@ -454,7 +457,7 @@ export function buildDistricts(B, H) {
   for (const [x, z, yaw] of [[-80.2, -5.55, PI], [-77.8, -5.55, PI + 0.2], [-78.2, -2.4, 0], [-80.6, -2.5, 0.3]]) B.npc({ x, z, yaw, pose: 'pray', look: 'pilgrim', kill: false });
 
   // ================= أهل السوق الجدد (مهام اللوبي — ساكتين بالمعركة) =================
-  // 29 أبو علي اللبلبچي: عربانة لبلبي يمّ الچايچي (تأكل منها بالمعركة 3 مرات)
+  // 29 أبو علي اللبلبچي: عربانة لبلبي يمّ بيّاع الشاي (تأكل منها بالمعركة 3 مرات)
   {
     const lx = 71.6, lz = 21.4;
     B.box(lx - 0.75, 0, lz - 0.45, lx + 0.75, 0.95, lz + 0.45, 'woodBlue', { cm: MAT.wood, flags: F.THIN });
@@ -508,8 +511,8 @@ export function buildDistricts(B, H) {
   // وكيل الغاز: قناني غاز مصفوفة يمّ الشريعة (مهمة حجي مجيد)
   {
     const gx = -30, gz = 22;
-    B.col(gx - 0.9, 0, gz - 0.5, gx + 0.9, 0.62, gz + 0.5, MAT.metal, F.THIN);
-    if (vis) for (let k = 0; k < 6; k++) { const x = gx - 0.75 + (k % 3) * 0.75, z = gz - 0.25 + Math.floor(k / 3) * 0.5; B.geo(() => new THREE.CylinderGeometry(0.16, 0.16, 0.5, 12), T(x, 0.25, z), k % 2 ? 'paintRed' : 'tileGreen'); B.geo(() => new THREE.CylinderGeometry(0.05, 0.07, 0.1, 8), T(x, 0.55, z), 'brass'); }
+    // كل قنينة تنفجر إذا انضربت (وتفجّر اللي يمها)
+    for (let k = 0; k < 6; k++) { const x = gx - 0.75 + (k % 3) * 0.75, z = gz - 0.25 + Math.floor(k / 3) * 0.5; B.prop('gas', 30); B.col(x - 0.17, 0, z - 0.17, x + 0.17, 0.6, z + 0.17, MAT.metal, F.THIN); if (vis) { B.geo(() => new THREE.CylinderGeometry(0.16, 0.16, 0.5, 12), T(x, 0.25, z), k % 2 ? 'paintRed' : 'tileGreen'); B.geo(() => new THREE.CylinderGeometry(0.05, 0.07, 0.1, 8), T(x, 0.55, z), 'brass'); } B.end(); }
     if (vis) sign('وكيل غاز', gx, 1.3, gz - 0.55, PI, 1.1, { bg: '#7a1414', border: '#ffd0a0' });
   }
 

@@ -29,6 +29,8 @@ import { Drone } from './drone.js';
 import { Waypoints } from './waypoint.js';
 import { Quests } from './quests.js';
 import { Ambient } from './ambient.js';
+import { Mudhif } from './mudhif.js';
+import { findPath } from './route.js';
 
 const STEP = 1 / 60;
 // أسعار الأكل بالمعركة (باللوبي مجاني)
@@ -65,22 +67,23 @@ export class Game {
     // المرحلة 2: الأبواب، التأشير، المهام، وحياة السوق
     this.ui = UI; this.lobby = false; this.cine = false;
     this.drone = new Drone(this);
-    this.doorsVis = new DoorVis(this); this.wps = new Waypoints(this); this.ambient = new Ambient(this); this.quests = new Quests(this);
+    this.doorsVis = new DoorVis(this); this.wps = new Waypoints(this); this.ambient = new Ambient(this); this.quests = new Quests(this); this.mudhif = new Mudhif(this);
   }
   // اللوبي الخاص: تجوّل بالسوق بلا قتال — المهام والحچي ويّا الناس هنا بس
   startLobby(o) {
-    this.startMatch({ ...o, mode: 'lobby', size: 0, team: 0, timeLimit: 1e9, buyTime: 0.05, lobby: true });
+    this.startMatch({ ...o, mode: 'lobby', size: 0, team: 0, timeLimit: 1e9, buyTime: 0.05, lobby: true, weather: 'random' }); // اللوبي دائماً بالطقس المتغيّر
   }
-  // زر «استعمال»: أقرب شي يتسوّى (مهمة، وردة، باب، لبلبي، چاي)
+  // زر «استعمال»: أقرب شي يتسوّى (مهمة، وردة، باب، لبلبي، شاي)
   computeUse(me) {
     if (!me || !me.alive || this.cine || this.paused) return null;
     const q = this.lobby && this.quests.interact(); if (q) return q;
+    const mu = this.lobby && this.mudhif.interact(me); if (mu) return mu;
     const D = this.doorsVis.near(me.pos);
-    if (D) { const i = this.doorsVis.list.indexOf(D), o = this.doorsVis.stateOf(i); return { label: o ? 'سكّر الباب' : 'افتح الباب', fn: () => { this.queued.use = true; } }; }
+    if (D) { const i = this.doorsVis.list.indexOf(D), o = this.doorsVis.stateOf(i); return { label: o ? 'غلق الباب' : 'فتح الباب', fn: () => { this.queued.use = true; } }; }
     for (const u of this.world.usables || []) if (Math.hypot(u.x - me.pos[0], u.z - me.pos[2]) < u.r) {
       const f = me.food, left = f && !this.lobby ? (u.kind === 'lablabi' ? f.e : f.t) : null, price = this.lobby ? 0 : FOOD_PRICE[u.kind];
       if (price && !Economy.can(price)) return { label: `ما عندك ${fmtIQD(price)}`, fn: () => UI.toast('ما عندك فلوس كافية — اربح من المعارك والمهام') };
-      return { label: (u.kind === 'lablabi' ? '🥣 كُل لبلبي' : '🫖 اشرب چاي') + (price ? ` · ${fmtIQD(price)}` : ' · مجاني') + (left != null ? ` (${left})` : ''), fn: () => { this.queued.use = true; } };
+      return { label: (u.kind === 'lablabi' ? '🥣 كُل لبلبي' : '🫖 اشرب شاي') + (price ? ` · ${fmtIQD(price)}` : ' · مجاني') + (left != null ? ` (${left})` : ''), fn: () => { this.queued.use = true; } };
     }
     return null;
   }
@@ -96,7 +99,7 @@ export class Game {
     const V = this.carryV, me = this.mp, sp = me ? Math.hypot(me.vel[0], me.vel[2]) : 0; V.g.position.y = -0.42 + Math.abs(Math.sin(this.t * 6)) * 0.02 * Math.min(1, sp); V.g.rotation.z = Math.sin(this.t * 3) * 0.04 * Math.min(1, sp);
     V.cam.aspect = innerWidth / innerHeight; V.cam.updateProjectionMatrix(); const r = this.renderer; r.autoClear = false; r.clearDepth(); r.render(V.s, V.cam); r.autoClear = true;
   }
-  toggleDrone() { if (this.lobby || !this.sim) return; if (this.drone.on) { this.drone.stop(); return; } if (!this.drone.ready) { UI.toast(`الدرون يشحن… ${Math.ceil(this.drone.cdLeft)} ث`); return; } if (this.drone.start()) UI.toast('درون الاستطلاع: 30 ثانية — أي عدو تشوفه ينكشف بالخريطة'); }
+  toggleDrone() { if (this.lobby || !this.sim) return; if (this.drone.on) { this.drone.stop(); return; } if (!this.drone.ready) { UI.toast('الدرون انستعمل بهذا القيم — مرة وحدة بكل قيم'); return; } if (this.drone.start()) UI.toast('درون: 30 ثانية ويشيل رمانة — زر الرمي يسقطها على اللي تحته'); }
   useAction() { const U = this.useInfo; if (U) { Audio.play('ui'); U.fn(); } }
   // ---------- القوائم: كاميرا سينمائية وعرض الشخصيات ----------
   buildLineup() {
@@ -147,7 +150,7 @@ export class Game {
     sim.start();
     this.begin(me, o.weather);
     const M = MODES[sim.mode];
-    if (this.lobby) { this.ambient.start(); this.quests.start(); UI.banner('سوق المجاهدين', 'تجوّل، احچِ ويّا الناس، وساعدهم بمهامهم', '', 3.2); return; }
+    if (this.lobby) { this.ambient.start(); this.quests.start(); this.mudhif.start(); UI.banner('سوق المجاهدين', 'تجوّل، احچِ ويّا الناس، وساعدهم بمهامهم', '', 3.2); return; }
     UI.banner(M.name, sim.dom ? `سيطروا على ${sim.cps && sim.cps.length > 1 ? 'النقاط' : 'النقطة'} · ${Math.round(sim.timeLimit / 60)} دقائق` : sim.tdm ? `الأكثر قتلات بعد ${Math.round(sim.timeLimit / 60)} دقائق يفوز` : `أول من يفوز بـ ${sim.roundsToWin} جولات`, '', 3);
   }
   begin(me, weather) {
@@ -188,6 +191,7 @@ export class Game {
     if (Central.isOnline()) {
       say('السيرفر المركزي شغّال — نطلب معركة…');
       const r = await Central.request(mode, o.name);
+      if (r && r.k === 'host') return this.hostOpen(o, wx, base, 'ما في لاعبين بعد — المعركة على هاتفك ويّا البوتات، وأول ما يدخل لاعب حقيقي تنتقل للسيرفر…', say);
       if (r && r.room) {
         say('لگينا معركة — ندخل…');
         try { const ns = await this.joinOnline({ ...base, room: r.room }); ns.central = true; this.startOnline(ns, wx); return 'central'; }
@@ -198,15 +202,37 @@ export class Game {
     for (const a of await Central.findOpen(mode)) {
       try { const ns = await this.joinOnline({ ...base, room: a.room }); ns.open = true; this.startOnline(ns, wx); return 'open'; } catch (e) { }
     }
-    say('ما في معارك مفتوحة — نفتح معركة على هاتفك وتكمّلها البوتات…');
+    return this.hostOpen(o, wx, base, 'ما في معارك مفتوحة — نفتح معركة على هاتفك وتكمّلها البوتات…', say);
+  }
+  async hostOpen(o, wx, base, msg, say) {
+    const mode = o.mode; say(msg);
     const A = 'abcdefghjkmnpqrstuvwxyz23456789'; let room = 'h'; for (let i = 0; i < 6; i++) room += A[Math.floor(Math.random() * A.length)];
     if (this.hostSrv) { this.hostSrv.stop(); this.hostSrv = null; }
-    const srv = new GameServer(this.world, { room, name: o.name, adv: true, reportLive: true, cfg: { mode, size: MAX_TEAM, rounds: o.roundsToWin, time: o.timeLimit, roundTime: o.roundTime, difficulty: o.difficulty, fill: true } });
+    const srv = new GameServer(this.world, { room, name: o.name, adv: true, reportLive: true, hostId: Social.id, cfg: { mode, size: Math.min(MAX_TEAM, Math.max(1, o.size || MAX_TEAM)), rounds: o.roundsToWin, time: o.timeLimit, roundTime: o.roundTime, difficulty: o.difficulty, fill: true } });
     await srv.start();
     this.hostSrv = srv; this.hostInfo = { room, teams: {}, mode, weather: wx };
     const ns = await this.joinOnline({ ...base, local: srv, room }); ns.open = true;
     this.startOnline(ns, wx);
     return 'host';
+  }
+  // حالة المعركة الكاملة من سيرفر هاتفي (للنقل للسيرفر المركزي)
+  resumeFromServer(srv) {
+    const s = srv.sim, R = { mid: srv.mid, score: s.score.slice(), round: s.round, phase: s.phase, phaseT: s.phaseT, cps: (s.cps || []).map(c => [c.owner, c.prog]), pl: {}, bots: [] };
+    for (const p of s.players.values()) { const a = encPlayer(p, s.t); if (p.bot) R.bots.push({ name: p.name, team: p.team, char: p.char, a }); else R.pl[p.name] = { a }; }
+    return R;
+  }
+  // دخل لاعب حقيقي ثاني: السيرفر المركزي يستلم معركتي بنفس حالتها، وأنا أنتقل لها
+  async moveToServer(b) {
+    const srv = this.hostSrv; if (!srv || srv.room !== b.src || this.migrating || !this.sim || !this.sim.online) return;
+    const ns = this.sim, mode = ns.mode, team = this.mp ? this.mp.team : 0;
+    Central.sendMove(b.room, b.src, this.resumeFromServer(srv));
+    this.endSession();
+    this.migrating = true; UI.toast2('دخل لاعب حقيقي — المعركة تنتقل للسيرفر المركزي بنفس حالتها…');
+    this.quit(true, true); if (this.hostSrv) { this.hostSrv.stop(); this.hostSrv = null; this.hostInfo = null; }
+    const base = { room: b.room, name: Settings.name, char: Settings.char, loadout: UI.matchLoadout(mode), team };
+    let n2 = null; for (let k = 0; k < 4 && !n2; k++) { try { n2 = await this.joinOnline(base); } catch (e) { await new Promise(r => setTimeout(r, 1500)); } }
+    this.migrating = false;
+    if (n2) { n2.central = true; this.startOnline(n2); } else { this.quit(); UI.showMenu(); UI.toast2('تعذّر الانتقال للسيرفر'); }
   }
   // استضافة على نفس الشبكة (واي فاي أو نقطة اتصال) — تشتغل حتى بلا إنترنت
   async hostLan(o) {
@@ -266,11 +292,12 @@ export class Game {
     const S = this.sess, sim = this.sim; this.sess = null; if (!S) return;
     const me = sim.players && sim.players.get(this.me), du = Math.round((Date.now() - S.t) / 1000);
     if (S.central || du < 20) return; // معارك السيرفر يسجّلها السيرفر بنفسه
-    Central.record({ ty: 'ses', t: S.t, du, mo: S.mo, room: S.room, mid: sim.hostMid || '', host: this.hostSrv ? 1 : 0, n: Settings.name, k: me ? me.kills : 0, d: me ? me.deaths : 0, win: this.sessRes ?? null, hum: [...(sim.roster || new Map()).values()].filter(r => !r.bot).length });
+    Central.record({ ty: 'ses', on: Central.isOnline() ? 1 : 0, t: S.t, du, mo: S.mo, room: S.room, mid: sim.hostMid || '', host: this.hostSrv ? 1 : 0, n: Settings.name, k: me ? me.kills : 0, d: me ? me.deaths : 0, win: this.sessRes ?? null, hum: [...(sim.roster || new Map()).values()].filter(r => !r.bot).length });
     this.sessRes = null;
   }
   quit(keep, keepSrv) {
-    if (this.drone) { this.drone.stop(); this.drone.seen.clear(); this.drone.cdUntil = -1; }
+    for (const c of this.civs || []) if (c.fl) { c.fl.hid = true; c.fl.back = -1; this.updateFlee(c, 0); }
+    if (this.drone) { this.drone.stop(); this.drone.seen.clear(); this.drone.cdUntil = -1; if (!this.migrating) this.drone.used = false; }
     // خروج قبل نهاية القيم: نخصم المصروف من المخزون (بلا مكافأة)
     if (this.sim && this.sim.online && this.sess && !this.migrating) this.endSession();
     if (this.sim && !this.sim.matchOver && Economy.start && !Economy.settled && !this.migrating) {
@@ -279,7 +306,7 @@ export class Game {
     }
     this.setNvg(false);
     if (this.talk) this.talk.clear();
-    if (this.lobby) { this.quests.stop(); this.ambient.stop(); } this.lobby = false; this.cine = false; document.body.classList.remove('lobby'); this.wps && this.wps.reset();
+    if (this.lobby) { this.mudhif.stop(); this.quests.stop(); this.ambient.stop(); } this.lobby = false; this.cine = false; document.body.classList.remove('lobby'); this.wps && this.wps.reset();
     if (this.sim && this.sim.online) { try { this.sim.onlost = null; this.sim.close(); } catch (e) { } }
     if (this.hostSrv && !keepSrv) { const s = this.hostSrv; this.hostSrv = null; this.hostInfo = null; setTimeout(() => s.stop(), 200); }
     if (!keep) Social.presence('on');
@@ -326,6 +353,7 @@ export class Game {
     // الدرون: الجويستك والسحب يحرّكونه، واللاعب يگعد بمكانه
     if (Input.take('drone') && !blocked) this.toggleDrone();
     const droneOn = this.drone.on;
+    if (droneOn && !blocked && (Input.take('grenade') || Input.take('fire'))) { if (this.drone.drop()) UI.toast('انرمت الرمانة!'); }
     if (droneOn) this.drone.control(dt, Input.mx, Input.mz, Input.held('jump'), Input.held('crouch') || Input.on('crouch'), blocked ? 0 : lx * Settings.sens, blocked ? 0 : ly * Settings.sens);
     if (!blocked && me && me.alive && !droneOn) {
       const mag = this.magOf(me), a = ease(me.adsT);
@@ -343,6 +371,7 @@ export class Game {
         mx: Input.mx, mz: Input.mz, yaw: this.yaw, pitch: this.pitch, jump: Input.held('jump'), crouch: Input.held('crouch') || Input.on('crouch'), walk: Input.held('walk'),
         fire: Input.held('fire') || this.autoFire(me), ads: Input.ads, reload: Input.take('reload'), slot: 0, swap: Input.take('swap') || Input.wheel !== 0, lean,
       };
+      if (!idle && this.aimFix) { cmd.yaw = this.yaw + this.aimFix[0]; cmd.pitch = this.pitch + this.aimFix[1]; }
       if (this.carry && !idle) { cmd.walk = true; cmd.jump = false; cmd.fire = false; } // شايل شي ثگيل
       if (!idle) for (let s = 1; s <= 4; s++) if (Input.take('slot' + s)) cmd.slot = s;
       if (!idle && Input.take('grenade')) cmd.slot = me && me.slot === 4 ? (me.prevSlot || 1) : 4;
@@ -416,11 +445,13 @@ export class Game {
           const p = sim.players.get(e.id), wd = WEAPONS[e.w]; if (!p || !wd) break;
           this.shotAt.set(e.id, { t: this.t, q: e.q });
           if (this.talk && !(wd.cls === 'knife')) this.talk.onShot(p.pos);
+          if (wd.cls !== 'knife' && !e.q) this.civFlee(p.pos);
           const mine = e.id === this.me && (!sim.online || e.loc);
           let mz;
-          if (mine) { this.vm.fire(wd.cls === 'sniper' || wd.cls === 'shotgun' || wd.cls === 'dmr'); mz = this.vmMuzzleWorld(); this.shake += wd.cls === 'sniper' ? 0.6 : wd.cls === 'shotgun' ? 0.5 : 0.14; if (wd.bolt || wd.pump) setTimeout(() => { if (this.sim) { this.vm.bolt(wd.pump); Audio.play(wd.pump ? 'pump' : 'bolt'); } }, 260); if (Settings.haptics && (wd.cls === 'sniper' || wd.cls === 'shotgun')) this.buzz(25); }
+          if (mine) { this.vm.fire(wd.cls === 'sniper' || wd.cls === 'shotgun' || wd.cls === 'dmr'); const mm = this.models.get(e.id); mz = this.fpNow || !(mm && mm.gun) ? this.vmMuzzleWorld() : mm.gun.P.muzzleObj.getWorldPosition(new THREE.Vector3()).toArray(); this.shake += wd.cls === 'sniper' ? 0.6 : wd.cls === 'shotgun' ? 0.5 : 0.14; if (wd.bolt || wd.pump) setTimeout(() => { if (this.sim) { this.vm.bolt(wd.pump); Audio.play(wd.pump ? 'pump' : 'bolt'); } }, 260); if (Settings.haptics && (wd.cls === 'sniper' || wd.cls === 'shotgun')) this.buzz(25); }
           else { const m = this.models.get(e.id); mz = m && m.gun ? m.gun.P.muzzleObj.getWorldPosition(new THREE.Vector3()).toArray() : e.o; }
           const d = dirFrom(p.yaw, p.pitch);
+          if (mine && this.lobby && e.o) this.quests.onShot(e.o, d);
           if (!mine && !e.q) this.fx.muzzle(mz, d, wd.cls === 'sniper' ? 1.8 : 1);
           if (!e.q) this.fx.lightFlash(mz, 0xffb060, mine ? 2.5 : 4);
           Audio.play(e.q ? 'suppressed' : wd.snd, mine ? null : [e.o[0], e.o[1], e.o[2]]);
@@ -479,13 +510,13 @@ export class Game {
         case 'reset': this.resetWorldVis(); break;
         case 'npcHit': { const c = this.civs && this.civs[e.id]; if (c && e.p && !c.away) { const d = me ? [e.p[0] - me.pos[0], 0, e.p[2] - me.pos[2]] : [0, 0, 1]; this.fx.blood(e.p, d, 25, false, this.world); Audio.play('flesh', e.p); } break; }
         case 'npcDie': { const c = this.civs && this.civs[e.id]; if (!c) break; c.die(e.d); if (!e.silent) { setTimeout(() => { this.fx.bloodPool([c.n.x, c.n.y, c.n.z], this.world, 0.55 + Math.random() * 0.25); Audio.play('bodyFall', [c.n.x, 0.3, c.n.z]); }, 650); if (e.k === this.me) UI.toast('قتلت أحد أهل السوق!'); } break; }
-        case 'heal': if (e.k >= 3) { if (e.id === this.me && !this.lobby) { const pr = FOOD_PRICE[e.k === 3 ? 'lablabi' : 'tea']; Economy.spend(pr); } if (e.id === this.me) { const pr = this.lobby ? 'مجاناً' : `${fmtIQD(FOOD_PRICE[e.k === 3 ? 'lablabi' : 'tea'])} · باقي ${e.left ?? '?'}`; UI.toast(e.k === 3 ? `تاكل لبلبي حار… (${pr})` : `تشرب استكان چاي… (${pr})`); } Audio.play('ui'); break; } if (e.id === this.me) this.vm.healT = e.k === 2 ? 4 : 2.4; Audio.play(e.k === 2 ? 'syringe' : 'bandage', e.id === this.me ? null : this.posOf(e.id)); break;
-        case 'foodOut': if (e.id === this.me) UI.toast(e.k === 'lablabi' ? 'خلصت حصّتك من اللبلبي بهالمعركة' : 'خلصت حصّتك من الچاي بهالمعركة'); break;
+        case 'heal': if (e.k >= 3) { if (e.id === this.me && !this.lobby) { const pr = FOOD_PRICE[e.k === 3 ? 'lablabi' : 'tea']; Economy.spend(pr); } if (e.id === this.me) { const pr = this.lobby ? 'مجاناً' : `${fmtIQD(FOOD_PRICE[e.k === 3 ? 'lablabi' : 'tea'])} · باقي ${e.left ?? '?'}`; UI.toast(e.k === 3 ? `تاكل لبلبي حار… (${pr})` : `تشرب استكان شاي… (${pr})`); } Audio.play('ui'); break; } if (e.id === this.me) this.vm.healT = e.k === 2 ? 4 : 2.4; Audio.play(e.k === 2 ? 'syringe' : 'bandage', e.id === this.me ? null : this.posOf(e.id)); break;
+        case 'foodOut': if (e.id === this.me) UI.toast(e.k === 'lablabi' ? 'خلصت حصّتك من اللبلبي بهالمعركة' : 'خلصت حصّتك من الشاي بهالمعركة'); break;
         case 'foodFull': if (e.id === this.me) UI.toast('صحّتك كاملة، ما تحتاج'); break;
         case 'mark': this.wps.onMark(e, this.mp); break;
         case 'healed': if (e.id === this.me) { Audio.play('healed'); this.vm.healT = 0; } break;
         case 'boom': {
-          this.fx.explosion(e.p, e.kind); if (this.talk && (e.kind === 'frag' || e.kind === 'flash' || e.kind === 'molotov')) this.talk.onShot(e.p);
+          this.civFlee(e.p); this.fx.explosion(e.p, e.kind); if (this.talk && (e.kind === 'frag' || e.kind === 'flash' || e.kind === 'molotov')) this.talk.onShot(e.p);
           if (e.kind === 'frag') { Audio.play('boom', e.p); const d = me ? Math.hypot(me.pos[0] - e.p[0], me.pos[2] - e.p[2]) : 99; this.shake += Math.max(0, 1.6 - d / 12); if (d < 14 && Settings.haptics) this.buzz(60); }
           else if (e.kind === 'flash') Audio.play('flashbang', e.p);
           else if (e.kind === 'smoke') Audio.play('smokeHiss', e.p);
@@ -500,7 +531,7 @@ export class Game {
             Audio.play('roundStart'); this.spec = null; if (me) { this.yaw = me.spawnYaw ?? me.yaw; this.pitch = 0; } Input.clearToggles();
             for (const m of this.models.values()) if (m.revive) m.revive();
           }
-          else { UI.banner(sim.tdm ? 'إلى القتال!' : 'انطلق!', '', '', 1.2); Audio.play('go'); }
+          else if (!this.lobby) { UI.banner(sim.tdm ? 'إلى القتال!' : 'انطلق!', '', '', 1.2); Audio.play('go'); }
           break;
         case 'roundEnd': {
           const win = me && e.winner === me.team;
@@ -526,6 +557,9 @@ export class Game {
   // ---------- العرض ----------
   render(dt) {
     const sim = this.sim, me = this.mp, alpha = this.acc / STEP, cam = this.camera;
+    // منظور الشخص الثالث (افتراضي مثل ببجي): الكاميرا ورا الكتف، والتصويب يحوّل لمنظور الشخص الأول
+    this.tpp = Settings.view !== 'fpp' && !this.cine;
+    this.fpNow = !this.tpp || !!(me && (me.adsT || 0) > 0.55);
     // النماذج
     const seen = new Set();
     for (const p of sim.players.values()) {
@@ -534,7 +568,7 @@ export class Game {
       if (!m || m.id !== p.char || m.team !== p.team) { if (m) this.scene.remove(m.root); m = new CharModel(p.char, p.team); this.models.set(p.id, m); this.scene.add(m.root); }
       const pv = this.prev.get(p.id) || [p.pos[0], p.pos[1], p.pos[2], p.crouch, p.lean || 0];
       m.root.position.set(pv[0] + (p.pos[0] - pv[0]) * alpha, pv[1] + (p.pos[1] - pv[1]) * alpha, pv[2] + (p.pos[2] - pv[2]) * alpha);
-      const firstPerson = p.id === this.me && p.alive && !this.drone.on;
+      const firstPerson = p.id === this.me && p.alive && !this.drone.on && this.fpNow;
       m.root.visible = !firstPerson && (p.alive || m.dead !== undefined);
       if (!firstPerson) {
         const wid = sim.curId(p); m.setWeapon(wid, p.slot === 1 ? p.scope : null);
@@ -546,9 +580,11 @@ export class Game {
       }
     }
     for (const [id, m] of this.models) if (!seen.has(id)) { this.scene.remove(m.root); this.models.delete(id); }
+    this.nameTags(sim, me, cam);
     // القنابل الطائرة
     const nseen = new Set();
     for (const n of sim.nades) {
+      if (n.kind === 'gas') continue;
       nseen.add(n.id); let mesh = this.nadeMeshes.get(n.id);
       if (!mesh) { mesh = buildGun(n.kind).group; mesh.scale.setScalar(1.2); this.scene.add(mesh); this.nadeMeshes.set(n.id, mesh); }
       mesh.position.set(n.pos[0], n.pos[1], n.pos[2]); mesh.rotation.x += dt * 8; mesh.rotation.z += dt * 5;
@@ -561,7 +597,26 @@ export class Game {
       const pv = this.prev.get(me.id) || [me.pos[0], me.pos[1], me.pos[2], me.crouch, me.lean || 0];
       const x = pv[0] + (me.pos[0] - pv[0]) * alpha, y = pv[1] + (me.pos[1] - pv[1]) * alpha, z = pv[2] + (me.pos[2] - pv[2]) * alpha, cr = pv[3] + (me.crouch - pv[3]) * alpha, ln = pv[4] + ((me.lean || 0) - pv[4]) * alpha;
       const eh = PH.eyeStand + (PH.eyeCrouch - PH.eyeStand) * cr - Math.abs(ln) * 0.06, L = ln * LEAN;
-      cam.position.set(x + Math.cos(this.yaw) * L, y + eh, z - Math.sin(this.yaw) * L);
+      const ex = x + Math.cos(this.yaw) * L, ey = y + eh, ez = z - Math.sin(this.yaw) * L;
+      cam.position.set(ex, ey, ez);
+      this.aimFix = null;
+      if (this.tpp) {
+        // ورا الكتف اليمين؛ الكاميرا ما تخترق الجدران
+        const cy = Math.cos(this.pitch), fx = -Math.sin(this.yaw) * cy, fy = Math.sin(this.pitch), fz = -Math.cos(this.yaw) * cy, rx = Math.cos(this.yaw), rz = -Math.sin(this.yaw);
+        const k = 1 - ease(Math.min(1, (me.adsT || 0) / 0.55)), back = 2.6 * k, side = 0.72 * k, up = 0.26 * k;
+        const px = ex + rx * side, py = ey + up, pz = ez + rz * side;
+        let tx = px - fx * back, ty = py - fy * back + 0.15 * k, tz = pz - fz * back;
+        const seg = (ax, ay, az, bx, by, bz) => { const dx = bx - ax, dy = by - ay, dz = bz - az, d = Math.hypot(dx, dy, dz); if (d < 1e-4) return 1; const h = this.world.ray(ax, ay, az, dx / d, dy / d, dz / d, d + 0.25, F.NOBULLET, {}); return h ? Math.max(0, (h.t - 0.25) / d) : 1; };
+        const s1 = seg(ex, ey, ez, px, py, pz), qx = ex + (px - ex) * s1, qy = ey + (py - ey) * s1, qz = ez + (pz - ez) * s1;
+        const s2 = seg(qx, qy, qz, tx, ty, tz); tx = qx + (tx - qx) * s2; ty = qy + (ty - qy) * s2; tz = qz + (tz - qz) * s2;
+        cam.position.set(tx, ty, tz);
+        // التصويب نحو ما تحت المؤشر: الطلقة من رأس اللاعب باتجاه النقطة اللي تشوفها الكاميرا
+        if (k > 0.05) {
+          const h = this.world.ray(tx, ty, tz, fx, fy, fz, 300, F.NOBULLET, {}), D = h ? h.t : 300;
+          const Tx = tx + fx * D, Ty = ty + fy * D, Tz = tz + fz * D, ddx = Tx - ex, ddy = Ty - ey, ddz = Tz - ez, hd = Math.hypot(ddx, ddz);
+          if (Math.hypot(ddx, ddy, ddz) > 3) { const ay = Math.atan2(-ddx, -ddz), ap = Math.atan2(ddy, hd); const dy = angTo(this.yaw, ay), dp = ap - this.pitch; if (Math.abs(dy) < 0.1 && Math.abs(dp) < 0.1) this.aimFix = [dy, dp]; }
+        }
+      }
       this.shake = Math.max(0, this.shake - dt * 3);
       const sh = this.shake * 0.01;
       this.roll += (-ln * 0.2 - this.roll) * Math.min(1, dt * 12);
@@ -582,7 +637,7 @@ export class Game {
       if (me.landed > 4) Audio.play('land');
       HUD.spec('');
     } else this.spectate(dt);
-    if (this.cine && this.quests.camera(dt)) { zoom = 1; this.scoped = false; }
+    if (this.cine && (this.quests.camera(dt) || this.mudhif.camera(dt))) { zoom = 1; this.scoped = false; }
     if (this.drone.on) { this.drone.applyCamera(cam); zoom = 1; this.scoped = false; }
     // مجال الرؤية: الإعداد أفقي ثم يُحوّل إلى عمودي، والمنظار يقسّمه
     const aspect = innerWidth / innerHeight, hf = Settings.fov * Math.PI / 180;
@@ -597,7 +652,7 @@ export class Game {
     this.updateWorldAnim(dt);
     if (this.talk) this.talk.update(dt);
     // الرسم: العالم ثم السلاح
-    this.draw(me && me.alive && !this.scoped && !this.lobby && !this.cine && !this.drone.on);
+    this.draw(me && me.alive && !this.scoped && !this.lobby && !this.cine && !this.drone.on && this.fpNow);
     if (this.mg && !this.mg.closed) this.mg.render(this.renderer);
     if (this.carry) this.drawCarry();
     if (this.wantSnap) { const f = this.wantSnap; this.wantSnap = null; let img = null; try { img = this.renderer.domElement.toDataURL('image/jpeg', 0.72); } catch (e) { } f(img); }
@@ -618,6 +673,25 @@ export class Game {
     r.autoClear = true; r.render(this.scene, this.camera);
     if (withVM) { r.autoClear = false; r.clearDepth(); r.render(this.vm.scene, this.vm.cam); r.autoClear = true; }
     if (UI.screen === 'loadout' || UI.screen === 'shop') this.renderShowcase(1 / 60);
+  }
+  // اسم صغير فوق كل واحد من جماعتي (مثل ببجي)
+  nameTags(sim, me, cam) {
+    const T = this.tags || (this.tags = new Map()), on = new Set();
+    if (me && Settings.nameTags !== false && !this.lobby) for (const p of sim.players.values()) {
+      if (p.id === this.me || !p.alive || p.team !== me.team) continue;
+      const m = this.models.get(p.id); if (!m) continue;
+      let t = T.get(p.id);
+      if (!t || t.name !== p.name) {
+        if (t) this.scene.remove(t.s);
+        const c = document.createElement('canvas'); c.width = 256; c.height = 64; const x = c.getContext('2d');
+        x.font = "800 30px 'Cairo', sans-serif"; x.textAlign = 'center'; x.textBaseline = 'middle'; x.lineWidth = 6; x.strokeStyle = 'rgba(0,0,0,.7)'; x.strokeText(p.name, 128, 32); x.fillStyle = p.bot ? '#cfe9ff' : '#7dfcff'; x.fillText(p.name, 128, 32);
+        const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false, transparent: true, fog: false })); s.renderOrder = 9; this.scene.add(s);
+        t = { s, name: p.name }; T.set(p.id, t);
+      }
+      const r = m.root.position, d = Math.hypot(r.x - cam.position.x, r.z - cam.position.z), k = Math.max(0.55, Math.min(2.6, d * 0.045));
+      t.s.position.set(r.x, r.y + 2.05 + k * 0.08, r.z); t.s.scale.set(k, k / 4, 1); t.s.visible = true; on.add(p.id);
+    }
+    for (const [id, t] of T) if (!on.has(id)) { if (!sim.players.has(id)) { this.scene.remove(t.s); T.delete(id); } else t.s.visible = false; }
   }
   surfaceAt(pos) {
     const h = this.world.ray(pos[0], pos[1] + 0.3, pos[2], 0, -1, 0, 0.8, F.NOBULLET, {});
@@ -659,7 +733,7 @@ export class Game {
     else { r.autoClear = true; r.render(this.scene, this.camera); }
     this.renderShowcase(dt);
   }
-  updateWorldAnim(dt) { if (this.onAnim) this.onAnim(dt, this.t); this.updateCivs(dt); this.updateCps(dt); if (this.sim) this.drone.update(dt); this.doorsVis.update(dt); this.wps.update(dt); this.ambient.update(dt); this.quests.update(dt); }
+  updateWorldAnim(dt) { if (this.onAnim) this.onAnim(dt, this.t); this.updateCivs(dt); this.updateCps(dt); if (this.sim) this.drone.update(dt); this.doorsVis.update(dt); this.wps.update(dt); this.ambient.update(dt); this.quests.update(dt); this.mudhif.update(dt); }
   // علامات نقاط السيطرة بالعالم: حلقة على الأرض بلون المسيطر وعمود ضوء خفيف وحرف فوقها
   updateCps(dt) {
     const C = (this.sim && this.sim.cps) || [], me = this.mp;
@@ -686,15 +760,64 @@ export class Game {
     });
   }
   // أهل السوق: تحريك القريبين فقط، وإخفاء البعيدين، وظلال للقريبين جداً
+  // المدنيون الواقفون يهربون من الرمي القريب: يركضون لأقرب باب، يتخبّون ببيوتهم، ويرجعون لمكانهم بعد الهدوء
+  civFlee(pos) {
+    if (this.cine) return;
+    const doors = this.world.doors || [], t = this.t;
+    if (this.lobby && this.ambient) this.ambient.flee(pos);
+    (this.civs || []).forEach((c, i) => {
+      if (!c.alive || c.away || c.fl || c.sit || c.n.pose === 'pray' || c.n.pose === 'sit' || c.n.quest) return;
+      if (Math.hypot(c.n.x - pos[0], c.n.z - pos[2]) > 22) return;
+      let best = null, bd = 30; for (const d of doors) { const dd = Math.hypot(d.x - c.n.x, d.z - c.n.z); if (dd > 0.6 && dd < bd) { bd = dd; best = d; } }
+      if (!best) best = this.hideSpot(c, pos);
+      if (!best) return;
+      c.fl = { path: findPath(this.world, [c.n.x, 0, c.n.z], [best.x, 0, best.z]), pi: 1, x: c.n.x, z: c.n.z, yaw: c.n.yaw, back: t + 45 + Math.random() * 30, hid: false, i };
+      c.cower = 0;
+    });
+  }
+  // مخبأ: نقطة بالأزقة بعيدة عن الرامي وما يشوفها (يدخل بيت أو دكان هناك)
+  hideSpot(c, pos) {
+    const N = (this.world.nav && this.world.nav.nodes) || [], W = this.world; let best = null, bs = 1e9;
+    const ax = c.n.x - pos[0], az = c.n.z - pos[2], al = Math.hypot(ax, az) || 1;
+    for (const n of N) {
+      const dx = n[0] - c.n.x, dz = n[2] - c.n.z, d = Math.hypot(dx, dz);
+      if (d < 7 || d > 26 || Math.abs(n[1]) > 0.6) continue;
+      const away = (dx * ax + dz * az) / (d * al); if (away < 0.1) continue; // بعيد عن الرامي
+      const score = d - away * 6;
+      if (score >= bs) continue;
+      if (W.los(pos[0], (pos[1] || 0) + 1.5, pos[2], n[0], 1.2, n[2])) continue; // مخفي عنه
+      bs = score; best = { x: n[0], z: n[2] };
+    }
+    return best;
+  }
+  updateFlee(c, dt) {
+    const F = c.fl, r = c.root;
+    if (F.hid) {
+      if (this.t < F.back) return true;
+      // رجع لمكانه
+      c.fl = null; c.setAway(false); r.position.set(c.n.x, c.n.y, c.n.z); r.rotation.y = c.n.yaw; c.walkSp = 0;
+      const st = this.sim && this.sim.npcs && this.sim.npcs[F.i], wn = this.world.npcs[F.i]; if (st) st.away = false; if (wn && wn.box >= 0 && (!st || st.alive !== false)) this.world.restore(wn.box);
+      return false;
+    }
+    const p = F.path[F.pi];
+    if (!p) { F.hid = true; c.setAway(true); const st = this.sim && this.sim.npcs && this.sim.npcs[F.i], wn = this.world.npcs[F.i]; if (st) st.away = true; if (wn && wn.box >= 0) this.world.disable(wn.box); return true; }
+    const dx = p[0] - r.position.x, dz = p[1] - r.position.z, d = Math.hypot(dx, dz);
+    if (d < 0.3) { F.pi++; return false; }
+    const st = Math.min(d, 4.6 * dt); r.position.x += dx / d * st; r.position.z += dz / d * st;
+    let a = Math.atan2(-dx, -dz) - r.rotation.y; while (a > Math.PI) a -= Math.PI * 2; while (a < -Math.PI) a += Math.PI * 2; r.rotation.y += a * Math.min(1, dt * 8);
+    c.walkSp = 3.4;
+    return false;
+  }
   updateCivs(dt) {
     const cam = this.camera.position, W = this.weather;
-    // الليل: أصحاب المحال والچايچي وزبائنه راحوا لبيوتهم. المطر: الباقون بمظلّات
+    // الليل: أصحاب المحال وبيّاع الشاي وزبائنه راحوا لبيوتهم. المطر: الباقون بمظلّات
     const night = !!(this.sim && W && W.cur && W.cur.night > 0.5), rain = !!(W && (W.rainNow || 0) > 0.15);
     if (this.civNight !== night) {
       this.civNight = night;
       (this.civs || []).forEach((c, i) => { const away = night && c.shop && !this.lobby; c.setAway(away); const st = this.sim && this.sim.npcs && this.sim.npcs[i]; if (st) st.away = away; const wn = this.world.npcs[i]; if (wn && wn.box >= 0) { if (away) this.world.disable(wn.box); else if (!st || st.alive !== false) this.world.restore(wn.box); } });
     }
     for (const c of this.civs || []) {
+      if (c.fl && c.alive && this.updateFlee(c, dt)) continue;
       if (c.away) continue;
       if (c.umbOK) c.setUmbrella(rain && c.alive);
       const d = Math.hypot(c.n.x - cam.x, c.n.z - cam.z), vis = d < 48;

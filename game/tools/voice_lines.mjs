@@ -5,6 +5,7 @@ import { PERSONAS, GROUPS, ttsText } from '../src/game/talkdata.js';
 import { CAST, SCRIPT } from '../src/game/introdata.js';
 import { QUESTS, FISHER_MEET, FIGHTERS, FISHER } from '../src/game/questdata.js';
 import { voiceId, VOICE_NAMES } from '../src/core/voicekey.js';
+import { MAJLIS_MEN, MAJLIS, SHEIKH_A, LECTURES, IMAM, IMAM_CALLS } from '../src/game/mudhifdata.js';
 
 const out = [], seen = new Set();
 const pct = v => (v >= 0 ? '+' : '') + v + '%';
@@ -41,6 +42,10 @@ for (const q of expanded) {
     if (st.choose) say('n', 'اختيار زين! تفضّل.', q, st, tag);
   }
 }
+// مضيف الشيخ: المجلس والمحاضرات ونداءات الإمام
+for (const T of MAJLIS) for (const [k, t] of T.lines) add(MAJLIS_MEN[k], t, false, 'majlis');
+for (const L of LECTURES) for (const t of L.lines) add(SHEIKH_A, t, false, 'lecture');
+for (const t of Object.values(IMAM_CALLS)) add(IMAM, t, false, 'imam');
 for (const [w, t] of FISHER_MEET) say(w === 'n' ? FISHER : w, t, { giver: FISHER }, null, 'quest:fisherMeet');
 fs.mkdirSync(new URL('.', 'file://' + process.argv[2].replace(/^(?!\/)/, process.cwd() + '/')).pathname, { recursive: true });
 fs.writeFileSync(process.argv[2], JSON.stringify(out, null, 1));

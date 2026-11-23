@@ -55,18 +55,21 @@ function applyRes() {
 }
 let game = null;
 addEventListener('resize', applyRes);
-onSetting((k, v) => { if (k === 'res') applyRes(); if (k === 'music') Audio.setMusic(v); });
+onSetting((k, v) => { if (k === 'res') applyRes(); if (k === 'music') Audio.setMusic(v); if (/^fx/.test(k) && game) mkPost(); });
 
 Input.init(canvas);
 const weather = new Weather({ renderer, scene, camera, info, Q, L, sky, meshes, world, kit });
 game = new Game({ renderer, scene, camera, world, info, Q, sunDir: weather.sunDir, sky, meshes, lights: L, weather });
-game.post = new Post(renderer, Q);
+Central.onMove = b => game.moveToServer(b); // دخل لاعب ثاني لمعركتي: تنتقل للسيرفر المركزي
+const fxOpt = () => Settings.fx ? { ao: Settings.fxAO !== false, ssr: Settings.fxSSR !== false, rays: Settings.fxRays !== false, grade: Settings.fxGrade !== false } : null;
+const mkPost = () => { game.post = new Post(renderer, Q, fxOpt()); game.post.sunDir = weather.sunDir; game.post.resize(); };
+mkPost();
 weather.set('menu');
 applyRes();
 game.onAnim = (dt, t) => {
   sky.material.uniforms.t.value = t; meshes.userData.waterMat.uniforms.t.value = t; sky.position.copy(camera.position);
   weather.update(dt, t); L.follow && L.follow(camera, weather.sunDir); // ظل حادّ حول اللاعب
-  if (game.post.enabled) game.post.grade = weather.grade;
+  if (game.post.enabled) { const P = game.post; P.grade = weather.grade; P.wet = weather.wet || 0; P.rayK = weather.cur ? Math.max(0, 1 - (weather.cur.night || 0)) * (1 + (weather.dustNow || 0)) : 1; }
 };
 UI.init(game);
 const wake = () => Audio.init();

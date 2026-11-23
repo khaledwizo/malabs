@@ -48,7 +48,7 @@ const TEMPLATE = HUD_HTML + `
       <div class="modes" id="modes"></div>
       <div class="mdesc" id="mdesc"></div>
       <div class="mopts" id="mopts"></div>
-      <div class="hbot"><div class="party" id="party"></div><button class="btn big lobbyBtn" id="btnLobby" title="لوبي خاص: تجوّل بالسوق ومهام">${ICON.shop}<span>السوق والمهام</span></button><button class="btn big onlineBtn" id="btnOnline" title="معركة أونلاين مع لاعبين حقيقيين (حد أقصى 10)"><span class="odot"></span><span>أونلاين</span></button><button class="btn primary big" id="btnStart">ابدأ المعركة</button></div>
+      <div class="hbot"><div class="party" id="party"></div><button class="btn big lobbyBtn" id="btnLobby" title="لوبي خاص: تجوّل بالسوق ومهام">${ICON.shop}<span>السوق والمهام</span></button><button class="btn big onlineBtn" id="btnOnline" title="أصدقاؤك المتصلون الآن — ادعهم للعب"><span class="odot"></span><span>الأصدقاء</span></button><button class="btn primary big" id="btnStart">ابدأ المعركة</button></div>
     </div>
   </div>
 </section>
@@ -135,8 +135,10 @@ export const UI = {
     ui.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => { Audio.init(); Audio.play('ui'); this.open(b.dataset.go); }));
     ui.querySelectorAll('[data-back]').forEach(b => b.addEventListener('click', () => { Audio.play('uiBack'); this.back(); }));
     $('#btnStart').addEventListener('click', () => { Audio.init(); Audio.play('ui'); this.start(); });
-    $('#btnOnline').addEventListener('click', () => { Audio.init(); Audio.play('ui'); this.goOnline(); });
-    setInterval(() => { const d = document.querySelector('#btnOnline .odot'); if (d) d.className = 'odot' + (Central.isOnline() ? ' on' : ''); }, 3000);
+    $('#btnOnline').addEventListener('click', () => { Audio.init(); Audio.play('ui'); this.open('friends'); });
+    // عدد الأصدقاء المتصلين الآن
+    const fr = () => { const b = $('#btnOnline'); if (!b) return; const n = Social.friends.filter(f => f.status === 'on' || f.status === 'game').length; b.querySelector('.odot').className = 'odot' + (n ? ' on' : ''); b.querySelector('span:last-child').textContent = n ? `${n} صديق أونلاين` : 'الأصدقاء'; };
+    setInterval(fr, 3000); Social.on(ev => { if (ev === 'friends') fr(); });
     $('#btnLobby').addEventListener('click', () => { Audio.init(); Audio.play('ui'); this.startLobby(); });
     $('#pResume').addEventListener('click', () => this.game.resume());
     $('#pLoadout').addEventListener('click', () => this.open('loadout'));
@@ -269,7 +271,7 @@ export const UI = {
     const mem = P ? P.members : [me];
     let h = mem.map(m => `<div class="pm ${m.id === Social.id ? 'me' : ''}"><i class="av c-${esc(m.char)}">${esc((CHARS[m.char] || CHARS.khaled).name[0])}</i><span>${esc(m.name)}</span>${P && m.id === P.host ? '<em>المضيف</em>' : ''}</div>`).join('');
     if (!P || P.host === Social.id) h += `<button class="pm add" id="pInvite">${ICON.plus}<span>ادعُ صديقاً</span></button>`;
-    if (P && P.members.length > 1) h += `<button class="pm vs" id="pVs" ${P.host === Social.id ? '' : 'disabled'}>${P.vs ? '⚔' : '🤝'}<span>${P.vs ? 'ضد بعض' : 'معاً ضد البوتات'}</span></button>`;
+    if (P && P.members.length > 1) h += `<button class="pm vs" id="pVs" ${P.host === Social.id ? '' : 'disabled'}>${P.vs ? '⚔' : '🤝'}<span>${P.vs ? 'أصدقائي ضدّي' : 'أصدقائي ويّاي'}</span></button>`;
     if (P) h += `<button class="pm leave" id="pLeave">✕<span>${P.host === Social.id ? 'حلّ الفرقة' : 'مغادرة'}</span></button>`;
     el.innerHTML = h;
     const inv = $('#pInvite'); if (inv) inv.addEventListener('click', () => { Audio.play('ui'); this.frTab = 'list'; this.open('friends'); });
@@ -308,6 +310,9 @@ export const UI = {
       finally { b.disabled = false; this.buildParty(); }
       return;
     }
+    // «ابدأ المعركة»: إذا في لاعبين أونلاين تدخل وياهم (أو هم يدخلون وياك)، وإذا ماكو إنترنت معركة ويّا البوتات
+    if (Social.online) { const b = $('#btnStart'); if (b.disabled) return; b.disabled = true; const say = t => this.toast2(t);
+      try { await this.game.onlineMatch(this.matchOpts(), say); this.closeScreens(); this.hud(true); return; } catch (e) { } finally { b.disabled = false; } }
     this.closeScreens(); this.hud(true);
     this.game.startMatch(this.matchOpts());
   },
@@ -361,7 +366,7 @@ export const UI = {
   buildWallet() { const e = $('#wallet'); if (e) e.textContent = '💵 ' + fmtIQD(Economy.money); },
   showReward(r) {
     const el = $('#endReward') || (() => { const d = document.createElement('div'); d.id = 'endReward'; d.className = 'endreward'; const h = $('#endHead'); h && h.after(d); return d; })();
-    el.innerHTML = r.lines.map(([l, v]) => `<div><span>${l}</span><b>+${fmtIQD(v)}</b></div>`).join('') + `<div class="tot"><span>المكافأة</span><b>+${fmtIQD(r.total)}</b></div>`;
+    el.innerHTML = r.lines.map(([l, v]) => `<div class="${v < 0 ? 'neg' : ''}"><span>${l}</span><b>${v < 0 ? '−' + fmtIQD(-v) : '+' + fmtIQD(v)}</b></div>`).join('') + `<div class="tot"><span>المكافأة</span><b>+${fmtIQD(r.total)}</b></div>`;
     this.buildWallet();
   },
   // ---------- نفس الشبكة ----------
@@ -457,22 +462,27 @@ export const UI = {
     const PO = P.filter(w => Economy.owns(w));
     $('#loPrim').innerHTML = PO.length ? PO.map(w => card(w, L.primary === w, 'p')).join('') : '<div class="note">هذا الوضع بلا أسلحة رئيسية — مسدس وخنجر فقط</div>';
     $('#loSec').innerHTML = SECONDARIES.filter(w => Economy.owns(w)).map(w => card(w, L.secondary === w, 's')).join('') + `<button class="wpn" data-goshop="1"><b>🛒 المتجر</b><small>أسلحة أكثر</small></button>`;
-    const focus = this.loFocus && (this.loFocus === L.primary || this.loFocus === L.secondary) ? this.loFocus : (L.primary || L.secondary);
-    const isPrim = focus === L.primary;
-    const wd = withAtt(focus, isPrim ? L.att : null), base = WEAPONS[focus];
+    // النقر على سلاح يعرضه فقط، وزر «اعتماد» يجهّزه (مع منظاره وقطعه المختارة)
+    const owned = w => (P.includes(w) || SECONDARIES.includes(w)) && Economy.owns(w);
+    const focus = this.loFocus && owned(this.loFocus) ? this.loFocus : (L.primary || L.secondary);
+    const isPrim = P.includes(focus), equipped = focus === L.primary || focus === L.secondary;
+    this.loPend = this.loPend || {};
+    const pend = isPrim ? (equipped ? { scope: L.scope, att: L.att } : (this.loPend[focus] = this.loPend[focus] || { scope: (WEAPONS[focus].scopes || [])[0] || null, att: {} })) : { scope: null, att: null };
+    const wd = withAtt(focus, isPrim ? pend.att : null), base = WEAPONS[focus];
     const bars = [['الضرر', Math.min(1, wd.dmg * (wd.pellets || 1) / 160)], ['سرعة الإطلاق', Math.min(1, wd.rpm / 1000)], ['الدقة', Math.max(0.05, 1 - (wd.spread * 90 + wd.moveSpread * 4))], ['الثبات', Math.max(0.05, 1 - wd.recoil[0] * 22 - wd.recoil[1] * 30)], ['المدى', Math.max(0.05, (wd.range - 0.6) / 0.4)], ['الحركة', (wd.speed - 0.78) / 0.32]];
-    $('#loStats').innerHTML = `<div class="wtitle"><h3>${esc(base.name)}</h3><span>${CLASS_NAME[base.cls]} · ${wd.mag || '∞'} طلقة</span></div><p>${esc(base.desc || '')}</p>` + bars.map(([l, v]) => `<div class="bar"><span>${l}</span><i style="--v:${Math.max(0.04, Math.min(1, v)).toFixed(3)}"></i></div>`).join('');
+    $('#loStats').innerHTML = `<div class="wtitle"><h3>${esc(base.name)}</h3><span>${CLASS_NAME[base.cls]} · ${wd.mag || '∞'} طلقة</span></div><p>${esc(base.desc || '')}</p>` + bars.map(([l, v]) => `<div class="bar"><span>${l}</span><i style="--v:${Math.max(0.04, Math.min(1, v)).toFixed(3)}"></i></div>`).join('') + `<button class="btn ${equipped ? 'ghost' : 'primary'} equipBtn" id="loEquip" ${equipped ? 'disabled' : ''}>${equipped ? '✓ مُجهَّز معك' : (isPrim ? 'اعتماد كسلاح رئيسي' : 'اعتماد كمسدس')}</button>`;
     const sc = isPrim ? base.scopes : [];
-    $('#loScope').innerHTML = isPrim && sc.length ? sc.map(s => `<button class="chip ${L.scope === s ? 'sel' : ''}" data-s="${s}">${SCOPES[s].short}</button>`).join('') : '<div class="note">—</div>';
+    $('#loScope').innerHTML = isPrim && sc.length ? sc.map(s => `<button class="chip ${pend.scope === s ? 'sel' : ''}" data-s="${s}">${SCOPES[s].short}</button>`).join('') : '<div class="note">—</div>';
     const ATTN = { muzzle: 'الفوهة', grip: 'المقبض', mag: 'المخزن' };
-    $('#loAtt').innerHTML = isPrim ? base.att.map(k => `<h5>${ATTN[k]}</h5><div class="chips">${Object.entries(ATTACH[k]).map(([v, a]) => `<button class="chip ${L.att[k] === v ? 'sel' : ''}" data-a="${k}" data-v="${v}" title="${esc(a.desc || '')}">${a.name}</button>`).join('')}</div>`).join('') : '';
+    $('#loAtt').innerHTML = isPrim ? base.att.map(k => `<h5>${ATTN[k]}</h5><div class="chips">${Object.entries(ATTACH[k]).map(([v, a]) => `<button class="chip ${(pend.att || {})[k] === v ? 'sel' : ''}" data-a="${k}" data-v="${v}" title="${esc(a.desc || '')}">${a.name}</button>`).join('')}</div>`).join('') : '';
     for (let i = 0; i < 2; i++) $('#loNade' + i).innerHTML = Object.entries(NADES).map(([k, n]) => `<button class="chip ${L.nades[i] === k ? 'sel' : ''}" data-n="${k}" data-i="${i}">${n.name} ×${Economy.W.items[k] || 0}</button>`).join('') + `<button class="chip ${!L.nades[i] ? 'sel' : ''}" data-n="" data-i="${i}">لا شيء</button>`;
-    this.game.menuWeapon(focus, isPrim ? L.scope : null, isPrim ? L.att : null);
+    this.game.menuWeapon(focus, isPrim ? pend.scope : null, isPrim ? pend.att : null);
     const root = $('#s-loadout');
     root.querySelectorAll('[data-goshop]').forEach(b => b.onclick = () => { Audio.play('ui'); this.shopTab = 'wpn'; this.open('shop'); });
-    root.querySelectorAll('.wpn[data-w]').forEach(b => b.onclick = () => { Audio.play('ui'); if (b.dataset.k === 'p') { if (L.primary !== b.dataset.w) { L.primary = b.dataset.w; L.scope = null; L.att = {}; } } else L.secondary = b.dataset.w; this.loFocus = b.dataset.w; const v = validLoadout(L, mode); Object.assign(L, v); save(); });
-    root.querySelectorAll('[data-s]').forEach(b => b.onclick = () => { Audio.play('ui'); L.scope = b.dataset.s; save(); });
-    root.querySelectorAll('[data-a]').forEach(b => b.onclick = () => { Audio.play('ui'); L.att = { ...L.att, [b.dataset.a]: b.dataset.v }; save(); });
+    root.querySelectorAll('.wpn[data-w]').forEach(b => b.onclick = () => { Audio.play('ui'); this.loFocus = b.dataset.w; this.buildLoadout(); });
+    const eq = $('#loEquip'); if (eq) eq.onclick = () => { Audio.play('ui'); if (isPrim) { L.primary = focus; L.scope = pend.scope; L.att = { ...(pend.att || {}) }; } else L.secondary = focus; Object.assign(L, validLoadout(L, mode)); this.toast2(`جهّزت ${base.name}` + (this.game.sim && this.game.sim.tdm ? ' — يصير بيدك أول ما ترجع للحياة' : '')); save(); };
+    root.querySelectorAll('[data-s]').forEach(b => b.onclick = () => { Audio.play('ui'); pend.scope = b.dataset.s; if (equipped) { L.scope = pend.scope; save(); } else this.buildLoadout(); });
+    root.querySelectorAll('[data-a]').forEach(b => b.onclick = () => { Audio.play('ui'); pend.att = { ...(pend.att || {}), [b.dataset.a]: b.dataset.v }; if (equipped) { L.att = pend.att; save(); } else this.buildLoadout(); });
     root.querySelectorAll('[data-n]').forEach(b => b.onclick = () => { Audio.play('ui'); if (b.dataset.n) { this.game.menuShow('nade', b.dataset.n); this.loNadePv = 1; } const i = +b.dataset.i; const arr = [L.nades[0], L.nades[1]]; arr[i] = b.dataset.n || undefined; L.nades = arr.filter(Boolean); save(); });
   },
   // ---------- الإعدادات ----------
@@ -490,11 +500,13 @@ export const UI = {
       row('حساسية الكاميرا', rng('sens', 0.3, 3, 0.05, 1), 'سرعة الالتفات بالسحب على الشاشة') +
       row('حساسية التصويب القريب', rng('adsSens', 0.3, 2.5, 0.05, 1), 'النقطة الحمراء والهولو و×2') +
       row('حساسية المناظير', rng('scopeSens', 0.3, 2.5, 0.05, 1), '×3 وما فوق — تُقسَّم تلقائياً على قوة التكبير') +
+      row('المنظور', chips('view', [{ id: 'tpp', label: 'الشخص الثالث' }, { id: 'fpp', label: 'الشخص الأول' }]), 'الثالث: الكاميرا ورا كتفك مثل ببجي، والتصويب بالمنظار يحوّل للأول') +
       row('زر التصويب', chips('adsMode', [{ id: 'mixed', label: 'مختلط' }, { id: 'tap', label: 'نقرة' }, { id: 'hold', label: 'ضغط مستمر' }]), 'المختلط: نقرة تثبّت، وضغطة طويلة تصوّب ما دام إصبعك موضوعاً') +
       row('مساعدة التصويب', tog('aimAssist'), 'إبطاء خفيف عند مرور المؤشر على العدو (للمس فقط)') +
       row('زر إطلاق يساري', tog('leftFire')) +
       row('الجيروسكوب', chips('gyro', [{ id: 'off', label: 'مغلق' }, { id: 'scope', label: 'عند التصويب' }, { id: 'always', label: 'دائماً' }])) +
       row('حساسية الجيروسكوب', rng('gyroSens', 0.3, 3, 0.05, 1)) +
+      row('عكس الجيروسكوب الأفقي', tog('gyroInvX'), 'إذا لفّت الكاميرا عكس يدك') + row('عكس الجيروسكوب العمودي', tog('gyroInvY')) +
       row('عكس المحور العمودي', tog('invertY')) +
       row('حجم أزرار اللمس', rng('touchSize', 0.8, 1.35, 0.05, 1)) + row('شفافية الواجهة', rng('hudAlpha', 0.4, 1, 0.05, 1)) +
       row('لون مؤشر التصويب', chips('crossColor', [{ id: '#5dffb0', label: 'نعناعي' }, { id: '#ffffff', label: 'أبيض' }, { id: '#ffe14a', label: 'أصفر' }, { id: '#ff4a6a', label: 'أحمر' }, { id: '#4ad8ff', label: 'سماوي' }])) +
@@ -504,15 +516,17 @@ export const UI = {
       row('الدقة', sel('res', RES_OPTIONS), 'الأعلى أجمل والأقل أسرع') +
       row('حدّ الفريمات', chips('fps', FPS_OPTIONS)) +
       row('عرض الفريمات أعلى اليسار', tog('showFps')) +
+      row('حزمة الرسوميات المتقدّمة (NEXT-GEN FX)', tog('fx'), 'انعكاسات واقعية على الأرض (مرايا بالمطر)، ظلال التلاصق، أشعة الشمس بين الأبنية، تدرّج سينمائي. ⚠️ ثقيلة — تثقّل الهواتف المتوسطة والضعيفة') +
+      (Settings.fx ? row('· الانعكاسات', tog('fxSSR')) + row('· ظلال التلاصق', tog('fxAO')) + row('· أشعة الشمس', tog('fxRays')) + row('· التدرّج السينمائي', tog('fxGrade')) : '') +
       row('مجال الرؤية', rng('fov', 70, 110, 1)) +
       row('الطقس الافتراضي', chips('weather', WEATHER_OPTIONS.map(o => ({ id: o.id, label: o.label }))));
     else h = row('الصوت العام', rng('volume', 0, 1, 0.05, 1)) + row('الموسيقى التراثية', rng('music', 0, 1, 0.05, 1)) + row('أصوات أهل السوق', rng('talk', 0, 1, 0.05, 1), 'يرحّبون بك ويتسولفون بالبغدادي حين تقترب — صفر لإسكاتهم')
-      + `<div class="note credits">الموسيقى التراثية مؤلّفة آلياً داخل اللعبة (مقامات بيات وحجاز بالعود والناي والإيقاع). نماذج «فانوس الشارع الخشبي» و«السمكة» من مستودع Khronos glTF-Sample-Assets برخصة CC0 (الملك العام). أصوات أهل السوق والمقدّمة بصوت عراقي عصبي (Azure ar-IQ).</div>`
+      + `<div class="note credits">الموسيقى التراثية مؤلّفة آلياً داخل اللعبة (مقامات بيات وحجاز بالعود والناي والإيقاع). نماذج «فانوس الشارع الخشبي» و«السمكة» من مستودع Khronos glTF-Sample-Assets برخصة CC0 (الملك العام). أصوات أهل السوق والمقدّمة بصوت عراقي عصبي (Azure ar-IQ)، ومحاضرات الشيخ ونداءات الإمام بصوت فصيح (Azure ar-SA).${window.__ADHAN ? ` تسجيل الأذان: ${esc(window.__ADHAN.title.replace(/^File:/, ''))} — ${esc(window.__ADHAN.artist || '')} · ${esc(window.__ADHAN.license || '')} (ويكيميديا كومنز).` : ''}</div>`
       + `<div style="margin-top:10px"><button class="btn" onclick="window.__R && window.__R.playIntro()">🎬 شاهد المقدّمة من جديد</button></div>`;
     el.innerHTML = h;
     el.querySelectorAll('.chips').forEach(c => c.addEventListener('click', e => { const b = e.target.closest('.chip'); if (!b) return; const v = b.dataset.v; setSetting(c.dataset.k, isNaN(+v) || v === '' ? v : +v); this.buildSettings(); HUD.layout(); }));
     el.querySelectorAll('select').forEach(s => s.addEventListener('change', () => { const v = s.value; setSetting(s.dataset.k, isNaN(+v) ? v : +v); }));
-    el.querySelectorAll('.tog').forEach(b => b.addEventListener('click', () => { setSetting(b.dataset.t, !Settings[b.dataset.t]); b.classList.toggle('on', Settings[b.dataset.t]); HUD.layout(); }));
+    el.querySelectorAll('.tog').forEach(b => b.addEventListener('click', () => { setSetting(b.dataset.t, !Settings[b.dataset.t]); b.classList.toggle('on', Settings[b.dataset.t]); HUD.layout(); if (b.dataset.t === 'fx') this.buildSettings(); }));
     el.querySelectorAll('input[type=range]').forEach(r => r.addEventListener('input', () => { setSetting(r.dataset.k, +r.value); r.nextElementSibling.textContent = r.dataset.pct ? Math.round(+r.value * 100) + '%' : r.value; if (r.dataset.k === 'volume') Audio.setVolume(+r.value); HUD.layout(); }));
   },
   // ---------- اللوحة والنهاية ----------

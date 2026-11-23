@@ -174,6 +174,11 @@ export const Audio = {
       loop(this.brown, 'lowpass', 300, 0.7, 0.26);
       const cr = loop(this.noise, 'bandpass', 4300, 18, 0.035); // صراصير الليل
       const pulse = () => { if (this.ambKind !== kind) return; const t = c.currentTime; cr.g.gain.setTargetAtTime(Math.random() < 0.5 ? 0.05 : 0.005, t, 0.08); this.ambTimer = setTimeout(pulse, 180 + Math.random() * 600); }; pulse();
+    } else if (kind === 'dustwind') {
+      // العجاج: ريح خافتة وصرير هوا ناعم يعلى وينزل
+      loop(this.brown, 'lowpass', 320, 0.7, 0.3);
+      const wh = loop(this.noise, 'bandpass', 1300, 14, 0.045);
+      const gust = () => { if (this.ambKind !== kind) return; const t = c.currentTime; wh.f.frequency.setTargetAtTime(900 + Math.random() * 900, t, 1.4); wh.g.gain.setTargetAtTime(0.02 + Math.random() * 0.05, t, 1.1); this.ambTimer = setTimeout(gust, 1800 + Math.random() * 2400); }; gust();
     } else if (kind === 'tornado') {
       // هدير الإعصار: ريح عميقة وصفير وعصف
       const roar = loop(this.brown, 'bandpass', 200, 0.6, 1.0); const hiss = loop(this.noise, 'bandpass', 900, 1.2, 0.28);

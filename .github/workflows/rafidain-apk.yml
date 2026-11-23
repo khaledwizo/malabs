@@ -44,6 +44,10 @@ jobs:
           cp game/server.html server/src/main/assets/server.html
           if [ -f game/voice/manifest.js ]; then mkdir -p app/src/main/assets/voice && cp game/voice/manifest.js app/src/main/assets/voice/ && (cp game/voice/*.ogg app/src/main/assets/voice/ 2>/dev/null || true); echo "voices: $(ls app/src/main/assets/voice | wc -l)"; fi
 
+      - name: Fetch a freely licensed adhan recording (Wikimedia Commons)
+        continue-on-error: true
+        run: python3 game/tools/fetch_adhan.py app/src/main/assets
+
       - name: Bundle fonts for offline use
         continue-on-error: true
         run: |

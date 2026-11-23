@@ -1,0 +1,25 @@
+// لاعب وحيد ← معركة على هاتفه؛ دخل لاعب ثاني ← المعركة تنتقل للسيرفر بنفس الحالة
+import { chromium } from '/opt/npm-tools/node_modules/playwright/index.mjs';
+import path from 'path';
+import { spawn } from 'child_process';
+const PORT = 8893, Q = `?broker=ws://localhost:${PORT}/mqtt&nortc`;
+const broker = spawn('node', ['test/broker.mjs', String(PORT), '0', '0'], { stdio: 'ignore' }); await new Promise(r => setTimeout(r, 700));
+const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+const sleep = ms => new Promise(r => setTimeout(r, ms)), errs = [];
+const H = await (await b.newContext()).newPage(); H.on('pageerror', e => errs.push('hub ' + e.message));
+await H.goto('file://' + path.resolve('dist/server.html') + Q); await H.waitForFunction(() => window.__hub);
+await H.click('#power'); await H.waitForFunction(() => document.querySelector('#sNet').textContent.includes('✓'), null, { timeout: 15000 });
+const mk = async name => { const p = await (await b.newContext({ viewport: { width: 560, height: 300 } })).newPage(); p.on('pageerror', e => errs.push(name + ' ' + e.message)); await p.addInitScript(n => { localStorage.setItem('rafidain.intro.v2', '1'); localStorage.setItem('rafidain.settings.v2', JSON.stringify({ fps: 10, quality: 'low', res: '0.3', mode: 'tdm', name: n })); }, name); await p.goto('file://' + path.resolve('dist/index.html') + Q, { timeout: 120000, waitUntil: 'domcontentloaded' }); await p.waitForFunction(() => window.__R && window.__R.Central.isOnline(), null, { timeout: 90000 }); return p; };
+const go = p => p.evaluate(async () => { const { UI, game } = window.__R; const r = await game.onlineMatch(UI.matchOpts()); UI.closeScreens(); UI.hud(true); return r; });
+const st = p => p.evaluate(() => { const g = window.__R.game, s = g.sim; return s ? { central: !!s.central, room: s.room, host: !!g.hostSrv, sc: s.score, n: s.players.size, me: g.mp && g.mp.pos.map(v => +v.toFixed(1)) } : null; });
+const A = await mk('أحمد'); console.log('A ->', await go(A));
+await sleep(20000);
+console.log('hub matches before', await H.evaluate(() => [...window.__hub.matches.values()].filter(M => !M.bench).length), 'phones', await H.evaluate(() => JSON.stringify([...window.__hub.phones.values()].map(p => [p.room, p.h, p.w]))));
+await A.evaluate(() => { window.__R.game.hostSrv.sim.score = [4, 2]; });
+const preA = await st(A); console.log('A pre', JSON.stringify(preA));
+const B = await mk('بكر'); console.log('B ->', await go(B));
+await sleep(12000);
+console.log('A after', JSON.stringify(await st(A))); console.log('B after', JSON.stringify(await st(B)));
+console.log('hub', JSON.stringify(await H.evaluate(() => [...window.__hub.matches.values()].filter(M => !M.bench).map(M => ({ room: M.room, hum: M.I && M.I.hum.map(h => h.n + ':' + h.tm), sc: M.I && M.I.score, bots: M.I && M.I.bots })))));
+console.log('errs', errs.slice(0, 6));
+await b.close(); broker.kill();

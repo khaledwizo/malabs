@@ -19,14 +19,14 @@ export const QUALITY = {
   ultra: { label: 'فائقة', shadow: 4096, tex: 1024, aniso: 8, particles: 1.3, decals: 240, aa: true, details: 3, rain: 14000, bloom: true, env: 256, dprCap: 3, cloth: true },
 };
 export const WEATHER_OPTIONS = [
-  { id: 'random', label: 'متغيّر', sub: 'نهار ← مطر ← إعصار ← غروب ← ليل' }, { id: 'day', label: 'نهار', sub: 'شمس الظهيرة' }, { id: 'sunset', label: 'غروب', sub: 'ذهبي دافئ' },
+  { id: 'random', label: 'متغيّر', sub: 'عجاج ← مطر ← نهار ← غروب ← ليل' }, { id: 'day', label: 'نهار', sub: 'شمس الظهيرة' }, { id: 'sunset', label: 'غروب', sub: 'ذهبي دافئ' },
   { id: 'storm', label: 'عاصفة', sub: 'مطر وبرق' }, { id: 'horror', label: 'ليلة مرعبة', sub: 'ضباب وظلال' },
 ];
 
 export const DEFAULTS = {
   res: 'auto', fps: 0, showFps: true, quality: 'auto', fov: 82,
   // التصويب (على طريقة ببجي): الكاميرا، التصويب القريب، المناظير البعيدة
-  sens: 1, adsSens: 1, scopeSens: 1, invertY: false, adsMode: 'mixed', aimAssist: true, autoFire: false, leftFire: true, gyro: 'off', gyroSens: 1,
+  sens: 1, adsSens: 1, scopeSens: 1, invertY: false, adsMode: 'mixed', aimAssist: true, autoFire: false, leftFire: true, gyro: 'off', gyroSens: 1, gyroInvX: false, gyroInvY: false, view: 'tpp', nameTags: true, fx: false, fxSSR: true, fxAO: true, fxRays: true, fxGrade: true,
   touchSize: 1, hudAlpha: 0.9, crosshair: 'cross', crossColor: '#5dffb0',
   volume: 0.85, music: 0.4, talk: 0.9, haptics: true,
   name: 'لاعب', char: 'khaled', mode: 'tdm', teamSize: 4, difficulty: 'normal', rounds: 5, tdmTime: 600, roundTime: 120, weather: 'random', team: 0,

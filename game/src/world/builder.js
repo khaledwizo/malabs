@@ -34,7 +34,7 @@ export class Builder {
     d.box = this.w.add(x0, y, z0, x1, y + d.h, z1, MAT.wood, 0); d.bb = [x0, z0, x1, z1];
     this.w.doors.push(d); return d.id;
   }
-  // مكان يُستعمل بزر «استعمال»: أكل اللبلبي وشرب الچاي بالمعركة
+  // مكان يُستعمل بزر «استعمال»: أكل اللبلبي وشرب الشاي بالمعركة
   usable(kind, x, z, r = 2.4) { this.w.usables.push({ id: this.w.usables.length, kind, x, z, r }); }
   // منطقة يُمنع فيها إطلاق النار ورمي القنابل (المرقد)
   noFire(x0, z0, x1, z1) { this.w.noFire.push([x0, z0, x1, z1]); }

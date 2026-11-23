@@ -21,7 +21,7 @@ export const SCRIPT = [
   { who: 'ibrahim', shot: 'ibrahim', text: 'أهلي هناك يا محمد... أمّي وخواتي. البارحة حچيت وياهم، وصوت الطيارات فوق راسهم.', hold: 0.5 },
   { who: 'khaled', shot: 'khaled', text: 'وبعد تكريت؟ يگولون عينهم على بغداد.' },
   { who: 'saif', shot: 'saif', text: 'تكريت بوابة بغداد. إذا وگعت البوابة... إحنا التالين.', hold: 0.5 },
-  { who: 'mohammed', shot: 'mohammed2', text: 'وشنسوّي؟ نگعد نسمع الأخبار ونشرب چاي؟!' },
+  { who: 'mohammed', shot: 'mohammed2', text: 'وشنسوّي؟ نگعد نسمع الأخبار ونشرب شاي؟!' },
   { who: 'ibrahim', shot: 'ibrahim2', text: 'آني تكريتي، صارلي عشرين سنة ببغداد... بس والله گلبي هناك.', hold: 0.6 },
   { who: 'khaled', shot: 'khaled2', text: 'اصبروا يا جماعة. الشيخ فاتح هسّه يوصل، وهو يعرف شنو الصح.', hold: 0.6 },
   { shot: 'door', act: 'door', hold: 2.6 },

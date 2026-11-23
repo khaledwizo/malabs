@@ -23,7 +23,7 @@ export const WPRICE = {
   rafid: 0, raad: 0, dijla: 0,
   furat: 20000, zaeem: 30000, nisr: 35000,
   asifa: 40000, mirsad: 45000, iasar: 50000, zawba: 55000, nadhur: 60000,
-  saif556: 70000, battar: 85000, uqab: 120000, shihab: 150000, tufan: 160000, tabuk: 180000, saqr: 250000,
+  saif556: 70000, battar: 85000, uqab: 120000, shihab: 150000, tufan: 160000, tabuk: 600000, saqr: 785000,
 };
 // القنابل والصحة والمعدّات
 export const ITEMS = {
@@ -38,7 +38,8 @@ export const ITEMS = {
 // المجاني بكل قيم (ما يتراكم ولا يُسترد)
 export const FREE_MEDS = { b: 4, s: 2 };
 // المكافآت (70% من قتل اللاعب للبوت، مقرّبة لأقرب 250)
-export const REWARD = { kill: 2500, botKill: r250(2500 * 0.7), assist: 500, win: 10000, draw: 5000, loss: 3000 };
+// قتل لاعب حقيقي 500، بوت 250، مساعدة 100، فوز +1000، والخسارة تخصم 1000 من أرباح القتلات بنفس القيم (ما تنزل تحت الصفر)
+export const REWARD = { kill: 500, botKill: 250, assist: 100, win: 1000, draw: 0, loss: -1000 };
 
 const fresh = () => ({
   money: 0,
@@ -102,7 +103,8 @@ export const Economy = {
     if (e.kb) lines.push([`إسقاط بوتات ×${e.kb}`, e.kb * REWARD.botKill]);
     if (e.as) lines.push([`مساعدات ×${e.as}`, e.as * REWARD.assist]);
     if (e.res != null) lines.push([e.res > 0 ? 'الفوز' : e.res < 0 ? 'المشاركة' : 'التعادل', e.res > 0 ? REWARD.win : e.res < 0 ? REWARD.loss : REWARD.draw]);
-    const total = r250(lines.reduce((s, l) => s + l[1], 0));
+    if (e.res < 0) { const earned = lines.filter(l => l[1] > 0).reduce((s, l) => s + l[1], 0), ln = lines.find(l => l[0] === 'المشاركة'); if (ln) { ln[0] = 'الخسارة'; ln[1] = -Math.min(1000, earned); } }
+    const total = Math.max(0, lines.reduce((s, l) => s + l[1], 0));
     W.money += total; W.earned = (W.earned || 0) + total;
     this.save();
     this.last = { lines, total };

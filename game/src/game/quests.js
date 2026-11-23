@@ -30,8 +30,17 @@ export class Quests {
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
     const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthTest: false, transparent: true, fog: false })); s.scale.set(0.55, 0.55, 1); s.renderOrder = 9; s.visible = false; this.g.scene.add(s); return s;
   }
-  start() { this.buildGraves(); this.on = true; this.offer = null; this.act = null; this.cine = null; this.offerT = 3; this.fighters = null; this.updateHud(); }
-  stop() { this.endCine(true); if (this.mg) { this.mg.close(); this.mg = this.g.mg = null; } this.dropCarry(); if (this.findMesh) this.findMesh.visible = false; this.on = false; this.offer = null; this.act = null; this.giverMark.visible = false; this.g.wps && this.g.wps.clearQuest(); this.dropFighters(); this.updateHud(); }
+  start() {
+    this.buildGraves(); this.on = true; this.offer = null; this.act = null; this.cine = null; this.offerT = 3; this.fighters = null; this.lastId = this.S.lastId; this.lastPos = this.S.lastPos;
+    // رجعت للوبي: تكمّل المهمة اللي طلعت وهي بالنص من نفس الخطوة
+    const C = this.S.cur; const q0 = C && QUESTS.find(q => q.id === C.id);
+    if (q0) { const q = q0.vars ? { ...this.expandVi(q0, C.vi) } : q0; this.act = { q, i: Math.min(C.i, q.steps.length - 1), left: Math.max(60, C.left), item: C.item || null, extra: C.extra || 0 }; if (q.spawn === 'fighters') setTimeout(() => this.spawnFighters(), 500); setTimeout(() => this.g.ui && this.g.ui.toast2 && this.g.ui.toast2('تكمّل مهمتك: ' + q.title), 1500); }
+    this.updateHud();
+  }
+  // نحفظ المهمة الجارية حتى ترجع تكمّلها
+  saveCur() { const A = this.act; this.S.cur = A ? { id: A.q.id, vi: A.q.vi, i: A.i, left: Math.round(A.left), item: A.item, extra: A.extra } : null; this.S.lastId = this.lastId; this.S.lastPos = this.lastPos; this.save(); }
+  expandVi(q, vi) { const save = this.varK; this.varK = (vi ?? 0) - (this.S.done[q.id] || 0) - 1; const r = this.expand(q); this.varK = save; return r; }
+  stop() { this.saveCur(); this.dropTargets(); this.endCine(true); if (this.mg) { this.mg.close(); this.mg = this.g.mg = null; } this.dropCarry(); if (this.findMesh) this.findMesh.visible = false; this.on = false; this.offer = null; this.act = null; this.giverMark.visible = false; this.g.wps && this.g.wps.clearQuest(); this.dropFighters(); this.updateHud(); }
   // ---------- من هو؟ ----------
   civ(who, q) {
     q = q || (this.act && this.act.q) || this.offer;
@@ -85,7 +94,8 @@ export class Quests {
   setOffer(q) {
     this.offer = q; if (!q) return;
     if (q.spawn === 'fighters') this.spawnFighters();
-    Audio.play('questNew'); this.g.ui && this.g.ui.toast2 && this.g.ui.toast2('مهمة جديدة: ' + q.title + ' — النقطة الخضراء بالخريطة');
+    const story = QUESTS.filter(x => !x.repeat), n = story.filter(x => this.S.done[x.id]).length + 1;
+    Audio.play('questNew'); this.g.ui && this.g.ui.toast2 && this.g.ui.toast2(`مهمة جديدة${q.repeat ? '' : ` (${Math.min(n, story.length)}/${story.length})`}: ` + q.title + ' — النقطة الخضراء بالخريطة');
   }
   spawnFighters() {
     if (this.fighters) return; const A = this.g.ambient; if (!A || !A.on) return;
@@ -101,7 +111,8 @@ export class Quests {
     // أبو حيدر الصيّاد: إذا وگفت يمّه شوية، هو يفتح السالفة بنفسه
     { const fc = g.civs[FISHER]; if (fc && fc.here && !this.S.met.fisher && !this.cine && !this.mg && me && Math.hypot(fc.n.x - me.pos[0], fc.n.z - me.pos[2]) < 3.4) { this.fisherT = (this.fisherT || 0) + dt; if (this.fisherT > 2.5) { this.fisherT = 0; this.meetFisher(); } } else this.fisherT = 0; }
     // عرض مهمة جديدة بعد شوية
-    if (!this.offer && !this.act && !this.cine && !this.mg && (this.offerT -= dt) <= 0) { this.offerT = 8; this.setOffer(this.pickOffer()); }
+    if (!this.offer && !this.act && !this.cine && !this.mg && (this.offerT -= dt) <= 0) { this.offerT = 6; this.setOffer(this.pickOffer()); }
+    if (this.act && (this.saveT = (this.saveT || 0) - dt) <= 0) { this.saveT = 5; this.saveCur(); }
     if (this.offer && typeof this.offer.giver === 'number' && !this.civ('g', this.offer).here) this.offer = null;
     // علامة «!» الخضراء فوق صاحب المهمة
     const gp = this.offer && !this.cine && !this.mg ? this.posOf('g', this.offer) : null, gc = this.offer ? this.civ('g', this.offer) : null;
@@ -113,11 +124,13 @@ export class Quests {
       if (A.left <= 0) { this.fail('خلص الوقت!'); }
       else {
         const st = A.q.steps[A.i], p = this.posOf(st.to, A.q);
-        if (p) g.wps.setQuestPos ? g.wps.setQuestPos(p[0], p[1], st.label) : (g.wps.quest = { x: p[0], z: p[1], label: st.label });
+        const tp = st.kill ? this.targetPos() : null, pp = tp || p;
+        if (pp) g.wps.setQuestPos ? g.wps.setQuestPos(pp[0], pp[1], st.label) : (g.wps.quest = { x: pp[0], z: pp[1], label: st.label });
         // الجماعة تمشي وراك
         if (this.fighters && st.escort && me) this.fighters.forEach((w, i) => { const d = Math.hypot(w.n.x - me.pos[0], w.n.z - me.pos[2]); if (d > 3.2 + i * 0.5 && (!w.path || (w.reT = (w.reT || 0) - dt) <= 0)) { w.reT = 0.8; const a = i / 5 * Math.PI * 2; w.goTo(me.pos[0] + Math.cos(a) * 1.6, me.pos[2] + Math.sin(a) * 1.6); } });
         // غرض مخفي: توصل للمنطقة وتدوّره بعينك (يلمع شوية)
-        if (st.find && me) { this.findObj(st.find); this.findMesh.visible = true; this.findMesh.rotation.y += dt; const near = Math.hypot(st.find.x - me.pos[0], st.find.z - me.pos[2]); if (p && Math.hypot(p[0] - me.pos[0], p[1] - me.pos[2]) < 7) g.wps.quest = null; this.findNear = near < 1.9; }
+        if (st.kill) this.updateTargets(st, dt, p);
+        else if (st.find && me) { this.findObj(st.find); this.findMesh.visible = true; this.findMesh.rotation.y += dt; const near = Math.hypot(st.find.x - me.pos[0], st.find.z - me.pos[2]); if (p && Math.hypot(p[0] - me.pos[0], p[1] - me.pos[2]) < 7) g.wps.quest = null; this.findNear = near < 1.9; }
         else if (me && p && !this.cine && !this.mg && Math.hypot(p[0] - me.pos[0], p[1] - me.pos[2]) < (typeof st.to === 'object' ? 2.0 : 2.6)) this.runStep();
       }
     }
@@ -254,12 +267,12 @@ export class Quests {
   meetFisher() { this.S.met.fisher = 1; this.save(); this.play(FISHER_MEET, { q: { giver: FISHER } }); }
   accept(q) {
     this.offer = null; this.lastId = q.id; this.giverMark.visible = false;
-    this.act = { q, i: 0, left: q.time, item: null, extra: 0 };
+    this.act = { q, i: 0, left: q.time, item: null, extra: 0 }; this.saveCur();
     Audio.play('questNew'); this.g.ui && this.g.ui.toast2 && this.g.ui.toast2('بدأت المهمة: ' + q.title);
   }
-  ignore(q) { this.cd[q.id] = this.t + 180; this.offer = null; this.offerT = 16; this.lastId = q.id; this.lastPos = this.giverPos(q) || this.lastPos; if (q.spawn === 'fighters') this.dropFighters(); }
+  ignore(q) { this.cd[q.id] = this.t + 180; this.offer = null; this.offerT = 6; this.lastId = q.id; this.lastPos = this.giverPos(q) || this.lastPos; if (q.spawn === 'fighters') this.dropFighters(); }
   fail(why) {
-    const q = this.act.q; this.act = null; this.dropCarry(); if (this.mg) { this.mg.close(); this.mg = this.g.mg = null; } if (this.findMesh) this.findMesh.visible = false; this.lastPos = this.giverPos(q) || this.lastPos; this.g.wps.clearQuest(); this.cd[q.id] = this.t + 90; this.offerT = 12; this.endCine(true);
+    const q = this.act.q; this.act = null; this.saveCur(); this.dropTargets(); this.dropCarry(); if (this.mg) { this.mg.close(); this.mg = this.g.mg = null; } if (this.findMesh) this.findMesh.visible = false; this.lastPos = this.giverPos(q) || this.lastPos; this.g.wps.clearQuest(); this.cd[q.id] = this.t + 90; this.offerT = 6; this.endCine(true);
     if (q.spawn === 'fighters') this.dropFighters();
     Audio.play('questFail'); this.g.ui && this.g.ui.toast2 && this.g.ui.toast2(`فشلت المهمة «${q.title}» — ${why} ترجع تنعرض بعدين.`);
   }
@@ -286,7 +299,7 @@ export class Quests {
     const A = this.act; if (!A) return; const q = A.q, st = q.steps[A.i];
     if (st.item) A.item = st.item; if (C && C.opt && C.opt.quizScore !== undefined) A.quiz = C.opt.quizScore;
     if (st.carry) this.startCarry(st.carry);
-    A.i++; this.g.wps.clearQuest();
+    A.i++; this.g.wps.clearQuest(); this.dropTargets(true); this.saveCur();
     if (A.i >= q.steps.length) this.finish();
     else Audio.play('ui');
   }
@@ -295,9 +308,36 @@ export class Quests {
     if (q.id === 'tourist' && A.quiz !== undefined) amt = A.quiz >= 2 ? amt : A.quiz === 1 ? r250(amt * 0.6) : r250(amt * 0.35);
     this.play(q.outro, { q, done: () => {
       const got = Economy.earn(amt); this.S.done[q.id] = (this.S.done[q.id] || 0) + 1; this.save();
-      this.act = null; this.offerT = 22 + Math.random() * 15; if (q.spawn === 'fighters') { const F = this.fighters; this.fighters = null; if (F) F.forEach((w, i) => { w.stroll = true; w.wait = 3 + i; setTimeout(() => w.remove(), 60000); }); }
+      this.act = null; this.saveCur(); this.offerT = 6; if (q.spawn === 'fighters') { const F = this.fighters; this.fighters = null; if (F) F.forEach((w, i) => { w.stroll = true; w.wait = 3 + i; setTimeout(() => w.remove(), 60000); }); }
       Audio.play('questDone'); this.g.ui && this.g.ui.toast2 && this.g.ui.toast2(`✔ ${q.title} — استلمت ${fmtIQD(got)}`);
     } });
+  }
+  // ---------- مهام التصفية ----------
+  spawnTargets(st) {
+    const A = this.g.ambient; if (this.targets || !A || !A.on) return;
+    const mk = (o, guard) => { const w = A.spawn(o.look, o.x, o.z, { name: o.name, sp: 1.1, seed: 700 + Math.round(o.x * 7 + o.z) }); w.face(o.x + Math.sin(o.yaw || 0), o.z + Math.cos(o.yaw || 0)); w.tg = { ...o, guard, home: [o.x, o.z], back: false, t: Math.random() * 4 }; w.c.name = o.name; return w; };
+    this.targets = [...st.kill.map(o => mk(o, false)), ...(st.guards || []).map(o => mk(o, true))];
+  }
+  dropTargets(keepDead) { if (!this.targets) return; const T = this.targets; this.targets = null; for (const w of T) { if (keepDead && !w.c.alive) setTimeout(() => w.remove(), 20000); else w.remove(); } }
+  targetPos() { const w = this.targets && this.targets.find(w => !w.tg.guard && w.c.alive); return w ? [w.n.x, w.n.z] : null; }
+  updateTargets(st, dt, p) {
+    if (!this.targets) { const me = this.g.mp; if (me && p && Math.hypot(p[0] - me.pos[0], p[1] - me.pos[2]) < 70) this.spawnTargets(st); return; }
+    // دورية خفيفة: يتمشّى بين نقطتين
+    for (const w of this.targets) { if (!w.c.alive || !w.tg.patrol || w.path) continue; if ((w.tg.t -= dt) > 0) continue; w.tg.t = 5 + Math.random() * 4; w.tg.back = !w.tg.back; const [x, z] = w.tg.back ? w.tg.patrol : w.tg.home; w.goTo(x, z); }
+    if (this.targets.filter(w => !w.tg.guard).every(w => !w.c.alive)) { Audio.play('questDone'); this.g.ui && this.g.ui.toast2 && this.g.ui.toast2('✔ تمّت التصفية — ارجع لصاحب المهمة'); this.stepDone(); }
+  }
+  // طلقتي باللوبي: هل أصابت أحد المطلوبين؟ (o: فوهة/عين، d: الاتجاه)
+  onShot(o, d) {
+    if (!this.targets) return;
+    const W = this.g.world, s = 0.3, wall = W.ray(o[0] + d[0] * s, o[1] + d[1] * s, o[2] + d[2] * s, d[0], d[1], d[2], 200, undefined, {}), maxT = wall ? wall.t + s : 200;
+    let best = null, bt = maxT;
+    for (const w of this.targets) {
+      if (!w.c.alive || w.hidden) continue;
+      const tx = w.n.x - o[0], tz = w.n.z - o[2], t = tx * d[0] + (1.0 - o[1]) * d[1] + tz * d[2]; if (t <= 0 || t >= bt) continue;
+      const px = o[0] + d[0] * t, py = o[1] + d[1] * t, pz = o[2] + d[2] * t;
+      if (Math.hypot(px - w.n.x, pz - w.n.z) < 0.34 && py > 0.15 && py < 1.85) { best = w; bt = t; }
+    }
+    if (best) { best.c.die(d); best.stop(); Audio.play('hitmark'); if (!best.tg.guard) this.g.ui && this.g.ui.toast2 && this.g.ui.toast2('أسقطت ' + best.tg.name); }
   }
   // ---------- الوردة ----------
   nurseryMenu() {

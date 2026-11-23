@@ -68,7 +68,7 @@ export function makeMaterials(Q) {
   mk('concrete', TX.plaster(256, { base: [150, 146, 138], seed: 61, cracks: 5 }), 2.5, { rough: 0.95 });
   mk('paintWhite', null, 1, { color: 0xe8e6e0, rough: 0.45, metal: 0.2 });
   mk('glass', null, 1, { color: 0x88aabb, rough: 0.1, metal: 0.3, transparent: true, opacity: 0.35, depthWrite: false, vc: false });
-  mk('tea', null, 1, { color: 0x6a1a06, rough: 0.1, vc: false }); // چاي داخل الاستكان
+  mk('tea', null, 1, { color: 0x6a1a06, rough: 0.1, vc: false }); // شاي داخل الاستكان
   mk('porcelain', null, 1, { color: 0xf3f0ea, rough: 0.25, vc: false }); mk('porcBlue', null, 1, { color: 0x2d5ba6, rough: 0.3, vc: false });
   mk('dark', null, 1, { color: 0x15110d, rough: 1 });
   mk('spice1', null, 1, { color: 0xc4561e, rough: 1 }); mk('spice2', null, 1, { color: 0xd8a72c, rough: 1 }); mk('spice3', null, 1, { color: 0x6d7a2a, rough: 1 });

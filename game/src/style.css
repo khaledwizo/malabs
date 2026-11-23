@@ -468,8 +468,8 @@ body.nvg canvas#gl{filter:brightness(2.4) contrast(1.15) sepia(.85) hue-rotate(5
 #qTrack .qs{font-size:13px;margin-top:3px;color:#f3ead6;line-height:1.35}#qTrack .qs small{color:#ffd76a;font-weight:800;margin-right:4px}
 #qTrack .qi{font-size:12px;color:#c9f5d0;margin-top:2px}
 body.lobby #feed{top:calc(var(--sat) + 140px * var(--hs,1))}
-#lobbyBar{top:calc(var(--sat) + 8px);left:50%;transform:translateX(-50%);display:none;flex-direction:column;align-items:center;gap:1px;background:rgba(10,10,12,.55);border:1px solid rgba(255,215,106,.35);border-radius:12px;padding:4px 16px 5px}
-#lobbyBar b{font:800 17px var(--fb);color:#ffd76a;direction:ltr}#lobbyBar small{font-size:11px;color:#d8cfbd}
+#lobbyBar{top:calc(var(--sat) + 52px);left:calc(var(--sal,0px) + 10px);display:none;align-items:center;gap:5px;background:rgba(10,10,12,.5);border:1px solid rgba(255,215,106,.3);border-radius:999px;padding:2px 10px 2px 8px;pointer-events:none}
+#lobbyBar i{font-style:normal;font-size:12px}#lobbyBar b{font:800 12.5px var(--fb);color:#ffd76a;direction:ltr}
 body.lobby #lobbyBar{display:flex}
 body.lobby #topbar .tscore,body.lobby #phase,body.lobby #domBar,body.lobby #ammo,body.lobby #slots,body.lobby #bFire,body.lobby #bFireL,body.lobby #bAds,body.lobby #bReload,body.lobby #bNade,body.lobby #bLeanL,body.lobby #bLeanR,body.lobby #bBand,body.lobby #bSyr,body.lobby #bZoomIn,body.lobby #bZoomOut,body.lobby #hScore,body.lobby #warm,body.lobby #vitals .ic{display:none!important}
 body.lobby #topbar{top:calc(var(--sat) + 52px)}
@@ -562,3 +562,8 @@ body.drone #topbar,body.drone #feed{display:none}
 .hbot .onlineBtn .odot{width:9px;height:9px;border-radius:50%;background:#8a96a8;box-shadow:0 0 0 2px rgba(255,255,255,.12);flex:none}
 .hbot .onlineBtn .odot.on{background:#3ee07a;box-shadow:0 0 8px #3ee07a}
 .hbot .onlineBtn:disabled{opacity:.85}
+.lo .equipBtn{width:100%;margin-top:10px}
+#droneHud #dBomb{position:absolute;bottom:calc(var(--sab) + 110px);right:calc(var(--sar,0px) + 9%);pointer-events:auto;padding:14px 20px;font-size:16px;background:linear-gradient(180deg,#ff8a5a,#d2412f);color:#fff;border:0}
+#droneHud #dBomb.off{opacity:.35;pointer-events:none}
+#reward .neg b,.neg b{color:#ff7a6a}
+#toast2:not(.on){opacity:0;pointer-events:none}#toast2{transition:transform .3s,opacity .3s}

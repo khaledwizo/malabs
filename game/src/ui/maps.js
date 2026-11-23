@@ -147,7 +147,7 @@ export class MapView {
       for (const p of g.sim.players.values()) {
         if (!p.alive || p.id === g.me) continue;
         this.g = g; if (!this.revealed(p, me, g.shotAt, now)) continue;
-        if (p.team === me.team) this.arrow(x, this.px(p.pos[0]), this.pz(p.pos[2]), p.yaw, TEAMS[p.team].color, 13);
+        if (p.team === me.team) { const X = this.px(p.pos[0]), Z = this.pz(p.pos[2]); this.arrow(x, X, Z, p.yaw, TEAMS[p.team].color, 13); if (!p.bot && p.name) { x.font = "800 17px 'Cairo', sans-serif"; x.textAlign = 'center'; x.textBaseline = 'bottom'; x.lineWidth = 3; x.strokeStyle = 'rgba(0,0,0,.75)'; x.strokeText(p.name, X, Z - 15); x.fillStyle = '#e8fbff'; x.fillText(p.name, X, Z - 15); } }
         else { x.fillStyle = '#ff3b3b'; x.beginPath(); x.arc(this.px(p.pos[0]), this.pz(p.pos[2]), 10, 0, Math.PI * 2); x.fill(); }
       }
       this.arrow(x, this.px(me.pos[0]), this.pz(me.pos[2]), g.yaw, '#ffffff', 16);

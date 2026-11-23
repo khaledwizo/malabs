@@ -25,7 +25,7 @@ export const Central = {
     if (topic.startsWith(O)) { if (this.ads && topic.startsWith(this.adTopic)) { const room = topic.slice(this.adTopic.length); if (d && d.room === room) this.ads.set(room, d); else this.ads.delete(room); } return true; }
     if (!topic.startsWith(C)) return false;
     if (topic === C + 'state') { if (d) this.verify(d).then(b => { if (b) { this.st = b; if (b.on) this.trySync(); } }); return true; }
-    if (topic === C + 'to/' + Social.id && d) this.verify(d).then(b => { if (!b) return; const w = this.waiters.get(b.re); if (w) { this.waiters.delete(b.re); w(b); } }); return true;
+    if (topic === C + 'to/' + Social.id && d) this.verify(d).then(b => { if (!b) return; if (b.k === 'move') { if (this.onMove) this.onMove(b); return; } const w = this.waiters.get(b.re); if (w) { this.waiters.delete(b.re); w(b); } }); return true;
   },
   // التوقيع: { b: نص الرسالة, s: توقيع ECDSA, k: المفتاح العام } — نثبّت أول مفتاح ونرفض غيره (يتجدّد التثبيت إذا غاب السيرفر 3 أيام)
   async verify(d) {
@@ -52,6 +52,8 @@ export const Central = {
       if (!this.pub(C + 'req', { from: Social.id, re, ...I, n: name, mo: mode, v: 4 })) { clearTimeout(t); this.waiters.delete(re); res(null); }
     });
   },
+  // نقل معركتي من هاتفي للسيرفر (دخل لاعب حقيقي ثاني): نرسل الحالة الكاملة
+  sendMove(room, src, R) { return this.pub(C + 'mv', { from: Social.id, ...this.ident(), room, src, R }); },
   // الغرف المفتوحة على هواتف اللاعبين (وضع المضيف)
   async findOpen(mode, ms = 1800) {
     this.ads = new Map(); this.adTopic = O + mode + '/';

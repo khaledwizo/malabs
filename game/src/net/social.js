@@ -88,11 +88,11 @@ export const Social = {
   removeFriend(id) { this.friends = this.friends.filter(f => f.id !== id); this.save(); this.pub(NS + id + '/rm/' + this.id, { t: nowS() }, true); this.emit('friends'); },
   // ---------- الفرقة والدعوات ----------
   send(id, msg) { return this.pub(NS + id + '/in', { ...this.me(), ...msg, t: nowS() }); },
-  ensureParty() { if (!this.party) { const P = this.prof(); this.party = { host: this.id, members: [{ id: this.id, name: clean(P.name), char: P.char }], vs: false }; } return this.party; },
+  ensureParty() { if (!this.party) { const P = this.prof(); this.party = { host: this.id, members: [{ id: this.id, name: clean(P.name), char: P.char }], vs: true }; /* الافتراضي: صديقك ضدّك */ } return this.party; },
   invite(id, mode) { const P = this.ensureParty(); if (P.host !== this.id) return; this.send(id, { k: 'inv', mode: mode || 'tdm' }); this.emit('party'); },
   acceptInvite(inv) {
     if (this.party && this.party.host !== inv.from) this.leaveParty();
-    this.party = { host: inv.from, members: [{ id: inv.from, name: clean(inv.name), char: inv.char }, { ...this.me(), id: this.id }], vs: false, pending: true };
+    this.party = { host: inv.from, members: [{ id: inv.from, name: clean(inv.name), char: inv.char }, { ...this.me(), id: this.id }], vs: true, pending: true };
     this.send(inv.from, { k: 'join' }); this.emit('party');
     clearTimeout(this.joinT); this.joinT = setTimeout(() => { if (this.party && this.party.pending) { this.party = null; this.emit('party'); this.emit('note', { text: 'لم يردّ المضيف — ربما بدأ المعركة أو غادر' }); } }, 9000);
   },

@@ -233,7 +233,7 @@ export function buildSouq(B) {
     B.end();
   };
   // أصيص/قدر: على الأرض يصبح «سندانة» قابلة للكسر
-  // استكان چاي عراقي (خصر ضيّق) على صحن، fill: نسبة الچاي (0 فارغ)
+  // استكان شاي عراقي (خصر ضيّق) على صحن، fill: نسبة الشاي (0 فارغ)
   const estR = t => t < 0.38 ? 0.0185 + 0.003 * ((0.38 - t) / 0.38) ** 2 : 0.0185 + 0.008 * ((t - 0.38) / 0.62) ** 1.6;
   const estikan = (x, y, z, fill = 0.85, ry = 0) => {
     if (!vis) return;
@@ -244,7 +244,7 @@ export function buildSouq(B) {
     if (fill > 0.04) B.geo(() => { const P = [new THREE.Vector2(0.001, 0.004)]; for (let i = 0; i <= 6; i++) { const t = i / 6 * fill; P.push(new THREE.Vector2(estR(t) * 0.86, 0.004 + t * h * 0.92)); } P.push(new THREE.Vector2(0.001, 0.004 + fill * h * 0.92)); return new THREE.LatheGeometry(P, 12); }, T(x, y + 0.008, z), 'tea');
     B.geo(() => new THREE.BoxGeometry(0.005, 0.003, 0.055), T(x + Math.cos(ry) * 0.026, y + 0.011, z + Math.sin(ry) * 0.026, ry + 0.4), 'chrome'); // خاشوگة
   };
-  // قوري چاي فرفوري بحزام أزرق
+  // قوري شاي فرفوري بحزام أزرق
   const qouri = (x, y, z, ry = 0, sc = 1) => {
     if (!vis) return;
     const m = (lx, ly, lz, rx = 0, rz = 0, s = 1, yo = 0) => T(x + (Math.cos(ry) * lx + Math.sin(ry) * lz) * sc, y + ly * sc, z + (-Math.sin(ry) * lx + Math.cos(ry) * lz) * sc, ry + yo, s * sc, s * sc, s * sc, rx, rz);
@@ -301,7 +301,7 @@ export function buildSouq(B) {
     if (!vis) return;
     B.geo(() => new THREE.CylinderGeometry(0.42, 0.42, 0.05, 16), T(x, 0.74, z), 'woodDark');
     B.geo(() => new THREE.CylinderGeometry(0.05, 0.08, 0.72, 8), T(x, 0.36, z), 'iron');
-    // استكانات الزبائن: واحد بيه نص چاي وواحد خالص (ينتظرون الجولة الجاية)
+    // استكانات الزبائن: واحد بيه نص شاي وواحد خالص (ينتظرون الجولة الجاية)
     estikan(x + 0.14, 0.765, z + 0.08, 0.5, R() * 6); estikan(x - 0.16, 0.765, z + 0.12, 0, R() * 6); if (R() < 0.6) estikan(x - 0.02, 0.765, z - 0.18, 0.3, R() * 6);
   };
   // مجسّم سلاح مبسّط للعرض (يُبنى من صناديق محاذية للمحاور): o='h' أفقي (السبطانة نحو ±z) أو 'v' عمودي
@@ -350,7 +350,7 @@ export function buildSouq(B) {
       return;
     }
     if (kind === 'spice') {
-      // عطارة أبو ستّار: أكياس طحين وحمص، صحون بهارات مكوّمة، علب چاي، فلفل مجفّف معلّق، ميزان نحاسي
+      // عطارة أبو ستّار: أكياس طحين وحمص، صحون بهارات مكوّمة، علب شاي، فلفل مجفّف معلّق، ميزان نحاسي
       for (let k = 0; k < 3; k++) B.box(Math.min(back - side * 0.25, back + side * 0.25), 1.0 + k * 0.62, z0 + 0.15, Math.max(back - side * 0.25, back + side * 0.25), 1.05 + k * 0.62, z1 - 0.15, 'wood', { col: false });
       const SP = ['flowerRed', 'flowerYellow', 'clay', 'tan', 'leafDark', 'brickBurnt'];
       for (let k = 0; k < 3; k++) for (let j = 0; j < 5; j++) { const z = z0 + 0.35 + j * (z1 - z0 - 0.7) / 4, y = 1.05 + k * 0.62; if (k === 1) { B.boxB(back, y, z, 0.26, 0.3, 0.2, j % 2 ? 'paintRed' : 'tileGreen', { col: false }); } else { B.geo(() => new THREE.CylinderGeometry(0.11, 0.1, 0.14, 10), T(back, y, z), 'porcelain'); B.geo(() => new THREE.ConeGeometry(0.1, 0.12, 10), T(back, y + 0.2, z), SP[(j + k) % SP.length]); } }

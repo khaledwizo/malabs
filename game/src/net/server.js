@@ -21,7 +21,7 @@ export class GameServer {
     this.cfg = { mode: 'tdm', size: 4, rounds: 5, time: 600, difficulty: 'normal', fill: true, pref: false, ...(opt.cfg || {}) };
     if (!MODES[this.cfg.mode]) this.cfg.mode = 'tdm';
     this.cfg.size = Math.max(1, Math.min(MAX_TEAM, this.cfg.size | 0 || 4));
-    this.hooks = opt.hooks || {}; this.adv = !!opt.adv; this.reportLive = !!opt.reportLive; this.bench = !!opt.bench; this.busy = 0; this.busyMs = 0; this.mid = opt.mid || (Date.now().toString(36) + Math.random().toString(36).slice(2, 6));
+    this.hooks = opt.hooks || {}; this.adv = !!opt.adv; this.reportLive = !!opt.reportLive; this.hostId = opt.hostId || ''; this.bench = !!opt.bench; this.busy = 0; this.busyMs = 0; this.mid = opt.mid || (Date.now().toString(36) + Math.random().toString(36).slice(2, 6));
     this.clients = new Map(); // cid → عميل
     this.pid = 100; this.botN = 0; this.eid = 0; this.evq = [];
     this.status = 'جارٍ الاتصال بالوسيط…'; this.onchange = opt.onChange || (() => { }); this.log = opt.log || (() => { });
@@ -42,7 +42,7 @@ export class GameServer {
   // إعلان الغرفة المفتوحة (وضع المضيف) + تبليغ السيرفر المركزي بالمعارك اللي على هواتف اللاعبين
   announce() {
     if (!this.link || !this.link.mqs) return;
-    const h = this.humans(), info = { room: this.room, mo: this.cfg.mode, h, h0: this.humans(0), h1: this.humans(1), t: Math.floor(Date.now() / 1000), mid: this.mid };
+    const h = this.humans(), info = { room: this.room, mo: this.cfg.mode, h, h0: this.humans(0), h1: this.humans(1), t: Math.floor(Date.now() / 1000), mid: this.mid, w: h === 1 && this.adv && this.hostId ? 1 : 0, hid: this.hostId };
     for (const q of this.link.mqs) { if (this.adv) q.publish(this.advTopic(), h && h < MAX_PLAYERS ? JSON.stringify(info) : '', true); if (this.reportLive && h) q.publish(NS_C + 'live', JSON.stringify(info)); }
   }
   lanInfo() { return { mode: this.cfg.mode, size: this.cfg.size, humans: this.humans() }; }
@@ -181,6 +181,7 @@ export class GameServer {
       case 'ch': if (CHAR_ORDER.includes(m.c)) { cl.char = m.c; this.sim.setChar(cl.pid, m.c); this.sendRoster(); } break;
       case 'pi': this.link.sendTo(cid, { k: 'po', c: m.c }); cl.rtt = +m.r || 0; break;
       case 'mk': this.sim.setMark(cl.pid, m.p); break;
+      case 'dn': this.sim.dropNade(cl.pid, m.p); break;
       case 'bye': this.log('غادر: ' + cl.name); this.remove(cid); break;
     }
   }

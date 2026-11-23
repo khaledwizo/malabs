@@ -46,8 +46,9 @@ export const Input = {
       const r = e.rotationRate, dt = (e.interval > 1 ? e.interval / 1000 : e.interval) || 0.016;
       const ang = (screen.orientation && screen.orientation.angle) || window.orientation || 90, s = ang === 270 || ang === -90 ? -1 : 1;
       const k = Math.PI / 180 * dt * Settings.gyroSens * 1.6;
-      this.gyroX = (this.gyroX || 0) - (r.beta || 0) * k * s;
-      this.gyroY = (this.gyroY || 0) - (r.gamma || 0) * k * s;
+      // مثل ببجي: الكاميرا تلتف بنفس جهة التفاف اليد (لف الهاتف يسار = نظرة يسار، إمالته لفوق = نظرة لفوق)
+      this.gyroX = (this.gyroX || 0) + (r.beta || 0) * k * s * (Settings.gyroInvX ? -1 : 1);
+      this.gyroY = (this.gyroY || 0) + (r.gamma || 0) * k * s * (Settings.gyroInvY ? -1 : 1);
     });
   },
   press(a) { this.pressed.add(a); this.down.add(a); if (a === 'ads') this.adsPress(); },

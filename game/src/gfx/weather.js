@@ -25,7 +25,7 @@ export class Weather {
     this.sunDir = new THREE.Vector3(...I.sun.dir).normalize();
     // طقس متغيّر: مطر قصير، غبار الإعصار، وليل هادئ
     PRESETS.rain = { ...PRESETS.storm, sunI: 1.0, hemiI: 0.85, fogD: 0.011, rain: 0.85, wet: 0.7, bolt: 0.35, exp: 1.12, cloud: 0.88, mist: 0.25 };
-    PRESETS.dust = { ...PRESETS.day, sunCol: 0xffc890, sunI: 1.5, hemiSky: 0xc8a070, hemiI: 0.8, sky: [0x8a6a48, 0xc49a6a, 0xd8b88a], fog: 0xc29a6a, fogD: 0.024, cloud: 0.8, cloudCol: 0xb08a5a, amb: 'tornado', grade: [1.06, 0.98, 0.88, 0.95], mist: 0.2 };
+    PRESETS.dust = { ...PRESETS.day, sunCol: 0xffc890, sunI: 1.5, hemiSky: 0xc8a070, hemiI: 0.8, sky: [0x8a6a48, 0xc49a6a, 0xd8b88a], fog: 0xc29a6a, fogD: 0.024, cloud: 0.8, cloudCol: 0xb08a5a, amb: 'dustwind', grade: [1.06, 0.98, 0.88, 0.95], mist: 0.2 };
     PRESETS.night = { ...PRESETS.horror, ghosts: 0, rain: 0, wet: 0, bolt: 0, mist: 0.12, fogD: 0.011, exp: 1.5, amb: 'night', lamps: 2.0 };
     this.cur = null;
     this.buildRoofMap();
@@ -155,7 +155,7 @@ export class Weather {
   }
   pick(id) {
     this.cycle = !id || id === 'random'; // المتغيّر: يبدأ نهار ويمشي بالدورة (شوف schedule)
-    if (this.cycle) id = 'day';
+    if (this.cycle) id = 'dust';
     if (id === 'menu') id = 'sunset';
     return PRESETS[id] ? id : 'sunset';
   }
@@ -222,13 +222,14 @@ export class Weather {
     this.plan = plan; this.planBase = base;
   }
   cyclePlan(T) {
-    return [[T + 45, 'rain', 5], [T + 75, 'day', 6], [T + 92, 'dust', 4], [T + 93, 'tornado'], [T + 108, 'day', 6], [T + 130, 'sunset', 22], [T + 185, 'night', 25], [T + 330, 'day', 30], [T + 360, 'again']];
+    // عجاج 40ث ← مطر 30ث ← نهار 4د ← غروب 30ث ← ليل 3د ← ويعيد (نفسه باللوبي وبالمعارك)
+    return [[T + 40, 'rain', 5], [T + 70, 'day', 6], [T + 310, 'sunset', 8], [T + 340, 'night', 10], [T + 520, 'dust', 8], [T + 520, 'again']];
   }
   tick(matchT) {
     if (!this.plan) return;
     while (this.plan.length && matchT >= this.plan[0][0]) {
       const [t0, id, dur] = this.plan.shift();
-      if (id === 'again') { this.plan = this.cyclePlan(t0 - 45 + 15); continue; }
+      if (id === 'again') { this.plan = this.cyclePlan(t0); continue; }
       if (id === 'tornado') { this.startTornado(15); continue; }
       if (dur) { this.blendTo(id, dur); continue; }
       if (id === 'horrorRain') { PRESETS.horrorRain = PRESETS.horrorRain || { ...PRESETS.horror, rain: 0.9, wet: 0.9, bolt: 1, fogD: 0.019 }; this.blendTo('horrorRain', 20); }

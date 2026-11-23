@@ -1,5 +1,5 @@
 // درون استطلاع: تطيّره 30 ثانية بسرعة وتحكّم، صوت مراوح، وكل عدو يدخل كاميرته ينكشف لك على الخريطة
-// (مرئي عندك بس — ما يدخل المحاكاة). مرّة كل 60 ثانية.
+// (مرئي عندك بس — ما يدخل المحاكاة). مرّة وحدة بكل قيم، وتشيل رمانة وحدة تنرمي على اللي تحتها.
 import * as THREE from 'three';
 import { Audio } from '../core/audio.js';
 
@@ -7,11 +7,12 @@ export const DRONE_TIME = 30, DRONE_CD = 60, DRONE_RANGE = 85;
 
 export class Drone {
   constructor(game) { this.g = game; this.on = false; this.cdUntil = -1; this.seen = new Map(); this.marks = []; }
-  get ready() { return !this.on && this.g.t >= this.cdUntil; }
+  get ready() { return !this.on && !this.used; }
   get cdLeft() { return Math.max(0, this.cdUntil - this.g.t); }
   start() {
     const g = this.g, me = g.mp; if (!me || !me.alive || !this.ready) return false;
-    this.on = true; this.t = 0; this.home = me.pos.slice();
+    this.on = true; this.used = true; this.bomb = true; this.t = 0; this.home = me.pos.slice();
+    const b = document.getElementById('dBomb'); if (b) b.classList.remove('off');
     this.pos = new THREE.Vector3(me.pos[0], me.pos[1] + 3.2, me.pos[2]); this.vel = new THREE.Vector3();
     this.yaw = g.yaw; this.pitch = -0.35; this.tilt = 0;
     Audio.droneStart && Audio.droneStart(); document.body.classList.add('drone');
@@ -71,6 +72,13 @@ export class Drone {
       if (!this.seen.has(q.id) || g.t - this.seen.get(q.id) > 8) Audio.play('hitmark');
       this.seen.set(q.id, g.t);
     }
+  }
+  // رمي الرمانة من الدرون: تسقط عمودياً وتنفجر على اللي تحتها
+  drop() {
+    const g = this.g; if (!this.on || !this.bomb || !g.sim || !g.sim.dropNade) return false;
+    this.bomb = false; g.sim.dropNade(g.me, [this.pos.x, this.pos.y - 0.45, this.pos.z]);
+    const b = document.getElementById('dBomb'); if (b) b.classList.add('off');
+    Audio.play('pin'); return true;
   }
   applyCamera(cam) { cam.position.copy(this.pos); cam.rotation.set(this.pitch, this.yaw, this.tilt, 'YXZ'); }
 }

@@ -101,7 +101,7 @@ const Net = {
     this.mqs.push(m);
     m.onmessage = (t, p) => this.recv(t, utf8.dec(p));
     m.onclose = () => { this.mqs = this.mqs.filter(q => q !== m); if (this.on) { log('انقطع الوسيط ' + url.split('/')[2] + ' — إعادة الاتصال'); setTimeout(() => this.conn(url), 3000); } };
-    for (const k of ['req', 'sync', 'live']) m.subscribe(C + k);
+    for (const k of ['req', 'sync', 'live', 'mv']) m.subscribe(C + k);
     log('متصل بالوسيط ' + url.split('/')[2].split(':')[0]);
     pubState();
   },
@@ -112,7 +112,7 @@ const Net = {
     if (this.seen.size > 500) for (const [kk, tt] of this.seen) if (t - tt > 60) this.seen.delete(kk);
     let d; try { d = JSON.parse(raw); } catch (e) { return; }
     if (!d) return;
-    if (topic === C + 'req') onReq(d); else if (topic === C + 'sync') onSync(d); else if (topic === C + 'live') onLive(d);
+    if (topic === C + 'req') onReq(d); else if (topic === C + 'sync') onSync(d); else if (topic === C + 'live') onLive(d); else if (topic === C + 'mv') onMove(d);
   },
 };
 async function pubState(off) {
@@ -190,15 +190,23 @@ async function onReq(d) {
   if (D.bans.includes(d.u)) return reply({ k: 'full', why: 'محظور من السيرفر' });
   if (!(await tokOk(d.u, d.tk, d.n))) return reply({ k: 'full', why: 'هوية غير صحيحة' });
   const mo = MODES[d.mo] ? d.mo : 'tdm';
+  // 1) معركة على السيرفر بيها لاعبين حقيقيين ومكان فاضي
   let M = null, best = -1;
   for (const X of liveMatches()) { if (X.mo !== mo || (X.I && X.I.phase === 'over')) continue; const n = humansOf(X) + pendOf(X); if (n < MAXP && n > best) { best = n; M = X; } }
-  if (!M) {
+  if (M) { M.pend.set(d.u, nowS()); return reply({ k: 'mm', room: M.room, mo }); }
+  // 2) لاعب وحيد يلعب ويّا البوتات على هاتفه: صار عندنا لاعبين حقيقيين ← ننقل معركته للسيرفر ونجمعهم
+  const t = nowS(); let P = null;
+  for (const p of phones.values()) if (p.w && p.mo === mo && p.hid && p.hid !== d.from && t - p.at < 40 && !p.moved) { P = p; break; }
+  if (P) {
     const why = admit();
-    if (why) { D.tot.refused++; log(`رفض معركة جديدة: ${why}`, true); return reply({ k: 'full', why }); }
-    M = createMatch(mo);
+    if (why) { D.tot.refused++; log(`السيرفر ممتلئ (${why}) — اللاعب انضم لمعركة على هاتف لاعب`, true); P.w = 0; return reply({ k: 'mm', room: P.room, mo, phone: 1 }); }
+    P.moved = true; M = createMatch(mo); M.from = P.room; M.pend.set(d.u, t);
+    Net.pub(C + 'to/' + P.hid, await sign({ k: 'move', room: M.room, src: P.room }));
+    log(`لاعب ثاني دخل — معركة ${P.room} تنتقل من الهاتف للسيرفر (${M.room})`);
+    return reply({ k: 'mm', room: M.room, mo });
   }
-  M.pend.set(d.u, nowS());
-  reply({ k: 'mm', room: M.room, mo });
+  // 3) ما في أحد: اللاعب يبدأ على هاتفه ويّا البوتات (السيرفر يشغّل بس معارك بيها أكثر من لاعب حقيقي)
+  reply({ k: 'host' });
 }
 // هل نتحمّل معركة جديدة؟ (السبب يرجع للاعب)
 function admit() {
@@ -223,19 +231,25 @@ async function onSync(d) {
     if (DB.eids.has(e.id)) { D.tot.dup++; continue; }
     DB.eids.add(e.id);
     if (e.ty === 'ses') {
-      const p = player(d.u, e.n); p.off++; p.pt += Math.min(+e.du || 0, 6 * 3600); p.k += +e.k || 0; p.d += +e.d || 0; if (e.win > 0) p.w++; else if (e.win < 0) p.lo++;
+      const p = player(d.u, e.n); if (e.on) { p.s++; D.tot.sessions++; } else p.off++; p.pt += Math.min(+e.du || 0, 6 * 3600); p.k += +e.k || 0; p.d += +e.d || 0; if (e.win > 0) p.w++; else if (e.win < 0) p.lo++;
       p.l = Math.max(p.l, (+e.t || 0) / 1000 + (+e.du || 0));
-      D.tot.offSessions++;
-      const mid = e.mid || e.room; if (mid && !DB.mids.has('o' + mid)) { DB.mids.add('o' + mid); D.tot.offMatches++; D.matches.unshift({ mid, room: e.room, mo: e.mo, src: 'p', st: (+e.t || 0) / 1000, en: (+e.t || 0) / 1000 + (+e.du || 0), sc: null, n: e.hum || 0 }); }
+      if (!e.on) D.tot.offSessions++;
+      const mid = e.mid || e.room; if (mid && !DB.mids.has('o' + mid)) { DB.mids.add('o' + mid); if (e.on) D.tot.matches++; else D.tot.offMatches++; D.matches.unshift({ mid, room: e.room, mo: e.mo, src: 'p', st: (+e.t || 0) / 1000, en: (+e.t || 0) / 1000 + (+e.du || 0), sc: null, n: e.hum || 0 }); }
     }
   }
   D.lastSync = nowS(); D.syncs++; DB.mark();
   if (ids.length) log(`مزامنة من ${(D.players[d.u] || {}).n || d.u}: ${ids.length} حدث`, true);
   Net.pub(C + 'to/' + d.from, await sign({ re: d.re, k: 'ack', ids }));
 }
+// المضيف يرسل حالة معركته المنقولة للسيرفر
+async function onMove(d) {
+  if (!running || !d.room || !d.R || !(await tokOk(d.u, d.tk))) return;
+  const M = matches.get(d.room); if (!M || M.from !== d.src || M.dead) return;
+  M.w.postMessage({ t: 'resume', R: d.R }); log(`استلمنا حالة المعركة ${d.src} ← ${d.room}`, true);
+}
 // معارك شغّالة على هواتف اللاعبين (وضع المضيف) تبلّغ عن نفسها
 const phones = new Map();
-function onLive(d) { if (!d.room || typeof d.room !== 'string') return; phones.set(d.room, { ...d, at: nowS() }); }
+function onLive(d) { if (!d.room || typeof d.room !== 'string') return; const o = phones.get(d.room); phones.set(d.room, { ...d, at: nowS(), moved: o && o.moved }); }
 
 // ---------- القياسات ----------
 const stats = { players: 0, bots: 0, cpu: 0, app: 0, sys: null, lat: 0, up: null, dn: null };

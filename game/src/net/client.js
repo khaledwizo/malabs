@@ -197,6 +197,7 @@ export class NetSim {
   input(id, cmd) { this.cmd = { ...cmd }; }
   setLoadout(id, L) { if (this.mini) this.mini.setLoadout(this.me, L); this.opt.loadout = L; this.link && this.link.send({ k: 'lo', l: L }, true); }
   setMark(id, p) { this.link && this.link.send({ k: 'mk', p }, true); }
+  dropNade(id, p) { this.link && this.link.send({ k: 'dn', p: p.map(v => Math.round(v * 100) / 100) }, true); }
   setChar(id, c) { if (this.pp) this.pp.char = c; this.opt.char = c; this.link && this.link.send({ k: 'ch', c }, true); }
   curW(p) { return p.slot <= 3 ? p.inv[p.slot] : null; }
   curId(p) { return p.slot === 4 ? (p.inv[4][0] || 'frag') : (p.inv[p.slot] ? p.inv[p.slot].id : 'khanjar'); }
