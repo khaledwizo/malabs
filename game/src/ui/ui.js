@@ -48,7 +48,74 @@ const TEMPLATE = HUD_HTML + `
       <div class="modes" id="modes"></div>
       <div class="mdesc" id="mdesc"></div>
       <div class="mopts" id="mopts"></div>
-      <div class="hbot"><div class="party" id="party"></div><button class="btn big lobbyBtn" id="btnLobby" title="لوبي خاص: تجوّل بالسوق ومهام">${ICON.shop}<span>السوق والمهام</span></button><button class="btn big onlineBtn" id="btnOnline" title="أصدقاؤك المتصلون الآن — ادعهم للعب"><span class="odot"></span><span>الأصدقاء</span></button><button class="btn primary big" id="btnStart">ابدأ المعركة</button></div>
+      <div class="hbot"><div class="party" id="party"></div><button class="btn big lobbyBtn" id="btnLobby" title="لوبي خاص: تجوّل بالسوق ومهام">${ICON.shop}<span>السوق والمهام</span></button><button class="btn big onlineBtn" id="btnOnline" title="كل شي عن اللعبة"><span>📖</span><span>تعليمات</span></button><button class="btn primary big" id="btnStart">ابدأ المعركة</button></div>
+    </div>
+  </div>
+</section>
+
+<section class="scr" id="s-guide">
+  <div class="panel wide guide"><div class="head"><h2>📖 دليل جبهة الرافدين</h2><button class="x" data-back>✕</button></div>
+    <div class="gtabs" id="gTabs"><button data-g="idea" class="sel">الفكرة</button><button data-g="story">الحكاية</button><button data-g="play">طريقة اللعب</button><button data-g="modes">الأوضاع</button><button data-g="lobby">السوق والمهام</button><button data-g="mudhif">المضيف</button><button data-g="online">أونلاين</button><button data-g="tips">نصائح</button></div>
+    <div class="gbody">
+      <article data-g="idea" class="on">
+        <h3>معركة بسوق من أسواقنا</h3>
+        <p>جبهة الرافدين لعبة قتال تكتيكية عراقية. أحداثها تدور بـ<b>سوق المجاهدين</b>، سوق شعبي بين دجلة والجامع والمرقد والمقاهي ودكاكين البهارات.</p>
+        <div class="gcards"><div><i>⚔️</i><b>قتال فرق</b><small>5 ضد 5 بالحد الأقصى، ضد لاعبين حقيقيين أو بوتات.</small></div><div><i>🏘️</i><b>حياة السوق</b><small>ناس يتسولفون ويشتغلون ويصلّون، ويهربون إذا اشتد الرمي.</small></div><div><i>🎯</i><b>مهام إنسانية</b><small>تساعد أهل السوق، ترجع أغراضهم، وتخلّصهم من المبتزّين.</small></div><div><i>💰</i><b>اقتصاد حقيقي</b><small>تكسب بالدينار وتشتري سلاحك وعتادك.</small></div></div>
+      </article>
+      <article data-g="story">
+        <h3>الحكاية</h3>
+        <p>تبدأ بمقدّمة سينمائية بالسوق: يوم هادئ ينكسر بهجوم. يسقط <b>الشيخ فاتح الرفاعي</b> رحمه الله، صاحب المضيف، وتتحوّل الحارات لجبهة.</p>
+        <p>من وقتها صار السوق ساحة يتقاتل بيها فريقان: <b>الصقور</b> و<b>الحُرّاس</b>. وبين المعارك يرجع الناس لحياتهم: الشاي بالمقهى، اللبلبي بالعربانة، والمجالس بمضيف الشيخ اللي صار يرعاه أخوه <b>الشيخ عبد العزيز الرفاعي</b>.</p>
+        <p class="gnote">كل الشخصيات والجماعات بالقصة خيالية.</p>
+      </article>
+      <article data-g="play">
+        <h3>التحكّم</h3>
+        <ul><li><b>المشي:</b> العصا يسار الشاشة. <b>النظر:</b> اسحب بيمين الشاشة، أو فعّل الجيروسكوب من الإعدادات.</li>
+        <li><b>المنظور:</b> الافتراضي الشخص الثالث (الكاميرا ورا كتفك). التصويب بالمنظار يحوّلك للأول، وتگدر تختار الأول دائماً من الإعدادات.</li>
+        <li><b>الرمي:</b> زر النار، و«التصويب» للمنظار. الرمانة من زرّها، والعلاج بالضماد والإبرة.</li>
+        <li><b>استعمال:</b> الزر الأصفر يطلع لما تقرّب من باب أو شخص أو أكل.</li>
+        <li><b>الدرون 🛸:</b> مرة وحدة بكل قيم، 30 ثانية تكشف الأعداء بالخريطة، وبيها رمانة ترميها على اللي تحتها.</li></ul>
+        <h3>العتاد</h3>
+        <p>من «العتاد»: اختار السلاح ← شوفه بثلاثي الأبعاد ← غيّر المنظار والقطع ← اضغط <b>اعتماد</b>.</p>
+      </article>
+      <article data-g="modes">
+        <h3>أوضاع القتال</h3>
+        <ul><li><b>فريق ضد فريق:</b> أكثر إسقاطات قبل ما يخلص الوقت.</li><li><b>الجولات:</b> كل جولة بحياة وحدة، والفايز يجمع الجولات.</li><li><b>السيطرة:</b> امسك النقاط واحميها.</li></ul>
+        <h3>الأرباح</h3>
+        <div class="gcards"><div><i>🤖</i><b>250</b><small>دينار لكل بوت</small></div><div><i>👤</i><b>500</b><small>دينار لكل لاعب حقيقي</small></div><div><i>🏆</i><b>+1000</b><small>للفوز</small></div><div><i>📉</i><b>−1000</b><small>من أرباح القتلات عند الخسارة</small></div></div>
+        <p>الأكل والشرب بالمعركة بفلوس، أما اللوبي فكلّه ببلاش. وتگدر تطلق على قناني الغاز حتى تنفجر بالأعداء.</p>
+      </article>
+      <article data-g="lobby">
+        <h3>السوق والمهام (اللوبي)</h3>
+        <p>زر «السوق والمهام» يدخلك للسوق بحرية بدون قتال. تمشي وتسولف ويّا الناس، وكل شوية يطلبك واحد منهم بمهمة (النقطة الخضراء بالخريطة).</p>
+        <ul><li><b>مهام تسوّيها بإيدك:</b> تعجن الخبز، تسقي المشتل، تركّب قنينة الغاز، تصوّر السائح ويّا الملوية، وتدفن الشهيد.</li>
+        <li><b>أغراض ضايعة:</b> محفظة، دبدوب، سبحة، مفاتيح، نظارات، خاتم. تلگاها وتشيلها وتسلّمها <b>يد بيد</b> لصاحبها.</li>
+        <li><b>مهام التصفية:</b> مبتزّين ومهدِّدين يأذون أهل السوق، تخلّص الناس منهم وتاخذ الجائزة.</li>
+        <li>إذا طلعت بنص مهمة ترجع تكمّلها من نفس المكان.</li></ul>
+      </article>
+      <article data-g="mudhif">
+        <h3>مضيف الشيخ فاتح الرفاعي</h3>
+        <ul><li><b>المجلس:</b> رجال گاعدين يتذاكرون أحكام فقهية شائعة على مذهب الشافعي. اجلس يمّهم واسمع، وتگدر تتخطّى أو تقوم بأي وقت.</li>
+        <li><b>مجالس العلم:</b> الشيخ عبد العزيز الرفاعي يلقي 5 محاضرات وعظ بأوقات مختلفة. المحاضرة تبقى قائمة لحد ما تحضرها.</li>
+        <li><b>الأذان والصلاة:</b> كل 15 دقيقة باللوبي يرتفع الأذان، وبعده صلاة جماعة. التحق بالصف وتابع الإمام بحركاتك.</li>
+        <li>الرمي ممنوع داخل المضيف والمرقد، وبالمعارك يلتجئ المدنيين للمضيف.</li></ul>
+      </article>
+      <article data-g="online">
+        <h3>اللعب أونلاين</h3>
+        <ul><li><b>ابدأ المعركة:</b> إذا عندك إنترنت تدخل ويّا لاعبين حقيقيين إن وُجدوا. وإذا ما في أحد تبدأ ويّا البوتات على هاتفك، وأي لاعب يدخل يكمّل وياك.</li>
+        <li><b>سيرفر الرافدين:</b> إذا كان شغّال، المعارك اللي بيها أكثر من لاعب حقيقي تنتقل له تلقائياً بنفس حالتها.</li>
+        <li><b>الأصدقاء:</b> من قائمة «الأصدقاء» أضف أصحابك بالمعرّف واعمل فرقة. المضيف يختار إذا أصدقاؤه وياه أو ضده (الافتراضي: ضدّك).</li>
+        <li>إذا طلع المضيف من المعركة، لاعب ثاني يستلمها وتكمل بنفس النتيجة.</li></ul>
+      </article>
+      <article data-g="tips">
+        <h3>أفكار ونصائح</h3>
+        <ul><li>صوّب للراس، والصوت يكشفك، فاستعمل كاتم الصوت إذا تريد تبقى مخفي بالخريطة.</li>
+        <li>الدرون قبل الاقتحام يوفّر عليك مفاجآت. وفّره لوقت الحاجة.</li>
+        <li>بالسيطرة لا تلاحق الإسقاطات، النقطة أهم.</li>
+        <li>اشتغل مهام اللوبي حتى تجمع فلوس لـ AWM (785 ألف) أو تبوك (600 ألف).</li>
+        <li>بالمنظور الثالث تگدر تشوف من ورا الزاوية، والعدو هم يگدر.</li>
+        <li>لو الهاتف سخن أو تقطّع، نزّل الرسوميات أو اطفي «الرسوميات المتقدّمة».</li></ul>
+      </article>
     </div>
   </div>
 </section>
@@ -135,10 +202,8 @@ export const UI = {
     ui.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => { Audio.init(); Audio.play('ui'); this.open(b.dataset.go); }));
     ui.querySelectorAll('[data-back]').forEach(b => b.addEventListener('click', () => { Audio.play('uiBack'); this.back(); }));
     $('#btnStart').addEventListener('click', () => { Audio.init(); Audio.play('ui'); this.start(); });
-    $('#btnOnline').addEventListener('click', () => { Audio.init(); Audio.play('ui'); this.open('friends'); });
-    // عدد الأصدقاء المتصلين الآن
-    const fr = () => { const b = $('#btnOnline'); if (!b) return; const n = Social.friends.filter(f => f.status === 'on' || f.status === 'game').length; b.querySelector('.odot').className = 'odot' + (n ? ' on' : ''); b.querySelector('span:last-child').textContent = n ? `${n} صديق أونلاين` : 'الأصدقاء'; };
-    setInterval(fr, 3000); Social.on(ev => { if (ev === 'friends') fr(); });
+    $('#btnOnline').addEventListener('click', () => { Audio.init(); Audio.play('ui'); this.open('guide'); });
+    $('#gTabs').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; Audio.play('ui'); for (const x of $('#gTabs').children) x.classList.toggle('sel', x === b); document.querySelectorAll('#s-guide article').forEach(a => a.classList.toggle('on', a.dataset.g === b.dataset.g)); document.querySelector('#s-guide .gbody').scrollTop = 0; });
     $('#btnLobby').addEventListener('click', () => { Audio.init(); Audio.play('ui'); this.startLobby(); });
     $('#pResume').addEventListener('click', () => this.game.resume());
     $('#pLoadout').addEventListener('click', () => this.open('loadout'));

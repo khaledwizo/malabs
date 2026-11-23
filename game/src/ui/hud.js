@@ -275,6 +275,6 @@ export const HUD = {
     d.style.transform = `rotate(${a}rad)`; el.appendChild(d); setTimeout(() => d.remove(), 1100);
   },
   spec(text) { const e = $('spec'); e.textContent = text || ''; e.classList.toggle('on', !!text); },
-  fps(s) { const e = $('fps'); if (e) { e.textContent = s; e.style.display = Settings.showFps ? '' : 'none'; } },
+  fps(s) { const e = $('fps'); if (e) { e.textContent = s; e.style.display = Settings.showFps ? '' : 'none'; document.body.classList.toggle('showfps', !!Settings.showFps); } },
   respawnBy(name) { $('rsBy').textContent = name ? 'أسقطك ' + name : ''; },
 };
