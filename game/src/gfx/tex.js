@@ -318,8 +318,8 @@ function kufiPlaque(text, opt) {
   for (const cx0 of [h * 0.42, w - h * 0.42]) { x.save(); x.translate(cx0, h / 2); for (let k = 0; k < 2; k++) { x.rotate(Math.PI / 4); x.strokeRect(-h * 0.15, -h * 0.15, h * 0.3, h * 0.3); } x.beginPath(); x.arc(0, 0, h * 0.05, 0, 7); x.fill(); x.restore(); }
   x.fillStyle = gold; x.textAlign = 'center'; x.textBaseline = 'middle'; x.direction = 'rtl';
   x.shadowColor = 'rgba(0,0,0,.6)'; x.shadowBlur = h * 0.02;
-  x.font = `700 ${h * (opt.sub ? 0.3 : 0.4)}px "Reem Kufi","Aref Ruqaa",serif`; x.fillText(text, w / 2, h * (opt.sub ? 0.42 : 0.52));
-  if (opt.sub) { x.font = `500 ${h * 0.12}px "Reem Kufi","Cairo",serif`; x.fillText(opt.sub, w / 2, h * 0.73); }
+  x.font = `700 ${h * (opt.sub ? 0.3 : 0.4)}px "Reem Kufi","Aref Ruqaa",serif`; x.fillText(text, w / 2, h * (opt.sub ? 0.44 : 0.52), w * 0.74);
+  if (opt.sub) { x.font = `500 ${h * 0.12}px "Reem Kufi","Cairo",serif`; x.fillText(opt.sub, w / 2, h * 0.75, w * 0.8); }
   const t = toTex(c, true, false); return { map: t };
 }
 

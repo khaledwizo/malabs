@@ -29,7 +29,9 @@ export const Audio = {
   // الموسيقى: أعلى في القوائم، خافتة أثناء القتال
   setMusic(v) { this.musV = v; this.applyMusic(); },
   musicMode(m) { this.musM = m; this.applyMusic(); },
-  applyMusic() { if (!this.mus) return; const v = this.introOn ? 0 : (this.musV ?? Settings.music) * (this.musM === 'game' ? 0.22 : this.musM === 'intro' ? 0 : 0.6); this.mus.gain.setTargetAtTime(v, this.ctx.currentTime, 0.8); },
+  // كتم الموسيقى باللوبي: وقت الأذان وداخل المضيف والمرقد
+  musicMute(f) { f = !!f; if (this.musMute === f) return; this.musMute = f; this.applyMusic(); },
+  applyMusic() { if (!this.mus) return; const v = this.introOn || this.musMute ? 0 : (this.musV ?? Settings.music) * (this.musM === 'game' ? 0.22 : this.musM === 'intro' ? 0 : 0.6); this.mus.gain.setTargetAtTime(v, this.ctx.currentTime, 0.8); },
   // بعد المقدّمة: الموسيقى تبدأ من أولها
   restartMusic() { if (this.musSrc) { try { this.musSrc.stop(); } catch (e) { } this.musSrc = null; } if (this.mus) this.mus.gain.cancelScheduledValues(this.ctx.currentTime), this.mus.gain.setValueAtTime(0, this.ctx.currentTime); this.startMusic(); },
   startMusic() {

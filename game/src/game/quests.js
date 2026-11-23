@@ -10,6 +10,7 @@ import { Voices, voiceId } from '../core/voices.js';
 import { Input } from '../core/input.js';
 import { MiniGame } from './minigame.js';
 import { BAKER } from './questdata.js';
+import { makeItem, ITEM_ICON } from './items.js';
 
 const KEY = 'rafidain.quests.v1';
 const load = () => { try { return Object.assign({ done: {}, met: {} }, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) { return { done: {}, met: {} }; } };
@@ -34,7 +35,7 @@ export class Quests {
     this.buildGraves(); this.on = true; this.offer = null; this.act = null; this.cine = null; this.offerT = 3; this.fighters = null; this.lastId = this.S.lastId; this.lastPos = this.S.lastPos;
     // رجعت للوبي: تكمّل المهمة اللي طلعت وهي بالنص من نفس الخطوة
     const C = this.S.cur; const q0 = C && QUESTS.find(q => q.id === C.id);
-    if (q0) { const q = q0.vars ? { ...this.expandVi(q0, C.vi) } : q0; this.act = { q, i: Math.min(C.i, q.steps.length - 1), left: Math.max(60, C.left), item: C.item || null, extra: C.extra || 0 }; if (q.spawn === 'fighters') setTimeout(() => this.spawnFighters(), 500); setTimeout(() => this.g.ui && this.g.ui.toast2 && this.g.ui.toast2('تكمّل مهمتك: ' + q.title), 1500); }
+    if (q0) { const q = q0.vars ? { ...this.expandVi(q0, C.vi) } : q0; this.act = { q, i: Math.min(C.i, q.steps.length - 1), left: Math.max(60, C.left), item: C.item || null, extra: C.extra || 0 }; if (q.spawn === 'fighters') setTimeout(() => this.spawnFighters(), 500); const pv = q.steps[this.act.i - 1]; if (pv && pv.carry && q.steps[this.act.i].give) this.startCarry(pv.carry, true); setTimeout(() => this.g.ui && this.g.ui.toast2 && this.g.ui.toast2('تكمّل مهمتك: ' + q.title), 1500); }
     this.updateHud();
   }
   // نحفظ المهمة الجارية حتى ترجع تكمّلها
@@ -94,8 +95,7 @@ export class Quests {
   setOffer(q) {
     this.offer = q; if (!q) return;
     if (q.spawn === 'fighters') this.spawnFighters();
-    const story = QUESTS.filter(x => !x.repeat), n = story.filter(x => this.S.done[x.id]).length + 1;
-    Audio.play('questNew'); this.g.ui && this.g.ui.toast2 && this.g.ui.toast2(`مهمة جديدة${q.repeat ? '' : ` (${Math.min(n, story.length)}/${story.length})`}: ` + q.title + ' — النقطة الخضراء بالخريطة');
+    Audio.play('questNew'); this.g.ui && this.g.ui.toast2 && this.g.ui.toast2('مهمة جديدة: ' + q.title + ' — النقطة الخضراء بالخريطة');
   }
   spawnFighters() {
     if (this.fighters) return; const A = this.g.ambient; if (!A || !A.on) return;
@@ -104,6 +104,7 @@ export class Quests {
   dropFighters() { if (this.fighters) { for (const w of this.fighters) w.remove(); this.fighters = null; } }
   // ---------- كل إطار ----------
   update(dt) {
+    this.tickHand(dt);
     if (!this.on) return;
     this.t += dt; const g = this.g, me = g.mp;
     if (this.cine) this.tickCine(dt);
@@ -119,7 +120,7 @@ export class Quests {
     this.giverMark.visible = !!gp; if (gp) this.giverMark.position.set(gp[0], (gc && gc.sit ? 1.75 : 2.3) + Math.sin(this.t * 3) * 0.08, gp[1]);
     // المهمة الجارية: الوقت، علامة الخطوة، والوصول
     const A = this.act;
-    if (A) {
+    if (A && A.q.steps[A.i]) {
       A.left -= this.cine || this.mg ? 0 : dt;
       if (A.left <= 0) { this.fail('خلص الوقت!'); }
       else {
@@ -143,7 +144,7 @@ export class Quests {
     const g = this.g, me = g.mp; if (!me || !me.alive) return null;
     const near = (p, r) => p && Math.hypot(p[0] - me.pos[0], p[1] - me.pos[2]) < r;
     if (this.offer && !this.act && near(this.posOf('g', this.offer), 3.0)) return { label: 'تكلّم', fn: () => this.openOffer() };
-    if (this.act && this.act.q.steps[this.act.i].find && this.findNear) return { label: '👜 ' + this.act.q.steps[this.act.i].find.label, fn: () => { this.findMesh.visible = false; this.runStep(); } };
+    if (this.act && this.act.q.steps[this.act.i].find && this.findNear) return { label: (ITEM_ICON[this.act.q.steps[this.act.i].find.kind || 'bag'] || '👜') + ' ' + this.act.q.steps[this.act.i].find.label, fn: () => { this.findMesh.visible = false; this.runStep(); } };
     // أبو حيدر: أول لقاء
     const fc = g.civs[FISHER]; if (fc && fc.here && !this.S.met.fisher && !(this.offer && this.offer.giver === FISHER) && near([fc.n.x, fc.n.z], 3)) return { label: 'تكلّم', fn: () => this.meetFisher() };
     // المشتل: شراء وردة
@@ -292,6 +293,7 @@ export class Quests {
     let lines = (st.say || []).slice();
     if (st.pay) { if (Economy.spend(st.pay)) lines.push(['me', `(دفعت ${fmtIQD(st.pay)})`]); else lines.push([typeof st.to === 'number' ? 'n' : 'me', typeof st.to === 'number' ? 'ما عندك فلوس هسّه؟ خذ وادفع بعدين، إحنا أهل.' : '(ما عندي فلوس... أدفع للوكيل بعدين)']); }
     if (!lines.length) lines.push(['me', '(...)']);
+    if (st.give) this.handOver(st.give, this.civ('g', q));
     if (st.choose) { opt.prompt = st.choose.prompt; opt.choices = st.choose.opts.map(o => ({ label: `${o.label} — ${fmtIQD(o.price)}`, fn: () => { A.choice = o; A.extra = r250(25000 - o.price); A.item = o.item; this.cine.opt.choices = null; this.cine.lines = [['me', 'هذا ' + o.label + '.'], ['n', 'اختيار زين! تفضّل.']]; this.cine.i = -1; this.cine.stage = 'lines'; this.next(); } })); }
     this.play(lines, opt);
   }
@@ -357,16 +359,32 @@ export class Quests {
   }
   // ---------- غرض مخفي ----------
   findObj(f) {
+    const kind = f.kind || 'bag';
+    if (this.findMesh && this.findMesh.kind !== kind) { this.g.scene.remove(this.findMesh); this.findMesh = null; }
+    if (!this.findMesh && kind !== 'bag') { const g = this.findMesh = new THREE.Group(); g.kind = kind; const it = makeItem(kind); it.scale.setScalar(kind === 'ring' ? 3 : 1.6); g.add(it); const glow = new THREE.PointLight(0xffd080, 1.6, 3, 2); glow.position.y = 0.4; g.add(glow); this.g.scene.add(g); }
     if (!this.findMesh) {
       const g = this.findMesh = new THREE.Group(), m = new THREE.MeshStandardMaterial({ color: 0x5a3018, roughness: 0.6, emissive: 0x3a1a08, emissiveIntensity: 0.6 });
       const b = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.28, 0.14), m); b.position.y = 0.14; g.add(b);
       const h = new THREE.Mesh(new THREE.TorusGeometry(0.09, 0.012, 6, 14, Math.PI), m); h.position.y = 0.28; g.add(h);
-      const glow = new THREE.PointLight(0xffd080, 1.4, 3, 2); glow.position.y = 0.5; g.add(glow); this.g.scene.add(g);
+      const glow = new THREE.PointLight(0xffd080, 1.4, 3, 2); glow.position.y = 0.5; g.add(glow); this.g.scene.add(g); g.kind = 'bag';
     }
     this.findMesh.position.set(f.x, 0, f.z);
   }
   // ---------- الشيل (قنينة الغاز): تمشي بطيء وبإيدك الغرض ----------
-  startCarry(kind) { this.carry = kind; this.g.carry = kind; this.g.ui.toast2('ثگيلة! تمشي على مهلك'); }
+  startCarry(kind, quiet) { this.carry = kind; this.g.carry = kind; if (!quiet) this.g.ui.toast2(kind === 'gas' ? 'ثگيلة! تمشي على مهلك' : 'صار الغرض بإيدك — سلّمه لصاحبه يد بيد'); }
+  // التسليم يد بيد: الغرض ينتقل من إيدك لإيده
+  handOver(kind, c) {
+    this.dropCarry(); if (!c) return;
+    const g = this.g, me = g.mp, m = makeItem(kind); if (kind === 'ring' || kind === 'keys' || kind === 'beads') m.scale.setScalar(1.6);
+    const dx = me.pos[0] - c.n.x, dz = me.pos[2] - c.n.z, L = Math.hypot(dx, dz) || 1;
+    const from = new THREE.Vector3(me.pos[0] - dx / L * 0.3, 1.0, me.pos[2] - dz / L * 0.3), to = new THREE.Vector3(c.n.x + dx / L * 0.32, 1.02, c.n.z + dz / L * 0.32);
+    m.position.copy(from); g.scene.add(m); if (this.hand) g.scene.remove(this.hand.m); this.hand = { m, from, to, t: 0 };
+  }
+  tickHand(dt) {
+    const h = this.hand; if (!h) return; h.t += dt; const k = Math.min(1, Math.max(0, (h.t - 0.6) / 1.2)), e = k * k * (3 - 2 * k);
+    h.m.position.lerpVectors(h.from, h.to, e); h.m.position.y += Math.sin(e * Math.PI) * 0.12; h.m.rotation.y += dt * (1 - e) * 2;
+    if (h.t > 7) { this.g.scene.remove(h.m); this.hand = null; }
+  }
   dropCarry() { this.carry = null; this.g.carry = null; }
   // ---------- قبور الشهداء اللي دفنتهم ----------
   addGrave(p) { this.S.graves = this.S.graves || []; if (!this.S.graves.some(q => Math.hypot(q[0] - p.x, q[1] - p.z) < 0.5)) this.S.graves.push([p.x, p.z]); this.save(); this.buildGraves(); }
@@ -387,7 +405,7 @@ export class Quests {
     el.classList.toggle('on', !!(this.on && (A || this.offer || this.flower)));
     if (!this.on) return;
     let h = '';
-    if (A) {
+    if (A && A.q.steps[A.i]) {
       const st = A.q.steps[A.i], m = Math.max(0, Math.ceil(A.left)), mm = Math.floor(m / 60), ss = String(m % 60).padStart(2, '0');
       const d = g.wps && g.wps.dist ? Math.round(g.wps.dist) : null;
       h = `<b>${esc(A.q.title)}</b><span class="qt ${m < 30 ? 'low' : ''}">${mm}:${ss}</span><div class="qs">● ${esc(st ? st.label : '')}${d ? ` <small>${d} م</small>` : ''}</div>${A.item ? `<div class="qi">معك: ${esc(A.item)}</div>` : ''}`;

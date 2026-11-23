@@ -188,6 +188,7 @@ export function buildDistricts(B, H) {
     B.box(x0 - 0.1, H, z0 - 0.1, x1 + 0.1, H + 0.3, z1 + 0.1, 'roof');
     for (const [a, b, c, d] of [[x0 - 0.1, z0 - 0.1, x1 + 0.1, z0 + 0.2], [x0 - 0.1, z1 - 0.2, x1 + 0.1, z1 + 0.1], [x0 - 0.1, z0 + 0.2, x0 + 0.2, z1 - 0.2], [x1 - 0.2, z0 + 0.2, x1 + 0.1, z1 - 0.2]]) B.box(a, H + 0.3, b, c, H + 0.9, d, 'brickPale');
     B.door({ x: x1 - t / 2, z: dz, axis: 'z', w: dw, h: dh, swing: -1, mat: 'woodDark', name: 'مضيف الشيخ' });
+    B.noFire(x0, z0, x1, z1); // يُمنع إطلاق النار داخل المضيف (ملجأ المدنيين)
     if (vis) {
       B.box(x0 + t, 0, z0 + t, x1 - t, 0.03, z1 - t, 'carpet', { col: false, faces: 'py' });
       B.box(x0 + 2.5, 0.03, z0 + 2.4, x1 - 2.5, 0.05, z1 - 2.4, 'carpet2', { col: false, faces: 'py' });
@@ -200,7 +201,7 @@ export function buildDistricts(B, H) {
       B.boxB(x0 + 3.2, 0, dz, 1.0, 0.22, 1.0, 'brickBurnt', { col: false });
       for (let k = 0; k < 3; k++) { const a = k * 2.1; B.geo(() => new THREE.CylinderGeometry(0.07, 0.11, 0.24, 10), T(x0 + 3.2 + Math.cos(a) * 0.28, 0.22, dz + Math.sin(a) * 0.28), 'brass'); B.geo(() => new THREE.ConeGeometry(0.07, 0.12, 10), T(x0 + 3.2 + Math.cos(a) * 0.28, 0.4, dz + Math.sin(a) * 0.28), 'brass'); }
       // اللوحة بالكوفي على الجدار المقابل للباب
-      signs.push({ text: 'الشيخ فاتح الرفاعي', x: x0 + t + 0.02, y: 2.7, z: dz, ry: PI / 2, w: 3.6, h: 1.35, opt: { kufi: true, sub: 'مضيف أهل العلم والكرم', w: 1024, h: 384, glow: 0.45 } });
+      signs.push({ text: 'الشيخ فاتح الرفاعي', x: x0 + t + 0.02, y: 2.75, z: dz, ry: PI / 2, w: 3.9, h: 1.6, opt: { kufi: true, sub: 'مضيف أهل العلم والكرم', w: 1024, h: 420, glow: 0.45 } });
       // اللافتة الخارجية الكاملة فوق الباب (يندلّ عليها الناس من الشارع) + سهم دلالة بالطريق
       signs.push({ text: 'مضيف الشيخ فاتح الرفاعي', x: x1 + 0.04, y: 3.45, z: dz, ry: PI / 2, w: 6.6, h: 1.3, opt: { kufi: true, sub: 'رحمه الله · أهلاً وسهلاً بالضيوف', w: 1560, h: 308, glow: 0.35 } });
       B.box(-44.6, 0, -16.15, -44.45, 2.4, -16.0, 'beam', { col: false });

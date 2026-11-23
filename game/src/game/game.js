@@ -30,6 +30,8 @@ import { Waypoints } from './waypoint.js';
 import { Quests } from './quests.js';
 import { Ambient } from './ambient.js';
 import { Mudhif } from './mudhif.js';
+import { HouseDoors } from './housedoors.js';
+import { makeItem, ITEM_VIEW } from './items.js';
 import { findPath } from './route.js';
 
 const STEP = 1 / 60;
@@ -67,7 +69,7 @@ export class Game {
     // المرحلة 2: الأبواب، التأشير، المهام، وحياة السوق
     this.ui = UI; this.lobby = false; this.cine = false;
     this.drone = new Drone(this);
-    this.doorsVis = new DoorVis(this); this.wps = new Waypoints(this); this.ambient = new Ambient(this); this.quests = new Quests(this); this.mudhif = new Mudhif(this);
+    this.doorsVis = new DoorVis(this); this.wps = new Waypoints(this); this.ambient = new Ambient(this); this.quests = new Quests(this); this.mudhif = new Mudhif(this); this.houseDoors = new HouseDoors(this);
   }
   // اللوبي الخاص: تجوّل بالسوق بلا قتال — المهام والحچي ويّا الناس هنا بس
   startLobby(o) {
@@ -88,17 +90,26 @@ export class Game {
     return null;
   }
   // الغرض المشيول (قنينة الغاز) بأسفل الشاشة
+  // الغرض اللي بإيدك: بالمنظور الأول قدّام الكاميرا، وبالثالث بإيد شخصيتك
   drawCarry() {
+    const kind = this.carry;
     if (!this.carryV) {
       const s = new THREE.Scene(), cam = new THREE.PerspectiveCamera(50, 1, 0.01, 5); s.add(new THREE.HemisphereLight(0xfff2dc, 0x3a2c20, 1.3)); const k = new THREE.DirectionalLight(0xffffff, 2); k.position.set(0.5, 1, 0.6); s.add(k);
-      const g = new THREE.Group(); g.position.set(0.18, -0.42, -0.55); s.add(g);
-      const m = new THREE.MeshStandardMaterial({ color: 0x2a7a3a, roughness: 0.5, metalness: 0.3 }); const c = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.38, 18), m); g.add(c); const t = new THREE.Mesh(new THREE.SphereGeometry(0.13, 18, 8, 0, Math.PI * 2, 0, Math.PI / 2), m); t.position.y = 0.19; g.add(t);
-      const v = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.025, 0.05, 10), new THREE.MeshStandardMaterial({ color: 0xc9a24a, metalness: 0.9, roughness: 0.3 })); v.position.y = 0.34; g.add(v);
-      this.carryV = { s, cam, g };
+      this.carryV = { s, cam, items: {} };
     }
-    const V = this.carryV, me = this.mp, sp = me ? Math.hypot(me.vel[0], me.vel[2]) : 0; V.g.position.y = -0.42 + Math.abs(Math.sin(this.t * 6)) * 0.02 * Math.min(1, sp); V.g.rotation.z = Math.sin(this.t * 3) * 0.04 * Math.min(1, sp);
+    const V = this.carryV;
+    for (const [k, g] of Object.entries(V.items)) g.visible = k === kind;
+    let g = V.items[kind]; if (!g) { g = V.items[kind] = makeItem(kind); const cf = ITEM_VIEW[kind] || ITEM_VIEW.bag; g.scale.setScalar(cf.s); g.rotation.y = 0.5; V.s.add(g); }
+    const cf = ITEM_VIEW[kind] || ITEM_VIEW.bag, me = this.mp, sp = me ? Math.hypot(me.vel[0], me.vel[2]) : 0;
+    g.position.set(cf.p[0], cf.p[1] + Math.abs(Math.sin(this.t * 6)) * 0.02 * Math.min(1, sp), cf.p[2]); g.rotation.z = Math.sin(this.t * 3) * 0.04 * Math.min(1, sp);
     V.cam.aspect = innerWidth / innerHeight; V.cam.updateProjectionMatrix(); const r = this.renderer; r.autoClear = false; r.clearDepth(); r.render(V.s, V.cam); r.autoClear = true;
   }
+  carryTPP() {
+    const want = this.carry && !this.fpNow && !this.cine ? this.carry : null, m = this.models.get(this.me);
+    if (this.carryW && (this.carryW.kind !== want || !m || this.carryW.p !== m.root)) { this.carryW.p.remove(this.carryW.g); this.carryW = null; }
+    if (want && m && !this.carryW) { const g = makeItem(want); g.position.set(0.16, want === 'gas' ? 0.7 : 0.98, -0.34); m.root.add(g); this.carryW = { g, kind: want, p: m.root }; }
+  }
+
   toggleDrone() { if (this.lobby || !this.sim) return; if (this.drone.on) { this.drone.stop(); return; } if (!this.drone.ready) { UI.toast('الدرون انستعمل بهذا القيم — مرة وحدة بكل قيم'); return; } if (this.drone.start()) UI.toast('درون: 30 ثانية ويشيل رمانة — زر الرمي يسقطها على اللي تحته'); }
   useAction() { const U = this.useInfo; if (U) { Audio.play('ui'); U.fn(); } }
   // ---------- القوائم: كاميرا سينمائية وعرض الشخصيات ----------
@@ -150,7 +161,7 @@ export class Game {
     sim.start();
     this.begin(me, o.weather);
     const M = MODES[sim.mode];
-    if (this.lobby) { this.ambient.start(); this.quests.start(); this.mudhif.start(); UI.banner('سوق المجاهدين', 'تجوّل، احچِ ويّا الناس، وساعدهم بمهامهم', '', 3.2); return; }
+    if (this.lobby) { this.houseDoors.build(); this.ambient.start(); this.quests.start(); this.mudhif.start(); UI.banner('سوق المجاهدين', 'تجوّل، احچِ ويّا الناس، وساعدهم بمهامهم', '', 3.2); return; }
     UI.banner(M.name, sim.dom ? `سيطروا على ${sim.cps && sim.cps.length > 1 ? 'النقاط' : 'النقطة'} · ${Math.round(sim.timeLimit / 60)} دقائق` : sim.tdm ? `الأكثر قتلات بعد ${Math.round(sim.timeLimit / 60)} دقائق يفوز` : `أول من يفوز بـ ${sim.roundsToWin} جولات`, '', 3);
   }
   begin(me, weather) {
@@ -296,7 +307,7 @@ export class Game {
     this.sessRes = null;
   }
   quit(keep, keepSrv) {
-    for (const c of this.civs || []) if (c.fl) { c.fl.hid = true; c.fl.back = -1; this.updateFlee(c, 0); }
+    for (const c of this.civs || []) if (c.fl) this.civHome(c);
     if (this.drone) { this.drone.stop(); this.drone.seen.clear(); this.drone.cdUntil = -1; if (!this.migrating) this.drone.used = false; }
     // خروج قبل نهاية القيم: نخصم المصروف من المخزون (بلا مكافأة)
     if (this.sim && this.sim.online && this.sess && !this.migrating) this.endSession();
@@ -306,7 +317,7 @@ export class Game {
     }
     this.setNvg(false);
     if (this.talk) this.talk.clear();
-    if (this.lobby) { this.mudhif.stop(); this.quests.stop(); this.ambient.stop(); } this.lobby = false; this.cine = false; document.body.classList.remove('lobby'); this.wps && this.wps.reset();
+    if (this.lobby) { this.mudhif.stop(); this.quests.stop(); this.ambient.stop(); this.houseDoors.clear(); } this.lobby = false; this.cine = false; document.body.classList.remove('lobby'); this.wps && this.wps.reset();
     if (this.sim && this.sim.online) { try { this.sim.onlost = null; this.sim.close(); } catch (e) { } }
     if (this.hostSrv && !keepSrv) { const s = this.hostSrv; this.hostSrv = null; this.hostInfo = null; setTimeout(() => s.stop(), 200); }
     if (!keep) Social.presence('on');
@@ -365,14 +376,15 @@ export class Game {
       this.pitch = Math.max(-1.45, Math.min(1.45, this.pitch));
     }
     if (!this.paused || sim.online) {
-      const idle = blocked || !!mg || droneOn;
+      const idle = blocked || (!!mg && !mg.allowLook) || droneOn;
       const lean = (Input.held('leanL') || Input.on('leanL')) ? -1 : (Input.held('leanR') || Input.on('leanR')) ? 1 : 0;
       const cmd = idle ? { mx: 0, mz: 0, yaw: this.yaw, pitch: this.pitch, jump: false, crouch: !!(me && me.crouch > 0.5 && Input.on('crouch')), walk: false, fire: false, ads: false, reload: false, slot: 0, swap: false, lean: 0 } : {
         mx: Input.mx, mz: Input.mz, yaw: this.yaw, pitch: this.pitch, jump: Input.held('jump'), crouch: Input.held('crouch') || Input.on('crouch'), walk: Input.held('walk'),
         fire: Input.held('fire') || this.autoFire(me), ads: Input.ads, reload: Input.take('reload'), slot: 0, swap: Input.take('swap') || Input.wheel !== 0, lean,
       };
       if (!idle && this.aimFix) { cmd.yaw = this.yaw + this.aimFix[0]; cmd.pitch = this.pitch + this.aimFix[1]; }
-      if (this.carry && !idle) { cmd.walk = true; cmd.jump = false; cmd.fire = false; } // شايل شي ثگيل
+      if (mg && !idle) { cmd.fire = false; cmd.ads = false; cmd.jump = false; cmd.reload = false; } // ماسك الكاميرا: تمشي وتلتفت بس
+      if (this.carry && !idle) { if (this.carry === 'gas') cmd.walk = true; cmd.jump = false; cmd.fire = false; } // شايل غرض (الغاز ثگيل)
       if (!idle) for (let s = 1; s <= 4; s++) if (Input.take('slot' + s)) cmd.slot = s;
       if (!idle && Input.take('grenade')) cmd.slot = me && me.slot === 4 ? (me.prevSlot || 1) : 4;
       if (this.queued.slot) { cmd.slot = this.queued.slot === (me && me.slot) && me.slot === 4 ? me.prevSlot : this.queued.slot; }
@@ -558,7 +570,7 @@ export class Game {
   render(dt) {
     const sim = this.sim, me = this.mp, alpha = this.acc / STEP, cam = this.camera;
     // منظور الشخص الثالث (افتراضي مثل ببجي): الكاميرا ورا الكتف، والتصويب يحوّل لمنظور الشخص الأول
-    this.tpp = Settings.view !== 'fpp' && !this.cine;
+    this.tpp = Settings.view !== 'fpp' && !this.cine && !(this.mg && !this.mg.closed);
     this.fpNow = !this.tpp || !!(me && (me.adsT || 0) > 0.55);
     // النماذج
     const seen = new Set();
@@ -654,7 +666,8 @@ export class Game {
     // الرسم: العالم ثم السلاح
     this.draw(me && me.alive && !this.scoped && !this.lobby && !this.cine && !this.drone.on && this.fpNow);
     if (this.mg && !this.mg.closed) this.mg.render(this.renderer);
-    if (this.carry) this.drawCarry();
+    this.carryTPP();
+    if (this.carry && this.fpNow && !this.cine) this.drawCarry();
     if (this.wantSnap) { const f = this.wantSnap; this.wantSnap = null; let img = null; try { img = this.renderer.domElement.toDataURL('image/jpeg', 0.72); } catch (e) { } f(img); }
     HUD.update(dt, this);
     // الخرائط
@@ -733,7 +746,7 @@ export class Game {
     else { r.autoClear = true; r.render(this.scene, this.camera); }
     this.renderShowcase(dt);
   }
-  updateWorldAnim(dt) { if (this.onAnim) this.onAnim(dt, this.t); this.updateCivs(dt); this.updateCps(dt); if (this.sim) this.drone.update(dt); this.doorsVis.update(dt); this.wps.update(dt); this.ambient.update(dt); this.quests.update(dt); this.mudhif.update(dt); }
+  updateWorldAnim(dt) { if (this.onAnim) this.onAnim(dt, this.t); this.updateCivs(dt); this.updateCps(dt); if (this.sim) this.drone.update(dt); this.doorsVis.update(dt); this.wps.update(dt); this.ambient.update(dt); this.quests.update(dt); this.mudhif.update(dt); this.houseDoors.update(dt); }
   // علامات نقاط السيطرة بالعالم: حلقة على الأرض بلون المسيطر وعمود ضوء خفيف وحرف فوقها
   updateCps(dt) {
     const C = (this.sim && this.sim.cps) || [], me = this.mp;
@@ -760,52 +773,80 @@ export class Game {
     });
   }
   // أهل السوق: تحريك القريبين فقط، وإخفاء البعيدين، وظلال للقريبين جداً
-  // المدنيون الواقفون يهربون من الرمي القريب: يركضون لأقرب باب، يتخبّون ببيوتهم، ويرجعون لمكانهم بعد الهدوء
+  // المدنيون الواقفون يهربون من الرمي القريب:
+  // باللوبي يركضون لباب بيت ويدخلون ويسكّرون وراهم، وبالمعارك يلتجئون لمضيف الشيخ (يمنع فيه الرمي) ويگعدون هناك
   civFlee(pos) {
     if (this.cine) return;
-    const doors = this.world.doors || [], t = this.t;
+    const t = this.t;
     if (this.lobby && this.ambient) this.ambient.flee(pos);
     (this.civs || []).forEach((c, i) => {
       if (!c.alive || c.away || c.fl || c.sit || c.n.pose === 'pray' || c.n.pose === 'sit' || c.n.quest) return;
       if (Math.hypot(c.n.x - pos[0], c.n.z - pos[2]) > 22) return;
-      let best = null, bd = 30; for (const d of doors) { const dd = Math.hypot(d.x - c.n.x, d.z - c.n.z); if (dd > 0.6 && dd < bd) { bd = dd; best = d; } }
-      if (!best) best = this.hideSpot(c, pos);
-      if (!best) return;
-      c.fl = { path: findPath(this.world, [c.n.x, 0, c.n.z], [best.x, 0, best.z]), pi: 1, x: c.n.x, z: c.n.z, yaw: c.n.yaw, back: t + 45 + Math.random() * 30, hid: false, i };
-      c.cower = 0;
+      let F = null;
+      if (this.lobby) {
+        const d = this.houseDoors && this.houseDoors.pick(c.n.x, c.n.z);
+        if (d) { d.busy++; F = { mode: 'house', door: d, path: findPath(this.world, [c.n.x, 0, c.n.z], [d.fx, 0, d.fz]), back: t + 45 + Math.random() * 30 }; }
+      } else {
+        const seat = this.refugeSeat();
+        if (seat) F = { mode: 'mudhif', seat, path: [...findPath(this.world, [c.n.x, 0, c.n.z], [-50.4, 0, -12]), [-53.6, -12], seat], back: t + 90 + Math.random() * 60 };
+      }
+      if (!F) { const h = this.hideSpot(c, pos); if (!h) return; F = { mode: 'hide', path: findPath(this.world, [c.n.x, 0, c.n.z], [h.x, 0, h.z]), back: t + 45 + Math.random() * 30 }; }
+      F.pi = 1; F.stage = 'run'; F.i = i; F.sp = 4.6;
+      c.fl = F; c.cower = 0;
+      const st = this.sim && this.sim.npcs && this.sim.npcs[i], wn = this.world.npcs[i]; if (st) st.away = true; if (wn && wn.box >= 0) this.world.disable(wn.box);
     });
   }
-  // مخبأ: نقطة بالأزقة بعيدة عن الرامي وما يشوفها (يدخل بيت أو دكان هناك)
+  refugeSeat() {
+    const used = new Set((this.civs || []).filter(c => c.fl && c.fl.seat).map(c => c.fl.seat.join()));
+    for (let k = 0; k < 16; k++) { const s = [-63.4 + (k >> 1) * 1.25, k % 2 ? -16.9 : -7.1]; if (!used.has(s.join())) return s; }
+    return null;
+  }
+  // مخبأ: نقطة بالأزقة بعيدة عن الرامي وما يشوفها
   hideSpot(c, pos) {
     const N = (this.world.nav && this.world.nav.nodes) || [], W = this.world; let best = null, bs = 1e9;
     const ax = c.n.x - pos[0], az = c.n.z - pos[2], al = Math.hypot(ax, az) || 1;
     for (const n of N) {
       const dx = n[0] - c.n.x, dz = n[2] - c.n.z, d = Math.hypot(dx, dz);
       if (d < 7 || d > 26 || Math.abs(n[1]) > 0.6) continue;
-      const away = (dx * ax + dz * az) / (d * al); if (away < 0.1) continue; // بعيد عن الرامي
+      const away = (dx * ax + dz * az) / (d * al); if (away < 0.1) continue;
       const score = d - away * 6;
       if (score >= bs) continue;
-      if (W.los(pos[0], (pos[1] || 0) + 1.5, pos[2], n[0], 1.2, n[2])) continue; // مخفي عنه
+      if (W.los(pos[0], (pos[1] || 0) + 1.5, pos[2], n[0], 1.2, n[2])) continue;
       bs = score; best = { x: n[0], z: n[2] };
     }
     return best;
   }
+  civHome(c) {
+    const F = c.fl, r = c.root; c.fl = null; c.prayP = null; c.setAway(false); r.position.set(c.n.x, c.n.y, c.n.z); r.rotation.y = c.n.yaw; c.walkSp = 0;
+    if (F && F.door) F.door.busy = Math.max(0, F.door.busy - 1);
+    const st = this.sim && this.sim.npcs && this.sim.npcs[F.i], wn = this.world.npcs[F.i]; if (st) st.away = false; if (wn && wn.box >= 0 && (!st || st.alive !== false)) this.world.restore(wn.box);
+  }
   updateFlee(c, dt) {
     const F = c.fl, r = c.root;
-    if (F.hid) {
-      if (this.t < F.back) return true;
-      // رجع لمكانه
-      c.fl = null; c.setAway(false); r.position.set(c.n.x, c.n.y, c.n.z); r.rotation.y = c.n.yaw; c.walkSp = 0;
-      const st = this.sim && this.sim.npcs && this.sim.npcs[F.i], wn = this.world.npcs[F.i]; if (st) st.away = false; if (wn && wn.box >= 0 && (!st || st.alive !== false)) this.world.restore(wn.box);
+    if (F.stage === 'hid') { if (this.t >= F.back) this.civHome(c); return true; }
+    if (F.stage === 'sit') {
+      if (this.t < F.back) return false;
+      // هدأ الوضع: يطلع من المضيف ويرجع لمكانه مشياً
+      c.prayP = null; F.stage = 'ret'; F.sp = 1.3; F.pi = 1;
+      F.path = [[r.position.x, r.position.z], [-55.5, F.seat[1] * 0.4 - 7.2], [-53.6, -12], [-50.4, -12], ...findPath(this.world, [-50.4, 0, -12], [c.n.x, 0, c.n.z]).slice(1), [c.n.x, c.n.z]];
       return false;
     }
     const p = F.path[F.pi];
-    if (!p) { F.hid = true; c.setAway(true); const st = this.sim && this.sim.npcs && this.sim.npcs[F.i], wn = this.world.npcs[F.i]; if (st) st.away = true; if (wn && wn.box >= 0) this.world.disable(wn.box); return true; }
+    if (!p) {
+      if (F.stage === 'ret') { this.civHome(c); return false; }
+      if (F.mode === 'mudhif' && F.stage === 'run') { F.stage = 'sit'; c.walkSp = 0; c.prayP = 'sit'; r.rotation.y = Math.atan2(-(-58.4 - r.position.x), -(-12 - r.position.z)); return false; }
+      if (F.mode === 'house' && F.stage === 'run') {
+        const d = F.door; d.want = 1; F.stage = 'enter'; F.sp = 1.4; F.wait = 0.5; F.path = [[r.position.x, r.position.z], [d.x - d.nx * 0.2, d.z - d.nz * 0.2]]; F.pi = 1;
+        r.rotation.y = Math.atan2(d.nx, d.nz) + Math.PI; return false;
+      }
+      F.stage = 'hid'; c.setAway(true); if (F.door) setTimeout(() => { F.door.want = 0; }, 600); return true;
+    }
+    if (F.wait > 0) { F.wait -= dt; c.walkSp = 0; return false; }
     const dx = p[0] - r.position.x, dz = p[1] - r.position.z, d = Math.hypot(dx, dz);
     if (d < 0.3) { F.pi++; return false; }
-    const st = Math.min(d, 4.6 * dt); r.position.x += dx / d * st; r.position.z += dz / d * st;
+    const st = Math.min(d, F.sp * dt); r.position.x += dx / d * st; r.position.z += dz / d * st;
     let a = Math.atan2(-dx, -dz) - r.rotation.y; while (a > Math.PI) a -= Math.PI * 2; while (a < -Math.PI) a += Math.PI * 2; r.rotation.y += a * Math.min(1, dt * 8);
-    c.walkSp = 3.4;
+    c.walkSp = F.sp > 2 ? 3.4 : 1.1;
     return false;
   }
   updateCivs(dt) {

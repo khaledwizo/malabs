@@ -95,8 +95,10 @@ export class Ambient {
       if (!w.stroll || w.hideT > 0) continue;
       if (Math.hypot(w.n.x - pos[0], w.n.z - pos[2]) > 24) continue;
       let best = null, bd = 45; for (const d of doors) { const dd = Math.hypot(d.x - w.n.x, d.z - w.n.z); if (dd < bd) { bd = dd; best = d; } }
-      if (!best) continue;
+      const D = this.g.houseDoors, hd = D && D.pick(w.n.x, w.n.z);
       w.sp0 = w.sp0 || w.sp; w.sp = 4.6; w.hideT = 40 + Math.random() * 25;
+      if (hd) { D.enter(w, hd); continue; }
+      if (!best) continue;
       w.goTo(best.x, best.z, () => { w.hidden = true; });
     }
   }

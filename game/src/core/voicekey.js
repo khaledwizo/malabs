@@ -6,4 +6,5 @@ export function fnv(str) {
 }
 export const VOICE_NAMES = { b: 'ar-IQ-BasselNeural', r: 'ar-IQ-RanaNeural', h: 'ar-SA-HamedNeural' }; // h: صوت فصيح لمحاضرات الشيخ وإمام الجماعة
 export const voiceKey = (per, loud) => `${per.v}|${per.p}|${per.r}|${loud ? 1 : 0}`;
-export const voiceId = (per, text, loud) => fnv(voiceKey(per, loud) + '|' + text);
+// الجمل اللي بيها اسم الجلالة انولّدت من جديد بتشكيل صحيح (g2)
+export const voiceId = (per, text, loud) => fnv(voiceKey(per, loud) + '|' + text + (/الله|لله/.test(text) ? '|g2' : ''));
