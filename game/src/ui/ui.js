@@ -96,7 +96,9 @@ const TEMPLATE = HUD_HTML + `
         <ul><li><b>مهامّ بيدك:</b> تعجن الخبز، وتسقي المشتل، وتركّب قنينة الغاز، وتصوّر السائح مع الملويّة، وتدفن الشهيد.</li>
         <li><b>أغراض ضائعة:</b> محفظة، دمية، مسبحة، مفاتيح، نظّارات، خاتم. تجدها وتحملها وتسلّمها <b>يداً بيد</b> لصاحبها.</li>
         <li><b>مهامّ التصفية:</b> مبتزّون ومهدِّدون يؤذون أهل السوق، تخلّص الناس منهم وتأخذ الجائزة.</li>
-        <li>إذا خرجت في منتصف مهمّة تعود لتكملها من المكان نفسه.</li></ul>
+        <li>إذا خرجت في منتصف مهمّة تعود لتكملها من المكان نفسه.</li>
+        <li><b>الخريطة والـGPS:</b> أيقونات المحلات تظهر على الخريطة. اضغط أيقونة أو زر «🧭 GPS» واختر مكاناً، فيُرسم لك المسار إليه.</li>
+        <li><b>نسبة التختيم:</b> تظهر في قائمة الاستراحة، ومعها مكافآت عند 25 و50 و75 و100%.</li></ul>
       </article>
       <article data-g="mudhif">
         <h3>مضيف الشيخ فاتح الرفاعي</h3>
@@ -651,7 +653,7 @@ export const UI = {
       row('بداية جديدة للقصة', `<button class="btn sm danger" data-sv="reset">🗑 مسح تقدّم القصة</button>`, 'يمسح المال والمهامّ ونسبة التختيم — وتبقى الإعدادات والأصدقاء') +
       `<div class="note" id="svNote">${Save.last ? 'آخر حفظ: ' + new Date(Save.last).toLocaleTimeString('ar-IQ') : ''}</div>`;
     else h = row('الصوت العام', rng('volume', 0, 1, 0.05, 1)) + row('الموسيقى التراثية', rng('music', 0, 1, 0.05, 1)) + row('أصوات أهل السوق', rng('talk', 0, 1, 0.05, 1), 'يرحّبون بك ويتحدّثون حين تقترب — صفر لإسكاتهم')
-      + `<div class="note credits">الموسيقى التراثية مؤلّفة آلياً داخل اللعبة (مقامات بيات وحجاز بالعود والناي والإيقاع). نماذج «فانوس الشارع الخشبي» و«السمكة» من مستودع Khronos glTF-Sample-Assets برخصة CC0 (الملك العام). أصوات الشخصيات كلّها بالعربية الفصحى (Azure ar-IQ)، ومحاضرات الشيخ ونداءات الإمام (Azure ar-SA).${window.__ADHAN ? ` تسجيل الأذان: ${esc(window.__ADHAN.title.replace(/^File:/, ''))} — ${esc(window.__ADHAN.artist || '')} · ${esc(window.__ADHAN.license || '')} (ويكيميديا كومنز).` : ''}</div>`
+      + `<div class="note credits">الموسيقى التراثية مؤلّفة آلياً داخل اللعبة (مقامات بيات وحجاز بالعود والناي والإيقاع). نماذج «فانوس الشارع الخشبي» و«السمكة» و«قنينة الماء» من مستودع Khronos glTF-Sample-Assets برخصة CC0 (الملك العام). أصوات الشخصيات كلّها بالعربية الفصحى (Azure ar-IQ)، ومحاضرات الشيخ ونداءات الإمام (Azure ar-SA).${window.__ADHAN ? ` تسجيل الأذان: ${esc(window.__ADHAN.title.replace(/^File:/, ''))} — ${esc(window.__ADHAN.artist || '')} · ${esc(window.__ADHAN.license || '')} (ويكيميديا كومنز).` : ''}</div>`
       + `<div style="margin-top:10px"><button class="btn" onclick="window.__R && window.__R.playIntro()">🎬 شاهد المقدّمة من جديد</button></div>`;
     el.innerHTML = h;
     el.querySelectorAll('[data-sv]').forEach(b => b.addEventListener('click', async () => {

@@ -15,8 +15,8 @@ export const FPS_OPTIONS = [
 // res: نسبة من دقة الشاشة · fps: حدّ الفريمات · shadow: حجم خريطة الظل (0 = بدون) · shExt: نصف مدى الظل (قريبة/كاملة)
 // view: مسافة رسم المباني (م) · detail: مسافة رسم التفاصيل الصغيرة · npc: مسافة رسم الناس · dens: كثافة المارّة والحيوانات
 export const QUALITY = {
-  low: { label: 'واطئة', res: 0.6, fps: 30, shadow: 0, shExt: 0, view: 75, detail: 32, npc: 26, dens: 0.35, tex: 256, aniso: 1, particles: 0.45, decals: 50, aa: false, details: 0, rain: 2500, bloom: false, env: 64, dprCap: 1, cloth: false },
-  medium: { label: 'متوسطة', res: 0.8, fps: 45, shadow: 1024, shExt: 30, view: 120, detail: 55, npc: 36, dens: 0.7, tex: 512, aniso: 2, particles: 0.75, decals: 100, aa: false, details: 1, rain: 5000, bloom: false, env: 128, dprCap: 1.5, cloth: true },
+  low: { label: 'واطئة', res: 0.6, fps: 30, shadow: 0, shExt: 0, view: 75, detail: 32, npc: 26, dens: 0.35, tex: 256, aniso: 1, particles: 0.45, decals: 50, aa: false, details: 0, rain: 2500, bloom: false, env: 64, dprCap: 1.4, cloth: false },
+  medium: { label: 'متوسطة', res: 0.8, fps: 45, shadow: 1024, shExt: 30, view: 120, detail: 55, npc: 36, dens: 0.7, tex: 512, aniso: 2, particles: 0.75, decals: 100, aa: false, details: 1, rain: 5000, bloom: false, env: 128, dprCap: 1.8, cloth: true },
   high: { label: 'عالية', res: 1, fps: 60, shadow: 2048, shExt: 55, view: 190, detail: 90, npc: 60, dens: 1, tex: 1024, aniso: 4, particles: 1, decals: 160, aa: true, details: 2, rain: 9000, bloom: true, env: 256, dprCap: 2, cloth: true },
 };
 export const QUALITY_ROWS = [['res', 'الدقة', v => Math.round(v * 100) + '%'], ['fps', 'الفريمات', v => v], ['shadow', 'الظلال', (v, q) => !v ? 'بدون' : q.shExt < 40 ? 'قريبة' : 'كاملة'], ['view', 'مسافة الرؤية', v => v < 90 ? 'قصيرة' : v < 150 ? 'متوسطة' : 'بعيدة'], ['dens', 'الكثافة', v => v < 0.5 ? 'قليلة' : v < 0.9 ? 'متوسطة' : 'كاملة']];

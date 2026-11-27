@@ -21,6 +21,7 @@ import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -107,6 +108,23 @@ public class MainActivity extends Activity {
                 if ("file".equals(u.getScheme())) return false;
                 try { startActivity(new Intent(Intent.ACTION_VIEW, u)); } catch (Exception e) { /* لا متصفح */ }
                 return true;
+            }
+            // مجلد الموارد (القسم 1): https://res.rafidain/<مسار> ← assets/res/<مسار> — fetch يشتغل منه (CORS مفتوح)
+            // والصفحة تبقى على file:// حتى ما يتغيّر مكان الحفظ
+            @Override
+            public WebResourceResponse shouldInterceptRequest(WebView v, WebResourceRequest r) {
+                Uri u = r.getUrl();
+                if (!"res.rafidain".equals(u.getHost())) return null;
+                String path = u.getPath(); if (path == null) return null;
+                path = path.replaceAll("^/+", "").replace("..", "");
+                java.util.Map<String, String> h = new java.util.HashMap<>();
+                h.put("Access-Control-Allow-Origin", "*"); h.put("Cache-Control", "max-age=31536000");
+                try {
+                    java.io.InputStream in = getAssets().open("res/" + path);
+                    return new WebResourceResponse(mimeOf(path), null, 200, "OK", h, in);
+                } catch (Exception e) {
+                    return new WebResourceResponse("text/plain", "utf-8", 404, "Not Found", h, new java.io.ByteArrayInputStream(new byte[0]));
+                }
             }
         });
         lan = new LanHub(this, code -> runOnUiThread(() -> { if (web != null) web.evaluateJavascript(code, null); }));
@@ -271,5 +289,16 @@ public class MainActivity extends Activity {
                 } catch (Exception e) { /* لا تطبيقات مشاركة */ }
             });
         }
+    }
+    static String mimeOf(String p) {
+        if (p.endsWith(".glb")) return "model/gltf-binary";
+        if (p.endsWith(".ktx2")) return "image/ktx2";
+        if (p.endsWith(".ogg")) return "audio/ogg";
+        if (p.endsWith(".json")) return "application/json";
+        if (p.endsWith(".js")) return "text/javascript";
+        if (p.endsWith(".wasm")) return "application/wasm";
+        if (p.endsWith(".png")) return "image/png";
+        if (p.endsWith(".jpg")) return "image/jpeg";
+        return "application/octet-stream";
     }
 }

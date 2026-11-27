@@ -225,3 +225,23 @@ FIX ROUND after P3 (user feedback) + PHASE 4
   net/lan.js, HostLink.openLan, NetSim tries LAN first; friends screen «على نفس الشبكة» list + «استضف معركة على الشبكة»);
   host migration (server broadcasts {k:'hp'}; on loss lowest human pid hosts same room with score resume; test/migrate.mjs);
   online consecutive matches now settle (client re-sends supply after 'supply' event; sim.start refreshes p.sup).
+
+SECTION 1 of the open-world ROADMAP (Nov 2026) — الأساس والأداء  ← وين وصلنا: القسم 1 خلص، بانتظار ملاحظات المستخدم
+- Fusha everywhere: /home tools extract (acorn) all Arabic literals → translated; voiced lines carry tashkeel, subtitles show lite()
+  (core/voicekey.js strips harakat except shadda) in talk/quests/mudhif/intro. Intro has no fatwa; majlis = community talks
+  (صمود، حماية الجار، الإسعاف، الأمانة، الشباب، الإشاعة) instead of fiqh; lectures kept as moral talks. Player prayer removed
+  (worshippers pray and disperse; regulars return to the majlis).
+- Quality: core/settings.js QUALITY low/medium/high per ROADMAP table (res, fps, shadow near/full via shExt, view, detail, npc, dens);
+  autoQuality() uses GPU string + cores + memory; fps 'q' = preset fps (fpsCap); main.js adaptive resolution (dynK 0.6..1).
+- Streaming: gfx/scene.js splitCells() splits static batches into 48 m cells (+ global bucket for huge tris); stream() shows cells
+  within Q.view (Q.detail for DETAIL_MATS) and casts shadows only within shExt; world/zones.js Zones manager for future cities.
+- Save: core/save.js mirrors every rafidain.* localStorage key into IndexedDB (main + bak) + RafidainAndroid.saveKV('save');
+  restores + reloads once if local data was wiped; export/import code + story reset in settings › «الحفظ والتجربة».
+- game/progress.js completion % (story 40 / side 25 / props 10 / collectibles 10 / jobs 15) with rewards at 25/50/75/100%,
+  shown in the pause menu (lobby). Test mode (settings toggle → pause «🧪 وضع التجربة»): teleport, money, weather, quests, perf.
+- game/pois.js map icons from world signs + shrine doors; minimap/full map icons; tap icon or «🧭 GPS» list → named route.
+- Assets: game/assets/manifest.json (CC0 only) → CI tools/assets.mjs (download, license check, gltf-transform meshopt + ktx2/webp,
+  cache) → APK assets/res + res/manifest.js; core/assets.js GLTFLoader + Meshopt + KTX2 (vendor/jsm from three r187, KTX2Loader
+  patched for IIFE). Android serves https://res.rafidain/* from assets/res (MainActivity.shouldInterceptRequest, CORS *), page
+  stays on file:// so saves keep their origin. First asset: WaterBottle (CC0) on the tea kiosk counter (game/resprops.js).
+- Delivery: CI publishes APKs to GitHub Releases (tag rafidain-bN); APK binaries no longer committed (voices still are).

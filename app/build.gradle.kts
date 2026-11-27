@@ -34,5 +34,5 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    androidResources { noCompress += listOf("html", "woff2") }
+    androidResources { noCompress += listOf("html", "woff2", "glb", "ktx2", "ogg", "wasm") }
 }

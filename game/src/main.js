@@ -9,6 +9,8 @@ import { Builder } from './world/builder.js';
 import { buildSouq } from './world/maps/souq.js';
 import { Zones } from './world/zones.js';
 import { buildPois } from './game/pois.js';
+import { Assets } from './core/assets.js';
+import { placeResProps } from './game/resprops.js';
 import { gfxKit, makeSky, buildWorldMeshes, setupLights } from './gfx/scene.js';
 import { Weather } from './gfx/weather.js';
 import { Post } from './gfx/post.js';
@@ -66,6 +68,7 @@ onSetting((k, v) => { if (k === 'res') applyRes(); if (k === 'music') Audio.setM
 
 Input.init(canvas);
 const weather = new Weather({ renderer, scene, camera, info, Q, L, sky, meshes, world, kit });
+Assets.init(renderer); placeResProps(scene, Q).then(n => { if (n) console.log('res props', n); }); // أنبوب الموارد
 game = new Game({ renderer, scene, camera, world, info, Q, sunDir: weather.sunDir, sky, meshes, lights: L, weather });
 Central.onMove = b => game.moveToServer(b); // دخل لاعب ثاني لمعركتي: تنتقل للسيرفر المركزي
 const fxOpt = () => Settings.fx ? { ao: Settings.fxAO !== false, ssr: Settings.fxSSR !== false, rays: Settings.fxRays !== false, grade: Settings.fxGrade !== false } : null;
@@ -118,4 +121,4 @@ Loop.start((dt, now) => {
   game.frame(dt, now);
   fpsT -= dt; if (fpsT <= 0) { fpsT = 0.5; HUD.fps(`FPS ${Math.round(Loop.fps)} · ${Loop.ms.toFixed(1)}ms · ${resText}`); }
 });
-window.__R = { Save, Zones, meshes, Q, playIntro, Central, Audio, renderer, scene, camera, world, game, UI, HUD, Loop, Input, Settings, Social, THREE, buildGun, weather, stats: () => renderer.info.render };
+window.__R = { Assets, Save, Zones, meshes, Q, playIntro, Central, Audio, renderer, scene, camera, world, game, UI, HUD, Loop, Input, Settings, Social, THREE, buildGun, weather, stats: () => renderer.info.render };

@@ -1,0 +1,14 @@
+{
+  "note": "موارد اللعبة الخارجية (CC0 فقط): تنزل وتنضغط داخل CI (tools/assets.mjs) وتنحفظ بالكاش، وما تنحفظ بالمستودع. الرخصة تنفحص لكل ملف.",
+  "assets": [
+    {
+      "id": "waterbottle",
+      "kind": "glb",
+      "url": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/WaterBottle/glTF-Binary/WaterBottle.glb",
+      "licenseUrl": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/WaterBottle/metadata.json",
+      "license": "CC0-1.0",
+      "author": "Microsoft (Khronos glTF-Sample-Assets)",
+      "texSize": 512
+    }
+  ]
+}
