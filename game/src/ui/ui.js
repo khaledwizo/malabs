@@ -1,5 +1,10 @@
 // الواجهة: الشاشة الرئيسية المبنية على أوضاع اللعب، الأصدقاء والفريق، الشخصيات، العتاد، الإعدادات، الإيقاف، النتائج، الخريطة
-import { Settings, setSetting, RES_OPTIONS, FPS_OPTIONS, QUALITY, WEATHER_OPTIONS } from '../core/settings.js';
+import { POI_KINDS } from '../game/pois.js';
+import { nearestNode } from '../game/route.js';
+import { Save } from '../core/save.js';
+import { Progress, PARTS, MILESTONES } from '../game/progress.js';
+import { QUESTS } from '../game/questdata.js';
+import { Settings, setSetting, RES_OPTIONS, FPS_OPTIONS, QUALITY, WEATHER_OPTIONS, QUALITY_ROWS, qualityId } from '../core/settings.js';
 import { WEAPONS, SCOPES, NADES, MODES, MODE_ORDER, SECONDARIES, ATTACH, CLASS_NAME, validLoadout, withAtt } from '../sim/weapons.js';
 import { CHARS, CHAR_ORDER } from '../game/chardefs.js';
 import { TEAMS, teamName } from '../sim/sim.js';
@@ -164,18 +169,20 @@ const TEMPLATE = HUD_HTML + `
 
 <section class="scr" id="s-settings">
   <div class="panel wide"><div class="head"><h2>الإعدادات</h2><button class="x" data-back>✕</button></div>
-    <div class="tabs" id="setTabs"><button data-t="aim" class="on">التحكم والتصويب</button><button data-t="gfx">الرسوم والأداء</button><button data-t="snd">الصوت</button></div>
+    <div class="tabs" id="setTabs"><button data-t="aim" class="on">التحكم والتصويب</button><button data-t="gfx">الرسوم والأداء</button><button data-t="snd">الصوت</button><button data-t="adv">الحفظ والتجربة</button></div>
     <div id="setBody" class="setbody"></div></div>
 </section>
 
 <section class="scr" id="s-pause">
-  <div class="panel narrow"><div class="head"><h2>استراحة</h2></div>
-    <div class="menu col">
+  <div class="panel narrow pausep"><div class="head"><h2>استراحة</h2></div>
+    <div class="pcols"><div class="menu col">
       <button class="btn primary" id="pResume">متابعة القتال</button>
       <button class="btn" id="pLoadout">تغيير العتاد</button>
       <button class="btn" id="pSettings">الإعدادات</button>
+      <button class="btn" id="pTest" style="display:none">🧪 وضع التجربة</button>
       <button class="btn danger" id="pQuit">مغادرة المعركة</button>
-    </div></div>
+    </div><div id="pProg" class="prog"></div></div>
+  </div>
 </section>
 
 <section class="scr" id="s-end">
@@ -183,8 +190,13 @@ const TEMPLATE = HUD_HTML + `
     <div class="menu row"><button class="btn primary" id="eAgain">معركة جديدة</button><button class="btn" id="eMenu">الشاشة الرئيسية</button></div></div>
 </section>
 
+<section class="scr" id="s-test">
+  <div class="panel wide"><div class="head"><h2>🧪 وضع التجربة</h2><button class="x" data-back>✕</button></div>
+    <div id="testBody" class="setbody"></div></div>
+</section>
+
 <section class="scr" id="s-map">
-  <div class="mapwrap"><canvas id="bigmap"></canvas><button class="x big" id="mapClose">✕</button><button class="x big zoom" id="mapZoom">＋</button><div class="maplegend"><i class="me"></i>أنت <i class="mate"></i>فريقك <i class="foe"></i>عدو مكشوف <i class="wpm"></i>علامتك — اضغط على الخريطة للتأشير</div><div id="mapPop"></div></div>
+  <div class="mapwrap"><canvas id="bigmap"></canvas><button class="x big" id="mapClose">✕</button><button class="x big zoom" id="mapZoom">＋</button><div class="maplegend"><i class="me"></i>أنت <i class="mate"></i>فريقك <i class="foe"></i>عدو مكشوف <i class="wpm"></i>علامتك — اضغط على الخريطة للتأشير</div><div id="mapPop"></div><button class="btn sm" id="mapGps">🧭 GPS</button><div id="gpsList"></div></div>
 </section>
 
 <div id="invite"></div>
@@ -209,9 +221,11 @@ export const UI = {
     $('#pLoadout').addEventListener('click', () => this.open('loadout'));
     $('#pSettings').addEventListener('click', () => this.open('settings'));
     $('#pQuit').addEventListener('click', () => { this.game.quit(); this.showMenu(); });
+    $('#pTest').addEventListener('click', () => { this.open('test'); this.buildTest(); });
     $('#eAgain').addEventListener('click', () => { Audio.play('ui'); if (this.game.sim && this.game.sim.online) { this.closeScreens(); this.hud(true); this.toast('المعركة التالية تبدأ بعد لحظات'); return; } this.start(); });
     $('#eMenu').addEventListener('click', () => { this.game.quit(); this.showMenu(); });
     $('#mapClose').addEventListener('click', () => this.closeMap());
+    $('#mapGps').addEventListener('click', e => { e.stopPropagation(); Audio.play('ui'); this.gpsList(!$('#gpsList').classList.contains('on')); });
     $('#mapZoom').addEventListener('click', () => { const mv = this.game.mapView; mv.zoom = (mv.zoom || 1) > 1 ? 1 : 2.4; mv.follow = true; $('#mapZoom').textContent = mv.zoom > 1 ? '－' : '＋'; });
     // الخريطة الكبيرة: سحب بإصبع، تكبير بإصبعين (قرص)، نقرتان للتكبير، وعجلة الفأرة
     {
@@ -260,6 +274,7 @@ export const UI = {
     $('#shopTabs').addEventListener('click', e => { const b = e.target.closest('[data-t]'); if (!b) return; Audio.play('ui'); this.shopTab = b.dataset.t; this.buildShop(); });
     $('#setTabs').addEventListener('click', e => { const b = e.target.closest('[data-t]'); if (!b) return; this.setTab = b.dataset.t; this.buildSettings(); });
     Social.on((ev, d) => this.onSocial(ev, d));
+    Progress.onMilestone = m => { HUD.toast(`🏆 ${m.at}% تختيم — لقب «${m.title}» +${fmtIQD(m.money)}`, 4); Audio.play('ui'); };
     this.buildHome(); this.buildChars();
     this.showMenu();
   },
@@ -274,6 +289,7 @@ export const UI = {
     if (id === 'chars') { this.game.menuView('chars', Settings.char); this.buildChars(); }
     if (id === 'home') { this.game.menuView('menu'); this.buildHome(); }
     if (id === 'settings') this.buildSettings();
+    if (id === 'pause') this.buildProgress();
     if (id === 'friends') { this.buildFriends(); this.lanWatch(); }
     if (id !== 'loadout') this.game.menuWeaponId = null;
   },
@@ -293,16 +309,59 @@ export const UI = {
     if (!at) { el.classList.remove('on'); return; }
     const g = this.game, M = g.mapView, V = M.view, cv = $('#bigmap'); if (!V || !g.wps) return;
     const r = cv.getBoundingClientRect(), k = cv.width / Math.max(1, cv.clientWidth), fx = (at[0] - r.left) * k, fy = (at[1] - r.top) * k;
-    const wx = (fx - V.ox) / V.s / M.k + M.ox, wz = (fy - V.oy) / V.s / M.k + M.oz;
+    let wx = (fx - V.ox) / V.s / M.k + M.ox, wz = (fy - V.oy) / V.s / M.k + M.oz;
     if (wx < M.B[0] || wx > M.B[3] || wz < M.B[2] || wz > M.B[5]) return;
     const mine = g.wps.mine;
-    el.innerHTML = `<button data-a="route">📍 مسار</button><button data-a="point">📌 نقطة</button>${mine ? '<button data-a="del">✖ أزِل علامتي</button>' : ''}`;
+    // ضغطت قرب محل أو مكان معروف: المسار يروح لبابه مباشرة وباسمه
+    let poi = null, pd = 7 / Math.max(1, M.zs || 1) + 3; for (const p of (g.info && g.info.pois) || []) { const d = Math.hypot(p.x - wx, p.z - wz); if (d < pd) { pd = d; poi = p; } }
+    if (poi) { wx = poi.x; wz = poi.z; }
+    el.innerHTML = (poi ? `<b class="ptitle">${POI_KINDS[poi.kind].icon} ${poi.name}</b>` : '') + `<button data-a="route">📍 مسار</button><button data-a="point">📌 نقطة</button>${mine ? '<button data-a="del">✖ أزِل علامتي</button>' : ''}`;
     el.style.left = Math.min(innerWidth - 170, Math.max(8, at[0] - 80 - r.left + r.left)) + 'px'; el.style.top = Math.min(innerHeight - 140, Math.max(8, at[1] + 12)) + 'px';
     el.classList.add('on');
-    el.querySelectorAll('button').forEach(b => b.onclick = ev => { ev.stopPropagation(); Audio.play('ui'); const a = b.dataset.a; if (a === 'del') g.wps.clearMine(); else g.wps.setMine(wx, wz, a === 'route'); el.classList.remove('on'); });
+    el.querySelectorAll('button').forEach(b => b.onclick = ev => { ev.stopPropagation(); Audio.play('ui'); const a = b.dataset.a; if (a === 'del') g.wps.clearMine(); else g.wps.setMine(wx, wz, a === 'route', poi && poi.name); el.classList.remove('on'); });
+  },
+  toast(t) { HUD.toast(t, 2.4); },
+  // لوحة نسبة التختيم (بقائمة الاستراحة)
+  buildProgress() {
+    const el = $('#pProg'); if (!el) return; Progress.syncQuests(); el.style.display = this.game.lobby ? '' : 'none';
+    const p = Progress.pct(), next = MILESTONES.find(m => p < m.at), t = Progress.title();
+    el.innerHTML = `<div class="ph"><b>📊 نسبة التختيم</b><em>${p}%</em></div><div class="pbar"><i style="width:${p}%"></i>${MILESTONES.map(m => `<s style="right:${m.at}%" class="${p >= m.at ? 'ok' : ''}"></s>`).join('')}</div>`
+      + Progress.rows().map(r => `<div class="pr"><span>${r.icon} ${r.label}</span><small>${r.n} / ${r.total}</small></div>`).join('')
+      + `<div class="pn">${t ? 'لقبك: <b>' + t + '</b> · ' : ''}${next ? `المكافأة القادمة عند ${next.at}%: ${fmtIQD(next.money)} ولقب «${next.title}»` : 'ختمتَ اللعبة 100% 🏆'}</div>`;
+    $('#pTest').style.display = Settings.testMode ? '' : 'none';
+  },
+  // وضع التجربة: أدوات سريعة حتى يجرّب المستخدم كل قسم
+  buildTest() {
+    const g = this.game, el = $('#testBody'), me = g.mp; if (!el) return;
+    const R = window.__R || {}, M = R.meshes && R.meshes.userData, ren = g.renderer.info.render;
+    const pois = (g.info && g.info.pois) || [];
+    el.innerHTML = `<h5>🚀 انتقال سريع</h5><div class="chips">${pois.map((p, i) => `<button class="chip" data-tp="${i}">${POI_KINDS[p.kind].icon} ${p.name}</button>`).join('')}</div>
+      <h5>💰 فلوس</h5><div class="chips"><button class="chip" data-m="1000000">+ مليون</button><button class="chip" data-m="100000000">+ 100 مليون</button></div>
+      <h5>🌦 الطقس</h5><div class="chips">${WEATHER_OPTIONS.map(o => `<button class="chip" data-w="${o.id}">${o.label}</button>`).join('')}<button class="chip" data-w="night">ليل</button></div>
+      <h5>📜 التقدّم</h5><div class="chips"><button class="chip" data-q="all">إنهاء كل المهام الجانبية</button><button class="chip" data-q="reset">تصفير المهام</button><button class="chip" data-q="p25">+25% تختيم</button></div>
+      <h5>📈 الأداء</h5><div class="note" dir="ltr" style="text-align:left">FPS ${Math.round(R.Loop ? R.Loop.fps : 0)} · draws ${ren.calls} · tris ${(ren.triangles / 1000 | 0)}k · cells ${M ? M.cellsOn + '/' + M.cells.length : '-'} · quality ${qualityId()} · ${R.renderer ? R.renderer.getPixelRatio().toFixed(2) : ''}x · ${me ? me.pos.map(v => v.toFixed(1)).join(', ') : ''}</div>`;
+    el.querySelectorAll('[data-tp]').forEach(b => b.onclick = () => { const p = pois[+b.dataset.tp], m = g.mp; if (!m) return; const N = g.world.nav.nodes, i = nearestNode(g.world, p.x, 0, p.z), n = N[i] || [p.x, 0, p.z]; m.pos[0] = n[0]; m.pos[1] = n[1] + 0.02; m.pos[2] = n[2]; if (m.vel) m.vel[0] = m.vel[1] = m.vel[2] = 0; this.toast('انتقلتَ إلى ' + p.name); g.resume(); });
+    el.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { Economy.earn(+b.dataset.m); this.toast('+' + fmtIQD(+b.dataset.m)); this.buildWallet && this.buildWallet(); });
+    el.querySelectorAll('[data-w]').forEach(b => b.onclick = () => { try { g.weather.set(b.dataset.w === 'night' ? 'horror' : b.dataset.w); } catch (e) { } this.toast('الطقس: ' + b.textContent); });
+    el.querySelectorAll('[data-q]').forEach(b => b.onclick = () => {
+      const a = b.dataset.q, Q = g.quests;
+      if (a === 'all' && Q) { for (const q of QUESTS) if (!q.repeat) Q.S.done[q.id] = Q.S.done[q.id] || 1; Q.save(); Progress.syncQuests(); this.toast('انتهت كل المهامّ الجانبية'); }
+      if (a === 'reset' && Q) { Q.S.done = {}; Q.S.cur = null; Q.save(); Progress.S.done.side = {}; Progress.save(); this.toast('صُفِّرت المهامّ'); }
+      if (a === 'p25') { let n = 0; for (const [k, P] of Object.entries(PARTS)) for (let i = 0; i < Math.ceil(P.total / 4); i++) n += Progress.mark(k, 'test' + Date.now() + i) ? 1 : 0; this.toast('+25% تختيم (للتجربة)'); }
+      this.buildTest();
+    });
+  },
+  // قائمة الـGPS: كل المحلات والأماكن مرتّبة حسب المسافة — اختار واحد يرسم المسار وتسدّ الخريطة
+  gpsList(show) {
+    const el = $('#gpsList'), g = this.game, me = g.mp; if (!el) return;
+    if (!show || !me) { el.classList.remove('on'); return; }
+    const L = ((g.info && g.info.pois) || []).map(p => ({ p, d: Math.hypot(p.x - me.pos[0], p.z - me.pos[2]) })).sort((a, b) => a.d - b.d);
+    el.innerHTML = '<b class="gh">🧭 إلى أين؟</b>' + L.map((o, i) => `<button data-i="${i}"><i>${POI_KINDS[o.p.kind].icon}</i><span>${o.p.name}</span><small>${Math.round(o.d)} م</small></button>`).join('');
+    el.classList.add('on');
+    el.querySelectorAll('button').forEach(b => b.onclick = ev => { ev.stopPropagation(); Audio.play('ui'); const p = L[+b.dataset.i].p; g.wps.setMine(p.x, p.z, true, p.name); el.classList.remove('on'); this.closeMap(); this.toast('🧭 المسار إلى ' + p.name); });
   },
   openMap() { if (!this.game.sim) return; this.mapOpen = true; this.hideAll(); clearTimeout(this.mapCloseT); const el = $('#s-map'); el.classList.remove('closing'); el.classList.add('on'); this.screen = 'map'; Input.reset(); },
-  closeMap() { this.mapOpen = false; const el = $('#s-map'); el.classList.add('closing'); clearTimeout(this.mapCloseT); this.mapCloseT = setTimeout(() => { el.classList.remove('on', 'closing'); }, 170); this.screen = null; this.stack = []; },
+  closeMap() { this.gpsList(false); this.mapOpen = false; const el = $('#s-map'); el.classList.add('closing'); clearTimeout(this.mapCloseT); this.mapCloseT = setTimeout(() => { el.classList.remove('on', 'closing'); }, 170); this.screen = null; this.stack = []; },
   // ---------- الرئيسية: أوضاع اللعب ----------
   buildHome() {
     const S = Settings;
@@ -577,7 +636,8 @@ export const UI = {
       row('لون مؤشر التصويب', chips('crossColor', [{ id: '#5dffb0', label: 'نعناعي' }, { id: '#ffffff', label: 'أبيض' }, { id: '#ffe14a', label: 'أصفر' }, { id: '#ff4a6a', label: 'أحمر' }, { id: '#4ad8ff', label: 'سماوي' }])) +
       row('الاهتزاز', tog('haptics'));
     else if (this.setTab === 'gfx') h =
-      row('الجودة', chips('quality', [{ id: 'auto', label: 'تلقائية' }].concat(Object.entries(QUALITY).map(([k, q]) => ({ id: k, label: q.label })))), 'الظلال والتوهج والمطر والانعكاسات. تُطبّق بعد إعادة التشغيل.') +
+      row('الجودة', chips('quality', [{ id: 'auto', label: 'تلقائية' }].concat(Object.entries(QUALITY).map(([k, q]) => ({ id: k, label: q.label })))), (() => { const id = qualityId(), q = QUALITY[id]; return `الآن: <b>${q.label}</b>${Settings.quality === 'auto' ? ' (اكتُشفت تلقائياً)' : ''} — ` + QUALITY_ROWS.map(([k, n, f]) => `${n} ${f(q[k], q)}`).join(' · ') + '. الظلال تُطبّق بعد إعادة التشغيل.'; })()) +
+      row('دقة متكيّفة', tog('dynRes'), 'تُخفّض الدقة تلقائياً إذا انخفضت الفريمات أثناء اللعب، وتُعيدها عندما يخفّ الحمل') +
       row('الدقة', sel('res', RES_OPTIONS), 'الأعلى أجمل والأقل أسرع') +
       row('حدّ الفريمات', chips('fps', FPS_OPTIONS)) +
       row('عرض الفريمات أعلى اليسار', tog('showFps')) +
@@ -585,10 +645,21 @@ export const UI = {
       (Settings.fx ? row('· الانعكاسات', tog('fxSSR')) + row('· ظلال التلاصق', tog('fxAO')) + row('· أشعة الشمس', tog('fxRays')) + row('· التدرّج السينمائي', tog('fxGrade')) : '') +
       row('مجال الرؤية', rng('fov', 70, 110, 1)) +
       row('الطقس الافتراضي', chips('weather', WEATHER_OPTIONS.map(o => ({ id: o.id, label: o.label }))));
+    else if (this.setTab === 'adv') h =
+      row('وضع التجربة', tog('testMode'), 'زر «🧪 وضع التجربة» في قائمة الاستراحة: انتقال سريع إلى الأماكن، ومال، وطقس، وفتح المهامّ، ومعلومات الأداء — لتجرّب كل قسم بسرعة') +
+      row('الحفظ', `<button class="btn sm" data-sv="copy">📋 نسخ كود الحفظ</button> <button class="btn sm" data-sv="load">📥 استرجاع</button>`, 'كل تقدّمك محفوظ في مكان واحد مع نسخة احتياطية. انسخ الكود لتنقل تقدّمك إلى جهاز آخر') +
+      row('بداية جديدة للقصة', `<button class="btn sm danger" data-sv="reset">🗑 مسح تقدّم القصة</button>`, 'يمسح المال والمهامّ ونسبة التختيم — وتبقى الإعدادات والأصدقاء') +
+      `<div class="note" id="svNote">${Save.last ? 'آخر حفظ: ' + new Date(Save.last).toLocaleTimeString('ar-IQ') : ''}</div>`;
     else h = row('الصوت العام', rng('volume', 0, 1, 0.05, 1)) + row('الموسيقى التراثية', rng('music', 0, 1, 0.05, 1)) + row('أصوات أهل السوق', rng('talk', 0, 1, 0.05, 1), 'يرحّبون بك ويتحدّثون حين تقترب — صفر لإسكاتهم')
       + `<div class="note credits">الموسيقى التراثية مؤلّفة آلياً داخل اللعبة (مقامات بيات وحجاز بالعود والناي والإيقاع). نماذج «فانوس الشارع الخشبي» و«السمكة» من مستودع Khronos glTF-Sample-Assets برخصة CC0 (الملك العام). أصوات الشخصيات كلّها بالعربية الفصحى (Azure ar-IQ)، ومحاضرات الشيخ ونداءات الإمام (Azure ar-SA).${window.__ADHAN ? ` تسجيل الأذان: ${esc(window.__ADHAN.title.replace(/^File:/, ''))} — ${esc(window.__ADHAN.artist || '')} · ${esc(window.__ADHAN.license || '')} (ويكيميديا كومنز).` : ''}</div>`
       + `<div style="margin-top:10px"><button class="btn" onclick="window.__R && window.__R.playIntro()">🎬 شاهد المقدّمة من جديد</button></div>`;
     el.innerHTML = h;
+    el.querySelectorAll('[data-sv]').forEach(b => b.addEventListener('click', async () => {
+      Audio.play('ui'); const a = b.dataset.sv, note = $('#svNote');
+      if (a === 'copy') { await Save.flush(); this.copy(Save.exportCode()); note.textContent = 'نُسِخ كود الحفظ ✓ — احفظه في مكان آمن'; }
+      if (a === 'load') { const c = prompt('الصق كود الحفظ هنا'); if (!c) return; try { await Save.importCode(c); note.textContent = 'استُرجِع الحفظ ✓ — تُعاد تهيئة اللعبة'; setTimeout(() => location.reload(), 900); } catch (e) { note.textContent = 'الكود غير صحيح'; } }
+      if (a === 'reset') { if (!confirm('هل تريد حقاً مسح تقدّم القصة؟')) return; await Save.resetStory(); location.reload(); }
+    }));
     el.querySelectorAll('.chips').forEach(c => c.addEventListener('click', e => { const b = e.target.closest('.chip'); if (!b) return; const v = b.dataset.v; setSetting(c.dataset.k, isNaN(+v) || v === '' ? v : +v); this.buildSettings(); HUD.layout(); }));
     el.querySelectorAll('select').forEach(s => s.addEventListener('change', () => { const v = s.value; setSetting(s.dataset.k, isNaN(+v) ? v : +v); }));
     el.querySelectorAll('.tog').forEach(b => b.addEventListener('click', () => { setSetting(b.dataset.t, !Settings[b.dataset.t]); b.classList.toggle('on', Settings[b.dataset.t]); HUD.layout(); if (b.dataset.t === 'fx') this.buildSettings(); }));

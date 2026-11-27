@@ -91,14 +91,57 @@ function glowTexture() {
   glowTex = new THREE.CanvasTexture(c); glowTex.colorSpace = THREE.SRGBColorSpace; return glowTex;
 }
 
+// ===== تحميل المناطق حسب المسافة (القسم 1) =====
+const CELL = 48;
+// مواد التفاصيل الصغيرة: تختفي قبل المباني (LOD بسيط بدون ذاكرة إضافية)
+const DETAIL_MATS = new Set(['glass', 'glassDark', 'lattice', 'latticeBlue', 'ammo', 'gold', 'brass', 'copper', 'chrome', 'rubber', 'sack', 'clothRed', 'clothCream', 'clothGreen', 'leafGreen', 'leafDark', 'gunmetal', 'olive', 'tan', 'bone', 'paintWhite']);
+// يقسّم دفعة هندسة إلى خلايا حسب مركز كل مثلّث؛ المثلّثات العملاقة (أرض، أسوار) تبقى بخلية عامة ترسم دائماً
+function splitCells(bt, size) {
+  const P = bt.p, N = bt.n, U = bt.u, C = bt.c, I = bt.i, buckets = new Map();
+  for (let t = 0; t < I.length; t += 3) {
+    const a = I[t] * 3, b = I[t + 1] * 3, c = I[t + 2] * 3;
+    const x0 = Math.min(P[a], P[b], P[c]), x1 = Math.max(P[a], P[b], P[c]), z0 = Math.min(P[a + 2], P[b + 2], P[c + 2]), z1 = Math.max(P[a + 2], P[b + 2], P[c + 2]);
+    const key = (x1 - x0 > size * 0.9 || z1 - z0 > size * 0.9) ? 'G' : Math.floor((x0 + x1) / 2 / size) + ',' + Math.floor((z0 + z1) / 2 / size);
+    let k = buckets.get(key); if (!k) { k = { tris: [], box: key === 'G' ? null : [1e9, 1e9, -1e9, -1e9] }; buckets.set(key, k); }
+    k.tris.push(t); if (k.box) { const B = k.box; if (x0 < B[0]) B[0] = x0; if (z0 < B[1]) B[1] = z0; if (x1 > B[2]) B[2] = x1; if (z1 > B[3]) B[3] = z1; }
+  }
+  const out = [];
+  for (const k of buckets.values()) {
+    const map = new Map(), p = [], n = [], u = [], col = [], idx = [];
+    for (const t of k.tris) for (let j = 0; j < 3; j++) {
+      const v = I[t + j]; let r = map.get(v);
+      if (r === undefined) { r = p.length / 3; map.set(v, r); p.push(P[v * 3], P[v * 3 + 1], P[v * 3 + 2]); n.push(N[v * 3], N[v * 3 + 1], N[v * 3 + 2]); u.push(U[v * 2], U[v * 2 + 1]); col.push(C[v * 3], C[v * 3 + 1], C[v * 3 + 2]); }
+      idx.push(r);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(p, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(n, 3));
+    g.setAttribute('uv', new THREE.Float32BufferAttribute(u, 2)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    g.setIndex(p.length / 3 > 65535 ? new THREE.Uint32BufferAttribute(idx, 1) : new THREE.Uint16BufferAttribute(idx, 1));
+    g.computeBoundingSphere(); g.computeBoundingBox();
+    out.push({ geo: g, box: k.box });
+  }
+  return out;
+}
+
 // يحوّل نتائج الباني إلى شبكات three
 export function buildWorldMeshes(B, kit, info) {
   const group = new THREE.Group(), Q = kit.Q;
   const props = new Map(); // id → [[mesh, s, e]]
+  const cells = []; // خلايا التحميل حسب المسافة: { x0,z0,x1,z1, det, mesh }
   for (const [key, bt] of B.batches) {
     if (!bt.count) continue;
     const mat = key.split('#')[0];
     const m = kit.mats[mat]; if (!m) { console.warn('no mat', mat); continue; }
+    // الهندسة الثابتة تنقسم لخلايا (CELL م) حتى نرسم القريب بس ونخفي البعيد؛ التفاصيل الصغيرة تختفي أبكر (LOD)
+    if (!key.includes('#d') && bt.i.length > 600) {
+      for (const part of splitCells(bt, CELL)) {
+        const mesh = new THREE.Mesh(part.geo, m.mat);
+        mesh.castShadow = Q.shadow > 0 && mat !== 'glow' && mat !== 'glass'; mesh.receiveShadow = Q.shadow > 0;
+        mesh.matrixAutoUpdate = false; mesh.updateMatrix(); group.add(mesh);
+        if (part.box) cells.push({ b: part.box, det: DETAIL_MATS.has(mat), mesh, cast: mesh.castShadow });
+      }
+      continue;
+    }
     const mesh = new THREE.Mesh(bt.build(), m.mat);
     mesh.castShadow = Q.shadow > 0 && mat !== 'glow' && mat !== 'glass';
     mesh.receiveShadow = Q.shadow > 0;
@@ -188,6 +231,19 @@ export function buildWorldMeshes(B, kit, info) {
     for (const [im, at, L] of lampInst) { L.forEach(([x, y, z, ry, sc], i) => { const hx = x + Math.cos(ry) * 1.53 * sc, hz = z - Math.sin(ry) * 1.53 * sc; if ((hx - c[0]) ** 2 + (hz - c[2]) ** 2 < 0.5) at.array[i] = on ? 1 : 0; }); at.needsUpdate = true; }
   };
   group.userData.waters = waters; group.userData.waterMat = wm;
+  // تحديث الخلايا: كل خلية تنرسم إذا كانت ضمن مسافة الرؤية (المباني) أو مسافة التفاصيل — حسب مستوى الجودة
+  let stT = 0;
+  group.userData.cells = cells;
+  group.userData.stream = (cx, cz, dt, mul = 1) => {
+    if ((stT -= dt) > 0) return; stT = 0.15;
+    const V = Q.view * mul, D = Q.detail * mul, SH = (Q.shExt || 40) + 6; let on = 0;
+    for (const c of cells) {
+      const b = c.b, dx = Math.max(b[0] - cx, 0, cx - b[2]), dz = Math.max(b[1] - cz, 0, cz - b[3]), d = Math.hypot(dx, dz);
+      const v = d < (c.det ? D : V); if (c.mesh.visible !== v) c.mesh.visible = v; if (v) on++;
+      if (Q.shadow > 0 && c.cast !== false) { const sh = v && d < SH; if (c.mesh.castShadow !== sh) c.mesh.castShadow = sh; } // الظل للقريب بس
+    }
+    group.userData.cellsOn = on;
+  };
   return group;
 }
 
@@ -201,7 +257,7 @@ export function setupLights(scene, info, Q, bounds) {
   scene.add(sun); scene.add(sun.target);
   // الظل يتبع اللاعب بمساحة أصغر (دقّة أعلى بثلاث-أربع مرّات): كانت الخريطة كلها بخريطة ظل واحدة
   // فيصير البكسل ~٢٤سم ويتكسّر ظل الدرج والأروقة. نثبّت المركز على شبكة بكسلات الظل كي لا يرتعش
-  const se = Q.shadow >= 4096 ? 70 : Q.shadow >= 2048 ? 55 : 40;
+  const se = Q.shExt || (Q.shadow >= 2048 ? 55 : 40); // قريبة/كاملة حسب الجودة
   if (Q.shadow > 0) {
     sun.castShadow = true; sun.shadow.mapSize.set(Q.shadow, Q.shadow);
     const c = sun.shadow.camera; c.left = -se; c.right = se; c.top = se; c.bottom = -se; c.near = 10; c.far = 320; c.updateProjectionMatrix();

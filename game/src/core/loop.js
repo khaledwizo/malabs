@@ -1,5 +1,5 @@
 // حلقة الإطارات: غير محدودة (MessageChannel) أو تزامن الشاشة (rAF) أو حدّ ثابت
-import { Settings } from './settings.js';
+import { fpsCap } from './settings.js';
 
 export const Loop = {
   cb: null, running: false, last: 0, mc: null, raf: 0, timer: 0,
@@ -22,7 +22,7 @@ export const Loop = {
   },
   tick(ts) {
     if (!this.running) return;
-    const cap = +Settings.fps, now = ts || performance.now();
+    const cap = fpsCap(), now = ts || performance.now();
     // نسمح بهامش 2.5م.ث حتى ما نطيّح إطار كامل بسبب ارتجاف التوقيت (مثلاً 60 على شاشة 60)
     if (cap > 0 && now - this.last < 1000 / cap - 2.5) { this.schedule(); return; }
     let dt = (now - this.last) / 1000; this.last = now;

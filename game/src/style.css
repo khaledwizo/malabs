@@ -610,3 +610,20 @@ body.lobby #topbar{top:calc(var(--sat) + 6px)}
 #boot .blogo{border-radius:22%;box-shadow:0 10px 30px rgba(0,0,0,.6),0 0 0 1px rgba(232,184,74,.35)}
 .kflash{position:fixed;inset:0;z-index:7;pointer-events:none;background:radial-gradient(circle,rgba(160,0,0,.0) 30%,rgba(120,0,0,.55));animation:kfl .5s ease-out forwards}@keyframes kfl{from{opacity:1}to{opacity:0}}
 #cine.kc .cbox,#cine.kc #mclose{display:none}
+/* القسم 1: الـGPS وأيقونات المحلات */
+#mapPop .ptitle{font:800 14px var(--fb);color:#ffd76a;padding:2px 4px 4px}
+#mapGps{position:absolute;top:12px;left:110px;z-index:4;background:rgba(14,12,10,.85);border:1px solid rgba(255,215,106,.5);color:#ffd76a}
+#gpsList{position:absolute;top:58px;left:12px;bottom:12px;width:min(300px,46vw);display:none;flex-direction:column;gap:5px;overflow-y:auto;background:rgba(14,12,10,.94);border:1px solid rgba(255,215,106,.4);border-radius:14px;padding:10px;z-index:5}
+#gpsList.on{display:flex}
+#gpsList .gh{font:800 15px var(--fb);color:#ffd76a;margin-bottom:4px}
+#gpsList button{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#fff;border-radius:10px;padding:8px 10px;font:700 14px var(--fb);text-align:right}
+#gpsList button i{font-style:normal;font-size:18px}#gpsList button span{flex:1}#gpsList button small{opacity:.7;direction:ltr}
+.prog{margin-top:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,215,106,.25);border-radius:12px;padding:10px 12px;font:600 13px var(--fb);color:#e8dcc4}
+.prog .ph{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}.prog .ph em{font:900 18px var(--fb);color:#ffd76a;font-style:normal}
+.prog .pbar{position:relative;height:9px;border-radius:6px;background:rgba(255,255,255,.1);overflow:hidden;margin-bottom:8px}.prog .pbar i{position:absolute;right:0;top:0;bottom:0;background:linear-gradient(90deg,#ffd76a,#e09a2a)}
+.prog .pbar s{position:absolute;top:0;bottom:0;width:2px;background:rgba(0,0,0,.5)}.prog .pbar s.ok{background:#fff}
+.prog .pr{display:flex;justify-content:space-between;padding:2px 0}.prog .pr small{opacity:.75;direction:ltr}.prog .pn{margin-top:6px;font-size:12px;opacity:.85}
+#testBody h5{margin:10px 0 6px;color:#ffd76a}#testBody .chips{flex-wrap:wrap}
+.pausep:has(.prog:not([style*="none"])){width:min(760px,94vw)}
+.pausep .pcols{display:flex;gap:14px;align-items:flex-start}.pausep .pcols>.menu{flex:1;min-width:0}.pausep .prog{flex:1;margin-top:0;max-height:calc(100vh - 110px);overflow-y:auto}
+@media (orientation:portrait){.pausep .pcols{flex-direction:column}.pausep .pcols>*{width:100%}}

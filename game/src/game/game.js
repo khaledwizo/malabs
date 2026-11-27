@@ -886,7 +886,7 @@ export class Game {
       if (c.fl && c.alive && this.updateFlee(c, dt)) continue;
       if (c.away) continue;
       if (c.umbOK) c.setUmbrella(rain && c.alive);
-      const px = c.fl || c.tour ? c.root.position.x : c.n.x, pz = c.fl || c.tour ? c.root.position.z : c.n.z, d = Math.hypot(px - cam.x, pz - cam.z), vis = d < 48;
+      const px = c.fl || c.tour ? c.root.position.x : c.n.x, pz = c.fl || c.tour ? c.root.position.z : c.n.z, d = Math.hypot(px - cam.x, pz - cam.z), vis = d < (this.Q.npc || 48);
       if (c.root.visible !== vis) c.root.visible = vis;
       if (!vis) continue;
       const sh = d < 16; if (c.sh !== sh) { c.sh = sh; c.root.traverse(o => { if (o.isMesh) o.castShadow = sh; }); }

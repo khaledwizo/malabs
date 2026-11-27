@@ -37,7 +37,7 @@ export class Weather {
     this.pmrem = (this.Q.env && this.Q.shadow > 0) ? new THREE.PMREMGenerator(this.renderer) : null;
     this.envScene = null;
     const s = this.L.sun;
-    if (s.castShadow) { this.shExt = this.Q.shadow >= 4096 ? 52 : this.Q.shadow >= 2048 ? 44 : 38; const c = s.shadow.camera; c.left = -this.shExt; c.right = this.shExt; c.top = this.shExt; c.bottom = -this.shExt; c.near = 1; c.far = 320; c.updateProjectionMatrix(); }
+    if (s.castShadow) { this.shExt = this.Q.shExt ? Math.max(26, this.Q.shExt * 0.8) : 38; const c = s.shadow.camera; c.left = -this.shExt; c.right = this.shExt; c.top = this.shExt; c.bottom = -this.shExt; c.near = 1; c.far = 320; c.updateProjectionMatrix(); }
   }
   // خريطة ارتفاع الأسقف (من صناديق التصادم) لحجب المطر داخل السوق المسقوف والأروقة والبيوت
   buildRoofMap() {

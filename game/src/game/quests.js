@@ -8,6 +8,7 @@ import { Settings } from '../core/settings.js';
 import { Audio } from '../core/audio.js';
 import { Voices, voiceId } from '../core/voices.js';
 import { lite } from '../core/voicekey.js';
+import { Progress } from './progress.js';
 import { Input } from '../core/input.js';
 import { MiniGame } from './minigame.js';
 import { BAKER } from './questdata.js';
@@ -316,7 +317,7 @@ export class Quests {
     const A = this.act, q = A.q; this.dropCarry(); this.lastPos = this.giverPos(q) || this.lastPos; if (q.cool) { this.coolUntil = this.coolUntil || {}; this.coolUntil[q.id] = this.t + q.cool; } let amt = (q.reward || 0) + (q.tip || 0) + (A.extra || 0);
     if (q.id === 'tourist' && A.quiz !== undefined) amt = A.quiz >= 2 ? amt : A.quiz === 1 ? r250(amt * 0.6) : r250(amt * 0.35);
     this.play(q.outro, { q, done: () => {
-      const got = Economy.earn(amt); this.S.done[q.id] = (this.S.done[q.id] || 0) + 1; this.save();
+      const got = Economy.earn(amt); this.S.done[q.id] = (this.S.done[q.id] || 0) + 1; this.save(); Progress.syncQuests();
       this.act = null; this.saveCur(); this.offerT = 6; if (q.spawn === 'fighters') { const F = this.fighters; this.fighters = null; if (F) F.forEach((w, i) => { w.stroll = true; w.wait = 3 + i; setTimeout(() => w.remove(), 60000); }); }
       Audio.play('questDone'); this.g.ui && this.g.ui.toast2 && this.g.ui.toast2(`✔ ${q.title} — استلمتَ ${fmtIQD(got)}`);
     } });

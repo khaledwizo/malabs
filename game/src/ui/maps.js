@@ -2,6 +2,7 @@ import { WP_COL } from '../game/waypoint.js';
 // الخرائط: المصغّرة (يمين الأعلى، الشمال للأعلى) والكبيرة التي تُفتح وتُغلق كما في ببجي
 import { MAT } from '../world/collide.js';
 import { TEAMS } from '../sim/sim.js';
+import { POI_KINDS } from '../game/pois.js';
 
 const COL = {
   [MAT.stone]: [150, 141, 126], [MAT.brick]: [168, 112, 78], [MAT.wood]: [128, 92, 58], [MAT.metal]: [96, 104, 112], [MAT.plaster]: [206, 188, 156],
@@ -77,6 +78,15 @@ export class MapView {
     if (glyph) { x.fillStyle = dot ? '#fff' : '#1a1206'; x.font = `900 ${Math.round(s * (dot ? 1.1 : 1.05))}px 'Cairo', sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(glyph, X, dot ? Y + s * 0.05 : Y - s * 1.45); }
     x.restore();
   }
+  // أيقونة محل/مكان: دائرة ملوّنة بإيموجي، واسمه تحتها إذا الخريطة مكبّرة
+  poi(x, X, Y, p, s, label) {
+    const K = POI_KINDS[p.kind] || POI_KINDS.land;
+    x.save(); x.beginPath(); x.arc(X, Y, s, 0, 7); x.fillStyle = K.col; x.shadowColor = 'rgba(0,0,0,.45)'; x.shadowBlur = s * 0.5; x.fill(); x.shadowBlur = 0;
+    x.lineWidth = Math.max(1.5, s * 0.16); x.strokeStyle = '#fff'; x.stroke();
+    x.font = `${Math.round(s * 1.15)}px sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(K.icon, X, Y + s * 0.06);
+    if (label) { x.font = `800 ${Math.round(s * 0.82)}px 'Cairo', sans-serif`; x.textBaseline = 'top'; x.lineWidth = 3; x.strokeStyle = 'rgba(0,0,0,.7)'; x.strokeText(p.name, X, Y + s * 1.15); x.fillStyle = '#fff'; x.fillText(p.name, X, Y + s * 1.15); }
+    x.restore();
+  }
   route(x, P, T, col, w) {
     if (!P || P.length < 2) return;
     x.save(); x.lineJoin = 'round'; x.lineCap = 'round';
@@ -98,6 +108,7 @@ export class MapView {
     x.restore();
     // خط الطريق والعلامات
     { const T = (wx, wz) => [(wx - me.pos[0]) * sc + S / 2, (wz - me.pos[2]) * sc + S / 2], W = g.wps, tg = W && W.target;
+      for (const p of (this.info && this.info.pois) || []) { const [X, Y] = T(p.x, p.z); if (X > 8 && Y > 8 && X < S - 8 && Y < S - 8) this.poi(x, X, Y, p, 8); }
       if (tg && W.path) this.route(x, W.path, T, W.quest ? WP_COL.quest : WP_COL.mine, 5);
       for (const m of this.marks(g)) { const [X, Y] = T(m.x, m.z), cl = (v) => Math.max(10, Math.min(S - 10, v)); this.pin(x, cl(X), m.dot ? cl(Y) : Math.max(24, Math.min(S - 4, Y)), m.col, 9, m.glyph, m.dot); } }
     // نقاط السيطرة
@@ -140,6 +151,7 @@ export class MapView {
       x.font = `700 ${a.big ? 30 : 22}px 'Reem Kufi', 'Cairo', sans-serif`; x.lineWidth = 6; x.strokeStyle = 'rgba(0,0,0,0.55)';
       x.strokeText(a.name, this.px(a.x), this.pz(a.z)); x.fillStyle = a.col || '#fff3d6'; x.fillText(a.name, this.px(a.x), this.pz(a.z));
     }
+    for (const p of info.pois || []) this.poi(x, this.px(p.x), this.pz(p.z), p, 15 / Math.sqrt(this.zs), this.zs > 1.6);
     { const W = g.wps, tg = W && W.target; if (tg && W.path) this.route(x, W.path, (a, b) => [this.px(a), this.pz(b)], W.quest ? WP_COL.quest : WP_COL.mine, 9); for (const m of this.marks(g)) this.pin(x, this.px(m.x), this.pz(m.z), m.col, 17, m.glyph, m.dot); }
     if (me) for (const c of g.sim.cps || []) this.cpMark(x, this.px(c.x), this.pz(c.z), Math.max(14, this.px(c.x + c.r) - this.px(c.x)), c, me.team, 22);
     if (me) {

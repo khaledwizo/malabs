@@ -123,10 +123,11 @@ export class Ambient {
     if (this.on) return; this.on = true;
     const g = this.g, R = this.R;
     // المارّة
-    for (let k = 0; k < 6; k++) { const s = SPOTS[(k * 5) % SPOTS.length], w = new Walker(g, LOOKS[k % LOOKS.length], s[0], s[1], { sp: 1.05 + R() * 0.4, name: 'من أهل السوق' }); w.stroll = true; w.wait = R() * 5; this.walkers.push(w); }
+    const dens = (g.Q && g.Q.dens) || 1, nW = Math.max(2, Math.round(6 * dens)), nS = Math.max(2, Math.round(6 * dens)); // كثافة الناس حسب الجودة
+    for (let k = 0; k < nW; k++) { const s = SPOTS[(k * 5) % SPOTS.length], w = new Walker(g, LOOKS[k % LOOKS.length], s[0], s[1], { sp: 1.05 + R() * 0.4, name: 'من أهل السوق' }); w.stroll = true; w.wait = R() * 5; this.walkers.push(w); }
     // الخرفان
     const box = [35, 28, 45, 32.2];
-    for (let k = 0; k < 6; k++) this.sheep.push(new Sheep(g.scene, box[0] + R() * (box[2] - box[0]), box[1] + R() * (box[3] - box[1]), R, box));
+    for (let k = 0; k < nS; k++) this.sheep.push(new Sheep(g.scene, box[0] + R() * (box[2] - box[0]), box[1] + R() * (box[3] - box[1]), R, box));
     this.fT = 12;
   }
   stop() {

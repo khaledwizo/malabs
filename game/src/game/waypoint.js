@@ -48,8 +48,8 @@ export class Waypoints {
   }
   reset() { this.mine = null; this.quest = null; this.team.clear(); this.path = null; for (const b of Object.values(this.b)) b.hide(); for (const b of this.tb.values()) b.hide(); }
   groundY(x, z) { const w = this.g.world, h = w.ray(x, 30, z, 0, -1, 0, 40, 0, {}); return h ? 30 - h.t : 0; }
-  setMine(x, z, route) {
-    this.mine = { x, z, y: 0, route: !!route }; this.path = null; this.pathT = 0;
+  setMine(x, z, route, name) {
+    this.mine = { x, z, y: 0, route: !!route, name: name || '' }; this.path = null; this.pathT = 0;
     const s = this.g.sim; if (s && s.setMark) s.setMark(this.g.me, [Math.round(x * 10) / 10, Math.round(z * 10) / 10, route ? 1 : 0]);
   }
   clearMine() { this.mine = null; this.path = null; const s = this.g.sim; if (s && s.setMark) s.setMark(this.g.me, null); }
@@ -74,7 +74,7 @@ export class Waypoints {
     for (const [id, b] of this.tb) if (!seen.has(id)) b.hide();
     if (!me || !me.alive) return;
     // الوصول: المسار يُمسح وحده
-    if (this.mine && this.mine.route && Math.hypot(this.mine.x - me.pos[0], this.mine.z - me.pos[2]) < 3) { this.clearMine(); g.ui && g.ui.toast && g.ui.toast('وصلتَ إلى العلامة'); }
+    if (this.mine && this.mine.route && Math.hypot(this.mine.x - me.pos[0], this.mine.z - me.pos[2]) < 3) { const n = this.mine.name; this.clearMine(); g.ui && g.ui.toast && g.ui.toast(n ? 'وصلتَ إلى ' + n : 'وصلتَ إلى العلامة'); }
     const T = this.target;
     if (!T) { this.path = null; return; }
     if ((this.pathT -= dt) <= 0) { this.pathT = 0.6; this.path = findPath(g.world, me.pos, [T.x, 0, T.z]); this.dist = pathLen(this.path); }
