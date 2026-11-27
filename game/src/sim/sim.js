@@ -9,7 +9,7 @@ import { Bot } from './bot.js';
 
 export const TEAMS = [{ id: 0, name: 'الفريق الأول', color: '#f0b04a' }, { id: 1, name: 'الفريق الثاني', color: '#4ad8f0' }];
 // كل لاعب يرى فريقه «نحن المجاهدين» والآخر «هم الأعداء»
-export const teamName = (t, my) => my == null || my < 0 ? TEAMS[t].name : t === my ? 'نحن المجاهدين' : 'هم الأعداء';
+export const teamName = (t, my) => my == null || my < 0 ? TEAMS[t].name : t === my ? 'نحن المجاهدون' : 'هم الأعداء';
 const PEN_COST = { [MAT.wood]: 0.9, [MAT.cloth]: 0.25, [MAT.plaster]: 1.6, [MAT.glass]: 0.2, [MAT.metal]: 3, [MAT.brick]: 3.5, [MAT.stone]: 5, [MAT.tile]: 3 };
 export const LEAN = 0.4;
 export const MAX_HP = 150;
@@ -294,8 +294,8 @@ export class Sim {
         if (teams.size >= 2) {
           const a = this.alive(0), b = this.alive(1);
           if (a === 0 && b === 0) this.endRound(-1, 'تعادل');
-          else if (a === 0) this.endRound(1, 'أُسقط كل أفراد الفريق');
-          else if (b === 0) this.endRound(0, 'أُسقط كل أفراد الفريق');
+          else if (a === 0) this.endRound(1, 'سقط كل أفراد الفريق');
+          else if (b === 0) this.endRound(0, 'سقط كل أفراد الفريق');
         }
         if (this.phaseT <= 0) { const ha = this.hpSum(0), hb = this.hpSum(1); this.endRound(ha === hb ? -1 : ha > hb ? 0 : 1, 'انتهى الوقت'); }
       }

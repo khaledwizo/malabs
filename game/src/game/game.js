@@ -82,11 +82,11 @@ export class Game {
     const q = this.lobby && this.quests.interact(); if (q) return q;
     const mu = this.lobby && this.mudhif.interact(me); if (mu) return mu;
     const D = this.doorsVis.near(me.pos);
-    if (D) { const i = this.doorsVis.list.indexOf(D), o = this.doorsVis.stateOf(i); return { label: o ? 'غلق الباب' : 'فتح الباب', fn: () => { this.queued.use = true; } }; }
+    if (D) { const i = this.doorsVis.list.indexOf(D), o = this.doorsVis.stateOf(i); return { label: o ? 'أغلِق الباب' : 'افتح الباب', fn: () => { this.queued.use = true; } }; }
     for (const u of this.world.usables || []) if (Math.hypot(u.x - me.pos[0], u.z - me.pos[2]) < u.r) {
       const f = me.food, left = f && !this.lobby ? (u.kind === 'lablabi' ? f.e : f.t) : null, price = this.lobby ? 0 : FOOD_PRICE[u.kind];
-      if (price && !Economy.can(price)) return { label: `ما عندك ${fmtIQD(price)}`, fn: () => UI.toast('ما عندك فلوس كافية — اربح من المعارك والمهام') };
-      return { label: (u.kind === 'lablabi' ? '🥣 كُل لبلبي' : '🫖 اشرب شاي') + (price ? ` · ${fmtIQD(price)}` : ' · مجاني') + (left != null ? ` (${left})` : ''), fn: () => { this.queued.use = true; } };
+      if (price && !Economy.can(price)) return { label: `ليس معك ${fmtIQD(price)}`, fn: () => UI.toast('ليس معك مال كافٍ — اربح من المعارك والمهام') };
+      return { label: (u.kind === 'lablabi' ? '🥣 كُل لبلبي' : '🫖 اشرب شاياً') + (price ? ` · ${fmtIQD(price)}` : ' · مجّاني') + (left != null ? ` (${left})` : ''), fn: () => { this.queued.use = true; } };
     }
     return null;
   }
@@ -111,7 +111,7 @@ export class Game {
     if (want && m && !this.carryW) { const g = makeItem(want); g.position.set(0.16, want === 'gas' ? 0.7 : 0.98, -0.34); m.root.add(g); this.carryW = { g, kind: want, p: m.root }; }
   }
 
-  toggleDrone() { if (this.lobby || !this.sim) return; if (this.drone.on) { this.drone.stop(); return; } if (!this.drone.ready) { UI.toast('الدرون انستعمل بهذا القيم — مرة وحدة بكل قيم'); return; } if (this.drone.start()) UI.toast('درون: 30 ثانية ويشيل رمانة — زر الرمي يسقطها على اللي تحته'); }
+  toggleDrone() { if (this.lobby || !this.sim) return; if (this.drone.on) { this.drone.stop(); return; } if (!this.drone.ready) { UI.toast('استُعمِل الدرون في هذه الجولة — مرّة واحدة في كل جولة'); return; } if (this.drone.start()) UI.toast('درون: 30 ثانية ويحمل رمّانة — زر الرمي يُسقطها على من تحته'); }
   useAction() { const U = this.useInfo; if (U) { Audio.play('ui'); U.fn(); } }
   // ---------- القوائم: كاميرا سينمائية وعرض الشخصيات ----------
   buildLineup() {
@@ -162,8 +162,8 @@ export class Game {
     sim.start();
     this.begin(me, o.weather);
     const M = MODES[sim.mode];
-    if (this.lobby) { this.houseDoors.build(); this.ambient.start(); this.quests.start(); this.mudhif.start(); UI.banner('سوق المجاهدين', 'تجوّل، احچِ ويّا الناس، وساعدهم بمهامهم', '', 3.2); return; }
-    UI.banner(M.name, sim.dom ? `سيطروا على ${sim.cps && sim.cps.length > 1 ? 'النقاط' : 'النقطة'} · ${Math.round(sim.timeLimit / 60)} دقائق` : sim.tdm ? `الأكثر قتلات بعد ${Math.round(sim.timeLimit / 60)} دقائق يفوز` : `أول من يفوز بـ ${sim.roundsToWin} جولات`, '', 3);
+    if (this.lobby) { this.houseDoors.build(); this.ambient.start(); this.quests.start(); this.mudhif.start(); UI.banner('سوق المجاهدين', 'تجوّل، وتحدّث مع الناس، وساعدهم في مهامّهم', '', 3.2); return; }
+    UI.banner(M.name, sim.dom ? `سيطِروا على ${sim.cps && sim.cps.length > 1 ? 'النقاط' : 'النقطة'} · ${Math.round(sim.timeLimit / 60)} دقائق` : sim.tdm ? `الأكثر قتلاً بعد ${Math.round(sim.timeLimit / 60)} دقائق يفوز` : `أوّل من يفوز بـ ${sim.roundsToWin} جولات`, '', 3);
   }
   begin(me, weather) {
     this.folk.start(this.lobby);
@@ -202,20 +202,20 @@ export class Game {
     const mode = o.mode, wx = this.weather ? this.weather.pick(o.weather) : o.weather;
     const base = { name: o.name, char: o.char, loadout: o.loadout, team: 0, onStatus: say };
     if (Central.isOnline()) {
-      say('السيرفر المركزي شغّال — نطلب معركة…');
+      say('السيرفر المركزي يعمل — نطلب معركة…');
       const r = await Central.request(mode, o.name);
-      if (r && r.k === 'host') return this.hostOpen(o, wx, base, 'ما في لاعبين بعد — المعركة على هاتفك ويّا البوتات، وأول ما يدخل لاعب حقيقي تنتقل للسيرفر…', say);
+      if (r && r.k === 'host') return this.hostOpen(o, wx, base, 'لا لاعبين بعد — المعركة على هاتفك مع البوتات، وعندما يدخل لاعب حقيقي تنتقل إلى السيرفر…', say);
       if (r && r.room) {
-        say('لگينا معركة — ندخل…');
+        say('وجدنا معركة — ندخل…');
         try { const ns = await this.joinOnline({ ...base, room: r.room }); ns.central = true; this.startOnline(ns, wx); return 'central'; }
-        catch (e) { say('تعذّر دخول معركة السيرفر — ننتقل لوضع المضيف'); }
-      } else say(r && r.why ? 'السيرفر ممتلئ (' + r.why + ') — ننتقل لوضع المضيف' : 'السيرفر ما ردّ — ننتقل لوضع المضيف');
+        catch (e) { say('تعذّر دخول معركة السيرفر — ننتقل إلى وضع المضيف'); }
+      } else say(r && r.why ? 'السيرفر ممتلئ (' + r.why + ') — ننتقل إلى وضع المضيف' : 'لم يردّ السيرفر — ننتقل إلى وضع المضيف');
     }
-    say('ندوّر على معركة مفتوحة…');
+    say('نبحث عن معركة مفتوحة…');
     for (const a of await Central.findOpen(mode)) {
       try { const ns = await this.joinOnline({ ...base, room: a.room }); ns.open = true; this.startOnline(ns, wx); return 'open'; } catch (e) { }
     }
-    return this.hostOpen(o, wx, base, 'ما في معارك مفتوحة — نفتح معركة على هاتفك وتكمّلها البوتات…', say);
+    return this.hostOpen(o, wx, base, 'لا معارك مفتوحة — نفتح معركة على هاتفك وتُكمِلها البوتات…', say);
   }
   async hostOpen(o, wx, base, msg, say) {
     const mode = o.mode; say(msg);
@@ -240,12 +240,12 @@ export class Game {
     const ns = this.sim, mode = ns.mode, team = this.mp ? this.mp.team : 0;
     Central.sendMove(b.room, b.src, this.resumeFromServer(srv));
     this.endSession();
-    this.migrating = true; UI.toast2('دخل لاعب حقيقي — المعركة تنتقل للسيرفر المركزي بنفس حالتها…');
+    this.migrating = true; UI.toast2('دخل لاعب حقيقي — تنتقل المعركة إلى السيرفر المركزي بحالتها نفسها…');
     this.quit(true, true); if (this.hostSrv) { this.hostSrv.stop(); this.hostSrv = null; this.hostInfo = null; }
     const base = { room: b.room, name: Settings.name, char: Settings.char, loadout: UI.matchLoadout(mode), team };
     let n2 = null; for (let k = 0; k < 4 && !n2; k++) { try { n2 = await this.joinOnline(base); } catch (e) { await new Promise(r => setTimeout(r, 1500)); } }
     this.migrating = false;
-    if (n2) { n2.central = true; this.startOnline(n2); } else { this.quit(); UI.showMenu(); UI.toast2('تعذّر الانتقال للسيرفر'); }
+    if (n2) { n2.central = true; this.startOnline(n2); } else { this.quit(); UI.showMenu(); UI.toast2('تعذّر الانتقال إلى السيرفر'); }
   }
   // استضافة على نفس الشبكة (واي فاي أو نقطة اتصال) — تشتغل حتى بلا إنترنت
   async hostLan(o) {
@@ -275,18 +275,18 @@ export class Game {
     if (this.sess && this.sess.central) this.sess = { room, t: Date.now(), mo: mode, central: false }; // بعد الانتقال صارت المعركة على هاتف لاعب: جلسة تُسجَّل للمزامنة
     try {
       if (humans[0] === ns.me) {
-        UI.toast2('المضيف طلع — صرت إنت المضيف، نكمّل المعركة…');
+        UI.toast2('خرج المضيف — صرتَ أنت المضيف، نُكمِل المعركة…');
         this.quit(true, true);
         const srv = new GameServer(this.world, { room, name: Settings.name, adv: open, reportLive: true, mid: ns.hostMid, cfg: { mode, size: Math.min(MAX_TEAM, cfg.size || 2), rounds: cfg.rounds || ns.roundsToWin, time: cfg.time || ns.timeLimit, roundTime: cfg.roundTime, difficulty: cfg.difficulty || Settings.difficulty, fill: true, pref: true } });
         srv.resume = R; await srv.start(); this.hostSrv = srv; this.hostInfo = { room, teams: {}, mode };
         const n2 = await this.joinOnline({ ...base, local: srv }); n2.open = open; this.migrating = false; this.startOnline(n2);
       } else {
-        UI.toast2('المضيف طلع — ننقل الاستضافة لـ ' + ((ns.roster.get(humans[0]) || {}).name || 'لاعب') + '…');
+        UI.toast2('خرج المضيف — ننقل الاستضافة إلى ' + ((ns.roster.get(humans[0]) || {}).name || 'لاعب') + '…');
         this.quit(true, true);
         let n2 = null;
         for (let k = 0; k < 4 && !n2; k++) { await new Promise(r => setTimeout(r, 2500)); try { n2 = await this.joinOnline(base); } catch (e) { } }
         this.migrating = false;
-        if (n2) { n2.open = open; this.startOnline(n2); } else fail('ما گدرنا ننقل الاستضافة — انقطعت المعركة');
+        if (n2) { n2.open = open; this.startOnline(n2); } else fail('لم نستطع نقل الاستضافة — انقطعت المعركة');
       }
     } catch (e) { this.migrating = false; fail('تعذّر نقل الاستضافة'); }
   }
@@ -299,7 +299,7 @@ export class Game {
     if (!this.sess || this.sess.room !== ns.room) this.sess = { room: ns.room, t: Date.now(), mo: ns.mode, central: !!ns.central };
     this.sim = ns; this.me = ns.me;
     this.begin(this.mp, weather || ns.weather);
-    UI.banner(MODES[ns.mode] ? MODES[ns.mode].name : 'معركة', 'فريقك: نحن المجاهدين', '', 2.6);
+    UI.banner(MODES[ns.mode] ? MODES[ns.mode].name : 'معركة', 'فريقك: نحن المجاهدون', '', 2.6);
   }
   endSession() {
     const S = this.sess, sim = this.sim; this.sess = null; if (!S) return;
@@ -366,7 +366,7 @@ export class Game {
     // الدرون: الجويستك والسحب يحرّكونه، واللاعب يگعد بمكانه
     if (Input.take('drone') && !blocked) this.toggleDrone();
     const droneOn = this.drone.on;
-    if (droneOn && !blocked && (Input.take('grenade') || Input.take('fire'))) { if (this.drone.drop()) UI.toast('انرمت الرمانة!'); }
+    if (droneOn && !blocked && (Input.take('grenade') || Input.take('fire'))) { if (this.drone.drop()) UI.toast('رُمِيَت قنبلة!'); }
     if (droneOn) this.drone.control(dt, Input.mx, Input.mz, Input.held('jump'), Input.held('crouch') || Input.on('crouch'), blocked ? 0 : lx * Settings.sens, blocked ? 0 : ly * Settings.sens);
     if (!blocked && me && me.alive && !droneOn) {
       const mag = this.magOf(me), a = ease(me.adsT);
@@ -524,10 +524,10 @@ export class Game {
         }
         case 'reset': this.resetWorldVis(); break;
         case 'npcHit': { const c = this.civs && this.civs[e.id]; if (c && e.p && !c.away) { const d = me ? [e.p[0] - me.pos[0], 0, e.p[2] - me.pos[2]] : [0, 0, 1]; this.fx.blood(e.p, d, 25, false, this.world); Audio.play('flesh', e.p); } break; }
-        case 'npcDie': { const c = this.civs && this.civs[e.id]; if (!c) break; c.die(e.d); if (!e.silent) { setTimeout(() => { this.fx.bloodPool([c.n.x, c.n.y, c.n.z], this.world, 0.55 + Math.random() * 0.25); Audio.play('bodyFall', [c.n.x, 0.3, c.n.z]); }, 650); if (e.k === this.me) UI.toast('قتلت أحد أهل السوق!'); } break; }
-        case 'heal': if (e.k >= 3) { if (e.id === this.me && !this.lobby) { const pr = FOOD_PRICE[e.k === 3 ? 'lablabi' : 'tea']; Economy.spend(pr); } if (e.id === this.me) { const pr = this.lobby ? 'مجاناً' : `${fmtIQD(FOOD_PRICE[e.k === 3 ? 'lablabi' : 'tea'])} · باقي ${e.left ?? '?'}`; UI.toast(e.k === 3 ? `تاكل لبلبي حار… (${pr})` : `تشرب استكان شاي… (${pr})`); } Audio.play('ui'); break; } if (e.id === this.me) this.vm.healT = e.k === 2 ? 4 : 2.4; Audio.play(e.k === 2 ? 'syringe' : 'bandage', e.id === this.me ? null : this.posOf(e.id)); break;
-        case 'foodOut': if (e.id === this.me) UI.toast(e.k === 'lablabi' ? 'خلصت حصّتك من اللبلبي بهالمعركة' : 'خلصت حصّتك من الشاي بهالمعركة'); break;
-        case 'foodFull': if (e.id === this.me) UI.toast('صحّتك كاملة، ما تحتاج'); break;
+        case 'npcDie': { const c = this.civs && this.civs[e.id]; if (!c) break; c.die(e.d); if (!e.silent) { setTimeout(() => { this.fx.bloodPool([c.n.x, c.n.y, c.n.z], this.world, 0.55 + Math.random() * 0.25); Audio.play('bodyFall', [c.n.x, 0.3, c.n.z]); }, 650); if (e.k === this.me) UI.toast('قتلتَ أحد أهل السوق!'); } break; }
+        case 'heal': if (e.k >= 3) { if (e.id === this.me && !this.lobby) { const pr = FOOD_PRICE[e.k === 3 ? 'lablabi' : 'tea']; Economy.spend(pr); } if (e.id === this.me) { const pr = this.lobby ? 'مجّاناً' : `${fmtIQD(FOOD_PRICE[e.k === 3 ? 'lablabi' : 'tea'])} · باقٍ ${e.left ?? '?'}`; UI.toast(e.k === 3 ? `تأكل لبلبي حارّاً… (${pr})` : `تشرب كوب شاي… (${pr})`); } Audio.play('ui'); break; } if (e.id === this.me) this.vm.healT = e.k === 2 ? 4 : 2.4; Audio.play(e.k === 2 ? 'syringe' : 'bandage', e.id === this.me ? null : this.posOf(e.id)); break;
+        case 'foodOut': if (e.id === this.me) UI.toast(e.k === 'lablabi' ? 'انتهت حصّتك من اللبلبي في هذه المعركة' : 'انتهت حصّتك من الشاي في هذه المعركة'); break;
+        case 'foodFull': if (e.id === this.me) UI.toast('صحّتك كاملة، لا تحتاج'); break;
         case 'mark': this.wps.onMark(e, this.mp); break;
         case 'healed': if (e.id === this.me) { Audio.play('healed'); this.vm.healT = 0; } break;
         case 'boom': {

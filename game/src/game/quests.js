@@ -7,6 +7,7 @@ import { Economy, fmtIQD, r250 } from './economy.js';
 import { Settings } from '../core/settings.js';
 import { Audio } from '../core/audio.js';
 import { Voices, voiceId } from '../core/voices.js';
+import { lite } from '../core/voicekey.js';
 import { Input } from '../core/input.js';
 import { MiniGame } from './minigame.js';
 import { BAKER } from './questdata.js';
@@ -35,7 +36,7 @@ export class Quests {
     this.buildGraves(); this.on = true; this.offer = null; this.act = null; this.cine = null; this.offerT = 3; this.fighters = null; this.lastId = this.S.lastId; this.lastPos = this.S.lastPos;
     // رجعت للوبي: تكمّل المهمة اللي طلعت وهي بالنص من نفس الخطوة
     const C = this.S.cur; const q0 = C && QUESTS.find(q => q.id === C.id);
-    if (q0) { const q = q0.vars ? { ...this.expandVi(q0, C.vi) } : q0; this.act = { q, i: Math.min(C.i, q.steps.length - 1), left: Math.max(60, C.left), item: C.item || null, extra: C.extra || 0 }; if (q.spawn === 'fighters') setTimeout(() => this.spawnFighters(), 500); const pv = q.steps[this.act.i - 1]; if (pv && pv.carry && q.steps[this.act.i].give) this.startCarry(pv.carry, true); setTimeout(() => this.g.ui && this.g.ui.toast2 && this.g.ui.toast2('تكمّل مهمتك: ' + q.title), 1500); }
+    if (q0) { const q = q0.vars ? { ...this.expandVi(q0, C.vi) } : q0; this.act = { q, i: Math.min(C.i, q.steps.length - 1), left: Math.max(60, C.left), item: C.item || null, extra: C.extra || 0 }; if (q.spawn === 'fighters') setTimeout(() => this.spawnFighters(), 500); const pv = q.steps[this.act.i - 1]; if (pv && pv.carry && q.steps[this.act.i].give) this.startCarry(pv.carry, true); setTimeout(() => this.g.ui && this.g.ui.toast2 && this.g.ui.toast2('تابِع مهمّتك: ' + q.title), 1500); }
     this.updateHud();
   }
   // نحفظ المهمة الجارية حتى ترجع تكمّلها
@@ -77,9 +78,9 @@ export class Quests {
     if (!q.vars) return q;
     const vi = ((this.S.done[q.id] || 0) + (this.varK = (this.varK || 0) + 1)) % q.vars.length, v = q.vars[vi];
     return { ...q, vi, giver: v.giver, title: 'طلبية: ' + v.item, reward: v.price, intro: v.intro,
-      steps: [{ to: BAKER, label: 'جيب ' + v.item + ' من أبو رسول', say: v.say, pay: v.price, mg: { type: 'scoop', title: v.item, n: 3, color: v.color, bag: 0xe8dcc8, tip: 'حطّ ' + v.item + ' بالكيس' }, item: v.item },
-        { to: 'g', label: 'وصّل ' + v.item, say: v.back }],
-      outro: [['g', 'هاي حقّه وهاي حلاوتك، الله يحفظك.']] };
+      steps: [{ to: BAKER, label: 'أحضِر ' + v.item + ' من أبي رسول', say: v.say, pay: v.price, mg: { type: 'scoop', title: v.item, n: 3, color: v.color, bag: 0xe8dcc8, tip: 'ضَع ' + v.item + ' في الكيس' }, item: v.item },
+        { to: 'g', label: 'أوصِل ' + v.item, say: v.back }],
+      outro: [['g', 'هذا ثمنُه وهذهِ مكافأتُك، حفظَكَ الله.']] };
   }
   // مكان صاحب المهمة (للتباعد)
   giverPos(q) { if (typeof q.giver === 'number') { const c = this.g.civs[q.giver]; return c ? [c.n.x, c.n.z] : null; } return null; }
@@ -97,7 +98,7 @@ export class Quests {
   setOffer(q) {
     this.offer = q; if (!q) return;
     if (q.spawn === 'fighters') this.spawnFighters();
-    Audio.play('questNew'); this.g.ui && this.g.ui.toast2 && this.g.ui.toast2('مهمة جديدة: ' + q.title + ' — النقطة الخضراء بالخريطة');
+    Audio.play('questNew'); this.g.ui && this.g.ui.toast2 && this.g.ui.toast2('مهمّة جديدة: ' + q.title + ' — النقطة الخضراء على الخريطة');
   }
   spawnFighters() {
     if (this.fighters) return; const A = this.g.ambient; if (!A || !A.on) return;
@@ -124,7 +125,7 @@ export class Quests {
     const A = this.act;
     if (A && A.q.steps[A.i]) {
       A.left -= this.cine || this.mg ? 0 : dt;
-      if (A.left <= 0) { this.fail('خلص الوقت!'); }
+      if (A.left <= 0) { this.fail('انتهى الوقت!'); }
       else {
         const st = A.q.steps[A.i], p = this.posOf(st.to, A.q);
         const tp = st.kill ? this.targetPos() : (st.hit || st.confront) ? this.hitPos(st) : null, pp = tp || p;
@@ -146,12 +147,12 @@ export class Quests {
     if (!this.on || this.cine || this.mg) return null;
     const g = this.g, me = g.mp; if (!me || !me.alive) return null;
     const near = (p, r) => p && Math.hypot(p[0] - me.pos[0], p[1] - me.pos[2]) < r;
-    if (this.offer && !this.act && near(this.posOf('g', this.offer), 3.0)) return { label: 'تكلّم', fn: () => this.openOffer() };
+    if (this.offer && !this.act && near(this.posOf('g', this.offer), 3.0)) return { label: 'تحدَّث', fn: () => this.openOffer() };
     if (this.act && this.act.q.steps[this.act.i].find && this.findNear) return { label: (ITEM_ICON[this.act.q.steps[this.act.i].find.kind || 'bag'] || '👜') + ' ' + this.act.q.steps[this.act.i].find.label, fn: () => { const A = this.act, st = A.q.steps[A.i]; this.findMesh.visible = false; A.picked = true; this.findNear = false; if (st.carry) { this.startCarry(st.carry, true); Audio.play('ui'); } this.runStep(); } };
     // اغتيال: أول ما تقترب من المطلوب (بدون سلاح — كاتسين بالسكين)
     if (this.hitNear && this.hitNear.c.alive && !this.kc) { const w = this.hitNear; return { label: '🗡 اغتيال ' + w.tg.name, fn: () => this.startHit(w) }; }
     // أبو حيدر: أول لقاء
-    const fc = g.civs[FISHER]; if (fc && fc.here && !this.S.met.fisher && !(this.offer && this.offer.giver === FISHER) && near([fc.n.x, fc.n.z], 3)) return { label: 'تكلّم', fn: () => this.meetFisher() };
+    const fc = g.civs[FISHER]; if (fc && fc.here && !this.S.met.fisher && !(this.offer && this.offer.giver === FISHER) && near([fc.n.x, fc.n.z], 3)) return { label: 'تحدَّث', fn: () => this.meetFisher() };
     // المشتل: شراء وردة
     const nc = g.civs[NURSERY]; if (nc && nc.here && near([nc.n.x, nc.n.z], 2.8) && !(this.offer && this.offer.giver === NURSERY && !this.act)) return { label: '🌹 وردة', fn: () => this.nurseryMenu() };
     // إهداء الوردة لأقرب شخص
@@ -188,7 +189,7 @@ export class Quests {
     if (!rec && !stage) babble();
     const me = this.g.mp;
     if (c) { c.say(C.dur); if (me) c.focus(me.pos[0], me.pos[2], C.dur + 1); }
-    const el = $('cine'); el.querySelector('.cname').textContent = per.name || ''; el.querySelector('.ctext').textContent = text; el.querySelector('.cname').classList.toggle('me', who === 'me');
+    const el = $('cine'); el.querySelector('.cname').textContent = per.name || ''; el.querySelector('.ctext').textContent = lite(text); el.querySelector('.cname').classList.toggle('me', who === 'me');
     el.querySelector('.copts').innerHTML = ''; el.querySelector('.cact').classList.remove('on');
     const im = el.querySelector('.cimg'); if (C.opt.img) { im.src = C.opt.img; im.classList.add('on'); } else im.classList.remove('on');
   }
@@ -208,7 +209,7 @@ export class Quests {
   }
   showQuiz() {
     const C = this.cine, Q = C.opt.quiz[C.qi]; if (!Q) { this.cine.stage = 'quizDone'; C.opt.quizScore = C.score; C.opt.quiz = null; this.afterLines(); return; }
-    const per = this.persona('g', C.q), el = $('cine'); el.querySelector('.cname').textContent = per.name; el.querySelector('.ctext').textContent = Q.q.replace(/^[^:]+:\s*/, '');
+    const per = this.persona('g', C.q), el = $('cine'); el.querySelector('.cname').textContent = per.name; el.querySelector('.ctext').textContent = lite(Q.q.replace(/^[^:]+:\s*/, ''));
     this.showChoices('', Q.opts.map((t, i) => ({ label: t, fn: () => { const ok = i === Q.a; if (ok) C.score++; C.qi++; C.stage = 'lines'; C.lines = [['me', t], ['g', ok ? Q.ok : Q.no]]; C.i = -1; C.resumeQuiz = true; this.next(); } })));
   }
   tickCine(dt) {
@@ -267,21 +268,21 @@ export class Quests {
     const lines = (q.meet && !this.S.met.fisher && q.giver === FISHER) ? [...FISHER_MEET.map(([w, t]) => [w === 'n' ? 'g' : w, t]), ...q.intro] : q.intro;
     if (q.giver === FISHER) { this.S.met.fisher = 1; this.save(); }
     this.play(lines, { q, choices: [
-      { label: 'أقبل المهمة ✔', fn: () => { this.endCine(); this.accept(q); } },
-      { label: 'مو هسّه', fn: () => { this.endCine(); this.ignore(q); } },
+      { label: 'أقبل المهمّة ✔', fn: () => { this.endCine(); this.accept(q); } },
+      { label: 'ليس الآن', fn: () => { this.endCine(); this.ignore(q); } },
     ], prompt: `${q.title} · الوقت ${Math.round(q.time / 60)} دقائق · المكافأة ${fmtIQD(r250((q.reward || 0) + (q.tip || 0)))}` });
   }
   meetFisher() { this.S.met.fisher = 1; this.save(); this.play(FISHER_MEET, { q: { giver: FISHER } }); }
   accept(q) {
     this.offer = null; this.lastId = q.id; this.giverMark.visible = false;
     this.act = { q, i: 0, left: q.time, item: null, extra: 0 }; this.saveCur();
-    Audio.play('questNew'); this.g.ui && this.g.ui.toast2 && this.g.ui.toast2('بدأت المهمة: ' + q.title);
+    Audio.play('questNew'); this.g.ui && this.g.ui.toast2 && this.g.ui.toast2('بدأت المهمّة: ' + q.title);
   }
   ignore(q) { this.cd[q.id] = this.t + 180; this.offer = null; this.offerT = 6; this.lastId = q.id; this.lastPos = this.giverPos(q) || this.lastPos; if (q.spawn === 'fighters') this.dropFighters(); }
   fail(why) {
     const q = this.act.q; this.act = null; this.saveCur(); this.dropTargets(); this.dropHits(); this.kc = null; this.stab = 0; this.dropCarry(); if (this.mg) { this.mg.close(); this.mg = this.g.mg = null; } if (this.findMesh) this.findMesh.visible = false; this.lastPos = this.giverPos(q) || this.lastPos; this.g.wps.clearQuest(); this.cd[q.id] = this.t + 90; this.offerT = 6; this.endCine(true);
     if (q.spawn === 'fighters') this.dropFighters();
-    Audio.play('questFail'); this.g.ui && this.g.ui.toast2 && this.g.ui.toast2(`فشلت المهمة «${q.title}» — ${why} ترجع تنعرض بعدين.`);
+    Audio.play('questFail'); this.g.ui && this.g.ui.toast2 && this.g.ui.toast2(`فشلت المهمّة «${q.title}» — ${why} ستُعرَض عليك لاحقاً.`);
   }
   runStep() {
     const A = this.act, q = A.q, st = q.steps[A.i];
@@ -297,10 +298,10 @@ export class Quests {
     };
     const opt = { q, act: st.act, after: st.mg ? null : (st.after ? st.after.slice() : null), quiz: st.quiz, done: C => { if (st.mg) startMg(); else this.stepDone(C); } };
     let lines = (st.say || []).slice();
-    if (st.pay) { if (Economy.spend(st.pay)) lines.push(['me', `(دفعت ${fmtIQD(st.pay)})`]); else lines.push([typeof st.to === 'number' ? 'n' : 'me', typeof st.to === 'number' ? 'ما عندك فلوس هسّه؟ خذ وادفع بعدين، إحنا أهل.' : '(ما عندي فلوس... أدفع للوكيل بعدين)']); }
+    if (st.pay) { if (Economy.spend(st.pay)) lines.push(['me', `(دفعتَ ${fmtIQD(st.pay)})`]); else lines.push([typeof st.to === 'number' ? 'n' : 'me', typeof st.to === 'number' ? 'ليسَ معكَ مالٌ الآن؟ خُذْ وادفَعْ لاحقاً، نحنُ أهل.' : '(ليسَ معي مال... سأدفعُ للوكيلِ لاحقاً)']); }
     if (!lines.length) lines.push(['me', '(...)']);
     if (st.give) this.handOver(st.give, this.civ('g', q));
-    if (st.choose) { opt.prompt = st.choose.prompt; opt.choices = st.choose.opts.map(o => ({ label: `${o.label} — ${fmtIQD(o.price)}`, fn: () => { A.choice = o; A.extra = r250(25000 - o.price); A.item = o.item; this.cine.opt.choices = null; this.cine.lines = [['me', 'هذا ' + o.label + '.'], ['n', 'اختيار زين! تفضّل.']]; this.cine.i = -1; this.cine.stage = 'lines'; this.next(); } })); }
+    if (st.choose) { opt.prompt = st.choose.prompt; opt.choices = st.choose.opts.map(o => ({ label: `${o.label} — ${fmtIQD(o.price)}`, fn: () => { A.choice = o; A.extra = r250(25000 - o.price); A.item = o.item; this.cine.opt.choices = null; this.cine.lines = [['me', 'هذا ' + o.label + '.'], ['n', 'اختيارٌ موفَّق! تفضَّل.']]; this.cine.i = -1; this.cine.stage = 'lines'; this.next(); } })); }
     this.play(lines, opt);
   }
   stepDone(C) {
@@ -317,7 +318,7 @@ export class Quests {
     this.play(q.outro, { q, done: () => {
       const got = Economy.earn(amt); this.S.done[q.id] = (this.S.done[q.id] || 0) + 1; this.save();
       this.act = null; this.saveCur(); this.offerT = 6; if (q.spawn === 'fighters') { const F = this.fighters; this.fighters = null; if (F) F.forEach((w, i) => { w.stroll = true; w.wait = 3 + i; setTimeout(() => w.remove(), 60000); }); }
-      Audio.play('questDone'); this.g.ui && this.g.ui.toast2 && this.g.ui.toast2(`✔ ${q.title} — استلمت ${fmtIQD(got)}`);
+      Audio.play('questDone'); this.g.ui && this.g.ui.toast2 && this.g.ui.toast2(`✔ ${q.title} — استلمتَ ${fmtIQD(got)}`);
     } });
   }
   // ---------- المواجهة على السطح: حوار، وإذا ما تراجع تصفية بالسكين ----------
@@ -394,9 +395,9 @@ export class Quests {
       const A = this.act, st = A && A.q.steps[A.i]; (this.hitDead = this.hitDead || []).push(w.tg.k); this.hitCur = null;
       setTimeout(() => w.remove(), 30000);
       const left = (this.hits || []).filter(h => !h.tg.guard && h.c.alive);
-      if (left.length) { this.g.ui && this.g.ui.toast2 && this.g.ui.toast2(`✔ انتهى ${w.tg.name} — باقي ${left.map(h => h.tg.name).join('، ')}`); return; }
+      if (left.length) { this.g.ui && this.g.ui.toast2 && this.g.ui.toast2(`✔ انتهى ${w.tg.name} — باقٍ ${left.map(h => h.tg.name).join('، ')}`); return; }
       const H = this.hits; this.hits = null; this.hitDead = null; if (H) H.forEach(h => { if (h !== w) setTimeout(() => h.remove(), h.c.alive ? 16000 : 30000); });
-      Audio.play('questDone'); this.g.ui && this.g.ui.toast2 && this.g.ui.toast2('✔ تمّت التصفية — ارجع لصاحب المهمة'); this.stepDone();
+      Audio.play('questDone'); this.g.ui && this.g.ui.toast2 && this.g.ui.toast2('✔ تمّت التصفية — ارجع إلى صاحب المهمّة'); this.stepDone();
     }
   }
   dropHits() { const H = this.hits; this.hits = null; this.hitDead = null; this.hitCur = null; this.hitNear = null; if (H) H.forEach(h => h.remove()); }
@@ -427,7 +428,7 @@ export class Quests {
     if (!this.targets) { const me = this.g.mp; if (me && p && Math.hypot(p[0] - me.pos[0], p[1] - me.pos[2]) < 70) this.spawnTargets(st); return; }
     // دورية خفيفة: يتمشّى بين نقطتين
     for (const w of this.targets) { if (!w.c.alive || !w.tg.patrol || w.path) continue; if ((w.tg.t -= dt) > 0) continue; w.tg.t = 5 + Math.random() * 4; w.tg.back = !w.tg.back; const [x, z] = w.tg.back ? w.tg.patrol : w.tg.home; w.goTo(x, z); }
-    if (this.targets.filter(w => !w.tg.guard).every(w => !w.c.alive)) { Audio.play('questDone'); this.g.ui && this.g.ui.toast2 && this.g.ui.toast2('✔ تمّت التصفية — ارجع لصاحب المهمة'); this.stepDone(); }
+    if (this.targets.filter(w => !w.tg.guard).every(w => !w.c.alive)) { Audio.play('questDone'); this.g.ui && this.g.ui.toast2 && this.g.ui.toast2('✔ تمّت التصفية — ارجع إلى صاحب المهمّة'); this.stepDone(); }
   }
   // طلقتي باللوبي: هل أصابت أحد المطلوبين؟ (o: فوهة/عين، d: الاتجاه)
   onShot(o, d) {
@@ -444,19 +445,19 @@ export class Quests {
   }
   // ---------- الوردة ----------
   nurseryMenu() {
-    this.play([['n', this.flower ? 'هلا بيك مرة ثانية! تريد وردة بعد؟' : 'هلا بالمجاهد، تريد وردة جوري تهديها لأحد؟']], { q: { giver: NURSERY, steps: [] }, choices: [
-      { label: `🌹 اشتري وردة — ${fmtIQD(FLOWER_PRICE)}`, fn: () => {
+    this.play([['n', this.flower ? 'أهلاً بكَ مرّةً أخرى! أتريدُ وردةً أخرى؟' : 'أهلاً بالمجاهد، أتريدُ وردةً جوريّةً تُهديها لأحد؟']], { q: { giver: NURSERY, steps: [] }, choices: [
+      { label: `🌹 اشترِ وردة — ${fmtIQD(FLOWER_PRICE)}`, fn: () => {
         const C = this.cine; this.flower++;
-        if (Economy.spend(FLOWER_PRICE)) { Audio.play('buy'); C.lines = [['n', 'تفضّل، أحلى وردة بالمشتل. أهديها لمن تحب.']]; } else C.lines = [['n', 'فلوسك ما تكفي عيني... خذها هدية منّي!']];
+        if (Economy.spend(FLOWER_PRICE)) { Audio.play('buy'); C.lines = [['n', 'تفضَّل، أجملُ وردةٍ في المشتل. أهدِها لمَن تُحِبّ.']]; } else C.lines = [['n', 'مالُكَ لا يكفي يا عزيزي... خُذْها هديّةً منّي!']];
         C.i = -1; C.stage = 'lines'; C.opt.choices = null; this.next();
       } },
-      { label: 'بعدين', fn: () => this.endCine() },
+      { label: 'لاحقاً', fn: () => this.endCine() },
     ] });
   }
   giveFlower(c) {
     this.flower--; const t = FLOWER_THANKS[Math.floor(Math.random() * FLOWER_THANKS.length)];
     const i = this.g.civs.indexOf(c);
-    this.play([['me', 'تفضّل، هاي وردة إلك.'], [i, t]], { q: { giver: i, steps: [] } });
+    this.play([['me', 'تفضَّل، هذه وردةٌ لك.'], [i, t]], { q: { giver: i, steps: [] } });
   }
   // ---------- غرض مخفي ----------
   findObj(f) {
@@ -472,7 +473,7 @@ export class Quests {
     this.findMesh.position.set(f.x, 0, f.z);
   }
   // ---------- الشيل (قنينة الغاز): تمشي بطيء وبإيدك الغرض ----------
-  startCarry(kind, quiet) { this.carry = kind; this.g.carry = kind; if (!quiet) this.g.ui.toast2(kind === 'gas' ? 'ثگيلة! تمشي على مهلك' : 'صار الغرض بإيدك — سلّمه لصاحبه يد بيد'); }
+  startCarry(kind, quiet) { this.carry = kind; this.g.carry = kind; if (!quiet) this.g.ui.toast2(kind === 'gas' ? 'ثقيلة! امشِ على مهلك' : 'صار الغرض في يدك — سلِّمه لصاحبه يداً بيد'); }
   // التسليم يد بيد: الغرض ينتقل من إيدك لإيده
   handOver(kind, c) {
     this.dropCarry(); if (!c) return;
@@ -510,7 +511,7 @@ export class Quests {
       const st = A.q.steps[A.i], m = Math.max(0, Math.ceil(A.left)), mm = Math.floor(m / 60), ss = String(m % 60).padStart(2, '0');
       const d = g.wps && g.wps.dist ? Math.round(g.wps.dist) : null;
       h = `<b>${esc(A.q.title)}</b><span class="qt ${m < 30 ? 'low' : ''}">${mm}:${ss}</span><div class="qs">● ${esc(st ? st.label : '')}${d ? ` <small>${d} م</small>` : ''}</div>${A.item ? `<div class="qi">معك: ${esc(A.item)}</div>` : ''}`;
-    } else if (this.offer) h = `<b class="g">مهمة متاحة</b><div class="qs">${esc(this.offer.title)} — روح للنقطة الخضراء</div>`;
+    } else if (this.offer) h = `<b class="g">مهمّة متاحة</b><div class="qs">${esc(this.offer.title)} — اذهب إلى النقطة الخضراء</div>`;
     if (this.flower) h += `<div class="qi">🌹 وردة ×${this.flower}</div>`;
     if (el._h !== h) { el._h = h; el.innerHTML = h; }
   }

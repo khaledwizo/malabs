@@ -210,7 +210,7 @@ export class GameServer {
     if (R.phase && R.phase !== 'wait' && R.phase !== 'over') { sim.phase = R.phase; sim.phaseT = Math.max(1, +R.phaseT || 1); }
     if (R.cps && sim.cps) R.cps.forEach((c, i) => { const cp = sim.cps[i]; if (cp && c) { cp.owner = c[0]; cp.prog = c[1]; } });
     for (const p of sim.players.values()) this.restoreOne(p);
-    this.log('نقل الاستضافة: كمّلنا نفس المعركة · الجولة ' + sim.round + ' · ' + sim.score.join(':'));
+    this.log('نقل الاستضافة: أكملنا المعركة نفسها · الجولة ' + sim.round + ' · ' + sim.score.join(':'));
   }
   restoreOne(p) {
     const R = this.resume; if (!R || now() - (this.resumeT || 0) > 40) return;

@@ -7,6 +7,7 @@ import { signMat } from '../gfx/mats.js';
 import { Civilian } from './civilians.js';
 import { CAST, SCRIPT } from './introdata.js';
 import { Voices, voiceId } from '../core/voices.js';
+import { lite } from '../core/voicekey.js';
 import { Audio } from '../core/audio.js';
 import { Settings } from '../core/settings.js';
 
@@ -42,7 +43,7 @@ export class Intro {
     d.querySelector('.itap').addEventListener('click', () => { Audio.init(); d.querySelector('.itap').classList.add('gone'); this.waiting = false; this.t = 0; });
   }
   setCard(text, title) { this.card.innerHTML = text ? `<div class="${title ? 'icT' : ''}">${text}</div>` : ''; this.card.classList.toggle('on', !!text); }
-  setSub(who, text) { const s = this.sub; if (!text) { s.classList.remove('on'); return; } s.querySelector('b').textContent = CAST[who].name; s.querySelector('span').textContent = text; s.classList.add('on'); }
+  setSub(who, text) { const s = this.sub; if (!text) { s.classList.remove('on'); return; } s.querySelector('b').textContent = CAST[who].name; s.querySelector('span').textContent = lite(text); s.classList.add('on'); }
   // ---------- المشهد ----------
   mat(id, rx = 1, ry = 1, o = {}) {
     const base = this.kit.mats[id] && this.kit.mats[id].mat; let m;

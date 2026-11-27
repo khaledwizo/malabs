@@ -48,7 +48,7 @@ const TEMPLATE = HUD_HTML + `
       <div class="modes" id="modes"></div>
       <div class="mdesc" id="mdesc"></div>
       <div class="mopts" id="mopts"></div>
-      <div class="hbot"><div class="party" id="party"></div><button class="btn big lobbyBtn" id="btnLobby" title="طور القصة: تجوّل بالسوق ومهام">${ICON.shop}<span>طور القصة</span></button><button class="btn big onlineBtn" id="btnOnline" title="كل شي عن اللعبة"><span>📖</span><span>تعليمات</span></button><button class="btn primary big" id="btnStart">ابدأ المعركة</button></div>
+      <div class="hbot"><div class="party" id="party"></div><button class="btn big lobbyBtn" id="btnLobby" title="طور القصة: تجوّل في السوق ومهامّ">${ICON.shop}<span>طور القصة</span></button><button class="btn big onlineBtn" id="btnOnline" title="كل شيء عن اللعبة"><span>📖</span><span>تعليمات</span></button><button class="btn primary big" id="btnStart">ابدأ المعركة</button></div>
     </div>
   </div>
 </section>
@@ -58,63 +58,63 @@ const TEMPLATE = HUD_HTML + `
     <div class="gtabs" id="gTabs"><button data-g="idea" class="sel">الفكرة</button><button data-g="story">الحكاية</button><button data-g="play">طريقة اللعب</button><button data-g="modes">الأوضاع</button><button data-g="lobby">السوق والمهام</button><button data-g="mudhif">المضيف</button><button data-g="online">أونلاين</button><button data-g="tips">نصائح</button></div>
     <div class="gbody">
       <article data-g="idea" class="on">
-        <h3>معركة بسوق من أسواقنا</h3>
-        <p>جبهة الرافدين لعبة قتال تكتيكية عراقية. أحداثها تدور بـ<b>سوق المجاهدين</b>، سوق شعبي بين دجلة والجامع والمرقد والمقاهي ودكاكين البهارات.</p>
+        <h3>معركة في سوق من أسواقنا</h3>
+        <p>جبهة الرافدين لعبة قتال تكتيكية عراقية. تدور أحداثها في <b>سوق المجاهدين</b>، سوق شعبي بين دجلة والجامع والمرقد والمقاهي ودكاكين البهارات.</p>
         <div class="gcards"><div><i>⚔️</i><b>قتال فرق</b><small>5 ضد 5 بالحد الأقصى، ضد لاعبين حقيقيين أو بوتات.</small></div><div><i>🏘️</i><b>حياة السوق</b><small>ناس يتسولفون ويشتغلون ويصلّون، ويهربون إذا اشتد الرمي.</small></div><div><i>🎯</i><b>مهام إنسانية</b><small>تساعد أهل السوق، ترجع أغراضهم، وتخلّصهم من المبتزّين.</small></div><div><i>💰</i><b>اقتصاد حقيقي</b><small>تكسب بالدينار وتشتري سلاحك وعتادك.</small></div></div>
       </article>
       <article data-g="story">
         <h3>الحكاية</h3>
-        <p>تبدأ بمقدّمة سينمائية بالسوق: يوم هادئ ينكسر بهجوم. يسقط <b>الشيخ فاتح الرفاعي</b> رحمه الله، صاحب المضيف، وتتحوّل الحارات لجبهة.</p>
+        <p>تبدأ بمقدّمة سينمائية: ليلة هادئة في المضيف تنكسر بهجوم غادر. يسقط <b>الشيخ فاتح الرفاعي</b> رحمه الله، صاحب المضيف، وتتحوّل الحارات إلى جبهة.</p>
         <p>من وقتها صار السوق ساحة يتقاتل بيها فريقان: <b>الصقور</b> و<b>الحُرّاس</b>. وبين المعارك يرجع الناس لحياتهم: الشاي بالمقهى، اللبلبي بالعربانة، والمجالس بمضيف الشيخ اللي صار يرعاه أخوه <b>الشيخ عبد العزيز الرفاعي</b>.</p>
-        <p class="gnote">كل الشخصيات والجماعات بالقصة خيالية.</p>
+        <p class="gnote">كل الشخصيات والجماعات في القصة خيالية.</p>
       </article>
       <article data-g="play">
         <h3>التحكّم</h3>
-        <ul><li><b>المشي:</b> العصا يسار الشاشة. <b>النظر:</b> اسحب بيمين الشاشة، أو فعّل الجيروسكوب من الإعدادات.</li>
-        <li><b>المنظور:</b> الافتراضي الشخص الثالث (الكاميرا ورا كتفك). التصويب بالمنظار يحوّلك للأول، وتگدر تختار الأول دائماً من الإعدادات.</li>
-        <li><b>الرمي:</b> زر النار، و«التصويب» للمنظار. الرمانة من زرّها، والعلاج بالضماد والإبرة.</li>
-        <li><b>استعمال:</b> الزر الأصفر يطلع لما تقرّب من باب أو شخص أو أكل.</li>
-        <li><b>الدرون 🛸:</b> مرة وحدة بكل قيم، 30 ثانية تكشف الأعداء بالخريطة، وبيها رمانة ترميها على اللي تحتها.</li></ul>
+        <ul><li><b>المشي:</b> العصا يسار الشاشة. <b>النظر:</b> اسحب في يمين الشاشة، أو فعّل الجيروسكوب من الإعدادات.</li>
+        <li><b>المنظور:</b> الافتراضي الشخص الثالث (الكاميرا خلف كتفك). التصويب بالمنظار يحوّلك إلى الأوّل، ويمكنك اختيار الأوّل دائماً من الإعدادات.</li>
+        <li><b>الرمي:</b> زر النار، و«التصويب» للمنظار. الرمّانة من زرّها، والعلاج بالضماد والإبرة.</li>
+        <li><b>استعمال:</b> يظهر الزر الأصفر عندما تقترب من باب أو شخص أو طعام.</li>
+        <li><b>الدرون 🛸:</b> مرّة واحدة في كل جولة، 30 ثانية تكشف الأعداء على الخريطة، ومعها رمّانة تُسقطها على من تحتها.</li></ul>
         <h3>العتاد</h3>
-        <p>من «العتاد»: اختار السلاح ← شوفه بثلاثي الأبعاد ← غيّر المنظار والقطع ← اضغط <b>اعتماد</b>.</p>
+        <p>من «العتاد»: اختر السلاح ← شاهده ثلاثيّ الأبعاد ← غيّر المنظار والقطع ← اضغط <b>اعتماد</b>.</p>
       </article>
       <article data-g="modes">
         <h3>أوضاع القتال</h3>
-        <ul><li><b>فريق ضد فريق:</b> أكثر إسقاطات قبل ما يخلص الوقت.</li><li><b>الجولات:</b> كل جولة بحياة وحدة، والفايز يجمع الجولات.</li><li><b>السيطرة:</b> امسك النقاط واحميها.</li></ul>
+        <ul><li><b>فريق ضد فريق:</b> أكثر إسقاطات قبل انتهاء الوقت.</li><li><b>الجولات:</b> كل جولة بحياة واحدة، والفائز يجمع الجولات.</li><li><b>السيطرة:</b> أمسك النقاط واحمِها.</li></ul>
         <h3>الأرباح</h3>
         <div class="gcards"><div><i>🤖</i><b>250</b><small>دينار لكل بوت</small></div><div><i>👤</i><b>500</b><small>دينار لكل لاعب حقيقي</small></div><div><i>🏆</i><b>+1000</b><small>للفوز</small></div><div><i>📉</i><b>−1000</b><small>من أرباح القتلات عند الخسارة</small></div></div>
-        <p>الأكل والشرب بالمعركة بفلوس، أما اللوبي فكلّه ببلاش. وتگدر تطلق على قناني الغاز حتى تنفجر بالأعداء.</p>
+        <p>الأكل والشرب في المعركة بالمال، أما في طور القصة فكلّه مجّاني. ويمكنك أن تطلق على قناني الغاز لتنفجر بالأعداء.</p>
       </article>
       <article data-g="lobby">
         <h3>طور القصة (السوق والمهام)</h3>
-        <p>زر «طور القصة» يدخلك للسوق بحرية بدون قتال. تمشي وتسولف ويّا الناس، وكل شوية يطلبك واحد منهم بمهمة (النقطة الخضراء بالخريطة).</p>
-        <ul><li><b>مهام تسوّيها بإيدك:</b> تعجن الخبز، تسقي المشتل، تركّب قنينة الغاز، تصوّر السائح ويّا الملوية، وتدفن الشهيد.</li>
-        <li><b>أغراض ضايعة:</b> محفظة، دبدوب، سبحة، مفاتيح، نظارات، خاتم. تلگاها وتشيلها وتسلّمها <b>يد بيد</b> لصاحبها.</li>
-        <li><b>مهام التصفية:</b> مبتزّين ومهدِّدين يأذون أهل السوق، تخلّص الناس منهم وتاخذ الجائزة.</li>
-        <li>إذا طلعت بنص مهمة ترجع تكمّلها من نفس المكان.</li></ul>
+        <p>زر «طور القصة» يُدخلك إلى السوق بحرّية بلا قتال. تمشي وتتحدّث مع الناس، وبين حين وآخر يطلبك أحدهم لمهمّة (النقطة الخضراء على الخريطة).</p>
+        <ul><li><b>مهامّ بيدك:</b> تعجن الخبز، وتسقي المشتل، وتركّب قنينة الغاز، وتصوّر السائح مع الملويّة، وتدفن الشهيد.</li>
+        <li><b>أغراض ضائعة:</b> محفظة، دمية، مسبحة، مفاتيح، نظّارات، خاتم. تجدها وتحملها وتسلّمها <b>يداً بيد</b> لصاحبها.</li>
+        <li><b>مهامّ التصفية:</b> مبتزّون ومهدِّدون يؤذون أهل السوق، تخلّص الناس منهم وتأخذ الجائزة.</li>
+        <li>إذا خرجت في منتصف مهمّة تعود لتكملها من المكان نفسه.</li></ul>
       </article>
       <article data-g="mudhif">
         <h3>مضيف الشيخ فاتح الرفاعي</h3>
-        <ul><li><b>المجلس:</b> رجال گاعدين يتذاكرون أحكام فقهية شائعة على مذهب الشافعي. اجلس يمّهم واسمع، وتگدر تتخطّى أو تقوم بأي وقت.</li>
-        <li><b>مجالس العلم:</b> الشيخ عبد العزيز الرفاعي يلقي 5 محاضرات وعظ بأوقات مختلفة. المحاضرة تبقى قائمة لحد ما تحضرها.</li>
-        <li><b>الأذان والصلاة:</b> كل 15 دقيقة باللوبي يرتفع الأذان، وبعده صلاة جماعة. التحق بالصف وتابع الإمام بحركاتك.</li>
-        <li>الرمي ممنوع داخل المضيف والمرقد، وبالمعارك يلتجئ المدنيين للمضيف.</li></ul>
+        <ul><li><b>المجلس:</b> رجال جالسون يتحدّثون عن الصمود وحماية الجار والإسعاف وأمانة السوق. اجلس قربهم واستمع، ويمكنك التخطّي أو القيام في أي وقت.</li>
+        <li><b>مجالس الوعظ:</b> يلقي الشيخ عبد العزيز الرفاعي 5 مجالس وعظ في أوقات مختلفة. يبقى المجلس قائماً حتى تحضره.</li>
+        <li><b>الأذان والصلاة:</b> كل 15 دقيقة في طور القصة يرتفع الأذان، فيجتمع المصلّون في المضيف ثم يتفرّقون، ويبقى بعضهم في المجلس.</li>
+        <li>الرمي ممنوع داخل المضيف والمرقد، وفي المعارك يلجأ المدنيّون إلى المضيف.</li></ul>
       </article>
       <article data-g="online">
         <h3>اللعب أونلاين</h3>
-        <ul><li><b>ابدأ المعركة:</b> إذا عندك إنترنت تدخل ويّا لاعبين حقيقيين إن وُجدوا. وإذا ما في أحد تبدأ ويّا البوتات على هاتفك، وأي لاعب يدخل يكمّل وياك.</li>
-        <li><b>سيرفر الرافدين:</b> إذا كان شغّال، المعارك اللي بيها أكثر من لاعب حقيقي تنتقل له تلقائياً بنفس حالتها.</li>
-        <li><b>الأصدقاء:</b> من قائمة «الأصدقاء» أضف أصحابك بالمعرّف واعمل فرقة. المضيف يختار إذا أصدقاؤه وياه أو ضده (الافتراضي: ضدّك).</li>
-        <li>إذا طلع المضيف من المعركة، لاعب ثاني يستلمها وتكمل بنفس النتيجة.</li></ul>
+        <ul><li><b>ابدأ المعركة:</b> إذا كان عندك إنترنت تدخل مع لاعبين حقيقيين إن وُجدوا. وإن لم يوجد أحد تبدأ مع البوتات على هاتفك، وأي لاعب يدخل يكمل معك.</li>
+        <li><b>سيرفر الرافدين:</b> إذا كان يعمل، تنتقل إليه تلقائياً المعارك التي فيها أكثر من لاعب حقيقي بحالتها نفسها.</li>
+        <li><b>الأصدقاء:</b> من قائمة «الأصدقاء» أضف أصحابك بالمعرّف وكوّن فرقة. يختار المضيف إن كان أصدقاؤه معه أو ضدّه (الافتراضي: ضدّك).</li>
+        <li>إذا خرج المضيف من المعركة، يستلمها لاعب آخر وتستمرّ بالنتيجة نفسها.</li></ul>
       </article>
       <article data-g="tips">
         <h3>أفكار ونصائح</h3>
-        <ul><li>صوّب للراس، والصوت يكشفك، فاستعمل كاتم الصوت إذا تريد تبقى مخفي بالخريطة.</li>
-        <li>الدرون قبل الاقتحام يوفّر عليك مفاجآت. وفّره لوقت الحاجة.</li>
-        <li>بالسيطرة لا تلاحق الإسقاطات، النقطة أهم.</li>
-        <li>اشتغل مهام اللوبي حتى تجمع فلوس لـ AWM (785 ألف) أو تبوك (600 ألف).</li>
-        <li>بالمنظور الثالث تگدر تشوف من ورا الزاوية، والعدو هم يگدر.</li>
-        <li>لو الهاتف سخن أو تقطّع، نزّل الرسوميات أو اطفي «الرسوميات المتقدّمة».</li></ul>
+        <ul><li>صوّب إلى الرأس، والصوت يكشفك، فاستعمل كاتم الصوت إذا أردت أن تبقى مخفيّاً على الخريطة.</li>
+        <li>الدرون قبل الاقتحام يقيك المفاجآت. وفّره لوقت الحاجة.</li>
+        <li>في السيطرة لا تلاحق الإسقاطات، النقطة أهمّ.</li>
+        <li>أنجز مهامّ طور القصة لتجمع المال لـ AWM (785 ألفاً) أو تبوك (600 ألف).</li>
+        <li>في المنظور الثالث تستطيع أن ترى من خلف الزاوية، والعدوّ أيضاً يستطيع.</li>
+        <li>إذا سخن الهاتف أو تقطّعت الصورة، اخفض الجودة أو أطفئ «الرسوميات المتقدّمة».</li></ul>
       </article>
     </div>
   </div>
@@ -122,13 +122,13 @@ const TEMPLATE = HUD_HTML + `
 
 <section class="scr" id="s-friends">
   <div class="panel wide"><div class="head"><h2>الأصدقاء</h2><button class="x" data-back>✕</button></div>
-    <div class="myid"><div><small>معرّفك — أعطه لأصدقائك</small><b id="frMyId"></b></div><button class="btn sm" id="frCopy">${ICON.copy} نسخ</button><button class="btn sm" id="frShare">مشاركة</button></div>
+    <div class="myid"><div><small>معرّفك — أعطِه لأصدقائك</small><b id="frMyId"></b></div><button class="btn sm" id="frCopy">${ICON.copy} نسخ</button><button class="btn sm" id="frShare">مشاركة</button></div>
     <div class="addf"><input id="frIn" inputmode="numeric" maxlength="14" placeholder="اكتب معرّف صديقك (10 أرقام)" dir="ltr" autocomplete="off"><button class="btn primary" id="frAdd">${ICON.plus} إرسال طلب صداقة</button></div>
     <div id="frMsg" class="status"></div>
     <div class="tabs" id="frTabs"><button data-t="list" class="on">أصدقائي</button><button data-t="req">الطلبات <i class="badge" id="frReqN"></i></button></div>
     <div id="frBody" class="flist"></div>
     <p class="note" id="frNet"></p>
-    <div class="lanbox"><h5>🛜 على نفس الشبكة — بلا إنترنت</h5><div id="lanList" class="flist"></div><div class="menu row"><button class="btn primary sm" id="lanHost">استضف معركة على الشبكة</button></div><small id="lanNote" class="note"></small></div>
+    <div class="lanbox"><h5>🛜 على الشبكة نفسها — بلا إنترنت</h5><div id="lanList" class="flist"></div><div class="menu row"><button class="btn primary sm" id="lanHost">استضف معركة على الشبكة</button></div><small id="lanNote" class="note"></small></div>
     <details class="srvjoin"><summary>سيرفر خاص (تطبيق «سيرفر الرافدين» على هاتف آخر)</summary><div class="addf"><input id="srvCode" maxlength="8" placeholder="رمز الغرفة" dir="ltr" autocomplete="off" style="text-transform:uppercase"><button class="btn" id="srvGo">دخول</button></div></details>
   </div>
 </section>
@@ -246,7 +246,7 @@ export const UI = {
     $('#frCopy').addEventListener('click', () => this.copy(Social.id));
     $('#lanHost').addEventListener('click', async () => {
       Audio.play('ui'); this.frMsg('نشغّل سيرفر على هاتفك…');
-      try { await this.game.hostLan(this.matchOpts()); this.closeScreens(); this.hud(true); this.toast2('السيرفر شغّال على الشبكة — أصدقاؤك يدخلون من «الأصدقاء» ← نفس الشبكة'); }
+      try { await this.game.hostLan(this.matchOpts()); this.closeScreens(); this.hud(true); this.toast2('السيرفر يعمل على الشبكة — يدخل أصدقاؤك من «الأصدقاء» ← الشبكة نفسها'); }
       catch (e) { this.frMsg(e.message || 'تعذّر تشغيل السيرفر', 'bad'); }
     });
     $('#srvGo').addEventListener('click', async () => {
@@ -296,7 +296,7 @@ export const UI = {
     const wx = (fx - V.ox) / V.s / M.k + M.ox, wz = (fy - V.oy) / V.s / M.k + M.oz;
     if (wx < M.B[0] || wx > M.B[3] || wz < M.B[2] || wz > M.B[5]) return;
     const mine = g.wps.mine;
-    el.innerHTML = `<button data-a="route">📍 مسار</button><button data-a="point">📌 نقطة</button>${mine ? '<button data-a="del">✖ شيل علامتي</button>' : ''}`;
+    el.innerHTML = `<button data-a="route">📍 مسار</button><button data-a="point">📌 نقطة</button>${mine ? '<button data-a="del">✖ أزِل علامتي</button>' : ''}`;
     el.style.left = Math.min(innerWidth - 170, Math.max(8, at[0] - 80 - r.left + r.left)) + 'px'; el.style.top = Math.min(innerHeight - 140, Math.max(8, at[1] + 12)) + 'px';
     el.classList.add('on');
     el.querySelectorAll('button').forEach(b => b.onclick = ev => { ev.stopPropagation(); Audio.play('ui'); const a = b.dataset.a; if (a === 'del') g.wps.clearMine(); else g.wps.setMine(wx, wz, a === 'route'); el.classList.remove('on'); });
@@ -317,8 +317,8 @@ export const UI = {
     $('#mdesc').textContent = M.desc;
     // خيارات مضغوطة: كل خيار بسهمين للتبديل
     const opts = [['teamSize', 'الفريق', [[1, '1 ضد 1'], [2, '2 ضد 2'], [3, '3 ضد 3'], [4, '4 ضد 4'], [5, '5 ضد 5']]]];
-    if (M.rules !== 'rounds') opts.push(['tdmTime', 'مدة القيم', [[180, '3 دقائق'], [300, '5 دقائق'], [600, '10 دقائق'], [900, '15 دقيقة'], [1200, '20 دقيقة']]]);
-    else { opts.push(['rounds', 'الفوز بـ', [[3, '3 جولات'], [5, '5 جولات'], [7, '7 جولات']]]); opts.push(['roundTime', 'وقت الجولة', [[60, 'دقيقة'], [90, 'دقيقة ونص'], [120, 'دقيقتين'], [180, '3 دقائق']]]); }
+    if (M.rules !== 'rounds') opts.push(['tdmTime', 'مدّة الجولة', [[180, '3 دقائق'], [300, '5 دقائق'], [600, '10 دقائق'], [900, '15 دقيقة'], [1200, '20 دقيقة']]]);
+    else { opts.push(['rounds', 'الفوز بـ', [[3, '3 جولات'], [5, '5 جولات'], [7, '7 جولات']]]); opts.push(['roundTime', 'وقت الجولة', [[60, 'دقيقة'], [90, 'دقيقة ونصف'], [120, 'دقيقتان'], [180, '3 دقائق']]]); }
     opts.push(['difficulty', 'البوتات', [['easy', 'سهلة'], ['normal', 'عادية'], ['hard', 'شرسة']]]);
     opts.push(['weather', 'الطقس', WEATHER_OPTIONS.map(o => [o.id, o.label])]);
     $('#mopts').innerHTML = opts.map(([k, l, items]) => { const i = Math.max(0, items.findIndex(x => String(x[0]) === String(S[k]))); return `<div class="stp" data-k="${k}"><label>${l}</label><div><button data-d="1">‹</button><b>${items[i][1]}</b><button data-d="-1">›</button></div></div>`; }).join('');
@@ -336,7 +336,7 @@ export const UI = {
     const mem = P ? P.members : [me];
     let h = mem.map(m => `<div class="pm ${m.id === Social.id ? 'me' : ''}"><i class="av c-${esc(m.char)}">${esc((CHARS[m.char] || CHARS.khaled).name[0])}</i><span>${esc(m.name)}</span>${P && m.id === P.host ? '<em>المضيف</em>' : ''}</div>`).join('');
     if (!P || P.host === Social.id) h += `<button class="pm add" id="pInvite">${ICON.plus}<span>ادعُ صديقاً</span></button>`;
-    if (P && P.members.length > 1) h += `<button class="pm vs" id="pVs" ${P.host === Social.id ? '' : 'disabled'}>${P.vs ? '⚔' : '🤝'}<span>${P.vs ? 'أصدقائي ضدّي' : 'أصدقائي ويّاي'}</span></button>`;
+    if (P && P.members.length > 1) h += `<button class="pm vs" id="pVs" ${P.host === Social.id ? '' : 'disabled'}>${P.vs ? '⚔' : '🤝'}<span>${P.vs ? 'أصدقائي ضدّي' : 'أصدقائي معي'}</span></button>`;
     if (P) h += `<button class="pm leave" id="pLeave">✕<span>${P.host === Social.id ? 'حلّ الفرقة' : 'مغادرة'}</span></button>`;
     el.innerHTML = h;
     const inv = $('#pInvite'); if (inv) inv.addEventListener('click', () => { Audio.play('ui'); this.frTab = 'list'; this.open('friends'); });
@@ -384,7 +384,7 @@ export const UI = {
   // عضو في الفرقة: المضيف بدأ — ندخل معركته مباشرة
   async joinParty(d) {
     if (this.game.sim) return;
-    this.toast2('المضيف بدأ المعركة — جارٍ الدخول…');
+    this.toast2('بدأ المضيف المعركة — جارٍ الدخول…');
     try {
       const ns = await this.game.joinOnline({ room: d.room, name: Settings.name, char: Settings.char, loadout: this.matchLoadout(d.mode || Settings.mode), team: d.team || 0 });
       this.closeScreens(); this.hud(true); this.game.startOnline(ns, d.weather);
@@ -410,9 +410,9 @@ export const UI = {
       const ids = Object.keys(WPRICE).sort((a, b) => WPRICE[a] - WPRICE[b]);
       h = ids.map(id => { const d = WEAPONS[id], t = ammoOf(id); return item(esc(d.name), `${CLASS_NAME[d.cls]} · عتاد ${AMMO[t].short}`, WPRICE[id], 'w:' + id, Economy.owns(id) || undefined, '', 'gun:' + id); }).join('');
     } else if (tab === 'ammo') {
-      h = AMMO_ORDER.map(t => { const A = AMMO[t]; return `<div class="sitem" data-pv="item:ammo:${t}"><b>${A.name}</b><small>مخزونك: ${W.ammo[t] || 0} طلقة · مجاني بكل قيم: ${A.free}</small><span class="pr">${A.pack} طلقة = ${fmtIQD(A.price)}</span><div class="menu row"><button class="btn sm primary" data-buy="a:${t}:1" ${Economy.can(A.price) ? '' : 'disabled'}>+${A.pack}</button><button class="btn sm" data-buy="a:${t}:5" ${Economy.can(A.price * 5) ? '' : 'disabled'}>+${A.pack * 5}</button></div></div>`; }).join('');
+      h = AMMO_ORDER.map(t => { const A = AMMO[t]; return `<div class="sitem" data-pv="item:ammo:${t}"><b>${A.name}</b><small>مخزونك: ${W.ammo[t] || 0} طلقة · مجّاني في كل جولة: ${A.free}</small><span class="pr">${A.pack} طلقة = ${fmtIQD(A.price)}</span><div class="menu row"><button class="btn sm primary" data-buy="a:${t}:1" ${Economy.can(A.price) ? '' : 'disabled'}>+${A.pack}</button><button class="btn sm" data-buy="a:${t}:5" ${Economy.can(A.price * 5) ? '' : 'disabled'}>+${A.pack * 5}</button></div></div>`; }).join('');
     } else if (tab === 'nade' || tab === 'med') {
-      h = Object.entries(ITEMS).filter(([k, I]) => I.kind === tab).map(([k, I]) => `<div class="sitem" data-pv="${tab === 'nade' ? 'nade' : 'item'}:${k}"><b>${I.name}</b><small>عندك: ${W.items[k] || 0}${tab === 'med' ? ` · مجاني بكل قيم: ${k === 'bandage' ? FREE_MEDS.b : FREE_MEDS.s}` : ''}</small><span class="pr">${fmtIQD(I.price)}</span><div class="menu row"><button class="btn sm primary" data-buy="i:${k}:1" ${Economy.can(I.price) ? '' : 'disabled'}>+1</button><button class="btn sm" data-buy="i:${k}:5" ${Economy.can(I.price * 5) ? '' : 'disabled'}>+5</button></div></div>`).join('');
+      h = Object.entries(ITEMS).filter(([k, I]) => I.kind === tab).map(([k, I]) => `<div class="sitem" data-pv="${tab === 'nade' ? 'nade' : 'item'}:${k}"><b>${I.name}</b><small>معك: ${W.items[k] || 0}${tab === 'med' ? ` · مجّاني في كل جولة: ${k === 'bandage' ? FREE_MEDS.b : FREE_MEDS.s}` : ''}</small><span class="pr">${fmtIQD(I.price)}</span><div class="menu row"><button class="btn sm primary" data-buy="i:${k}:1" ${Economy.can(I.price) ? '' : 'disabled'}>+1</button><button class="btn sm" data-buy="i:${k}:5" ${Economy.can(I.price * 5) ? '' : 'disabled'}>+5</button></div></div>`).join('');
     } else {
       h = Object.entries(ITEMS).filter(([k, I]) => I.kind === 'gear').map(([k, I]) => item(I.name, I.desc || '', I.price, 'i:' + k + ':1', W[k] || undefined, '', 'item:' + k)).join('');
     }
@@ -425,7 +425,7 @@ export const UI = {
     $('#shopBody').querySelectorAll('[data-buy]').forEach(b => b.onclick = () => {
       const [k, a, n] = b.dataset.buy.split(':'); let ok = false;
       if (k === 'w') ok = Economy.buyWeapon(a); else if (k === 'a') ok = Economy.buyAmmo(a, +n || 1); else ok = Economy.buyItem(a, +n || 1);
-      Audio.play(ok ? 'buy' : 'ui'); if (!ok) this.toast2('ما عندك فلوس كافية'); this.buildShop(); this.buildWallet();
+      Audio.play(ok ? 'buy' : 'ui'); if (!ok) this.toast2('ليس معك مال كافٍ'); this.buildShop(); this.buildWallet();
     });
   },
   buildWallet() { const e = $('#wallet'); if (e) e.textContent = '💵 ' + fmtIQD(Economy.money); },
@@ -440,11 +440,11 @@ export const UI = {
     const draw = () => {
       if (this.screen !== 'friends') { clearInterval(this.lanIv); Lan.scan(false); return; }
       const el = $('#lanList'), note = $('#lanNote'); if (!el) return;
-      if (!Lan.ok) { el.innerHTML = '<div class="empty">اللعب على الشبكة المحلية بتطبيق أندرويد فقط.</div>'; $('#lanHost').disabled = true; return; }
+      if (!Lan.ok) { el.innerHTML = '<div class="empty">اللعب على الشبكة المحلّية في تطبيق أندرويد فقط.</div>'; $('#lanHost').disabled = true; return; }
       Lan.scan(true); const L = Lan.found().filter(h => h.room);
       const MN = { tdm: 'قتل', dom: 'سيطرة', rounds: 'جولات' };
-      el.innerHTML = L.length ? L.map(h => `<div class="fr"><i class="av">🛜</i><div class="fi"><b>${esc(h.name || 'سيرفر')}</b><small>${h.info && MN[h.info.mode] ? MN[h.info.mode] + ' · ' : ''}${h.info ? (h.info.humans || 0) + ' لاعب' : ''} · <span dir="ltr">${esc(h.ip)}</span></small></div><button class="btn sm primary" data-lan="${esc(h.room)}">دخول</button></div>`).join('') : '<div class="empty">ندوّر على ألعاب بنفس الواي فاي… (خلّي صاحبك يضغط «استضف»)</div>';
-      note.textContent = 'عنوانك على الشبكة: ' + (Lan.ip() || '—') + ' · الكل لازم يكونون على نفس الواي فاي أو نقطة الاتصال';
+      el.innerHTML = L.length ? L.map(h => `<div class="fr"><i class="av">🛜</i><div class="fi"><b>${esc(h.name || 'سيرفر')}</b><small>${h.info && MN[h.info.mode] ? MN[h.info.mode] + ' · ' : ''}${h.info ? (h.info.humans || 0) + ' لاعب' : ''} · <span dir="ltr">${esc(h.ip)}</span></small></div><button class="btn sm primary" data-lan="${esc(h.room)}">دخول</button></div>`).join('') : '<div class="empty">نبحث عن ألعاب على الواي فاي نفسه… (اطلب من صاحبك أن يضغط «استضف»)</div>';
+      note.textContent = 'عنوانك على الشبكة: ' + (Lan.ip() || '—') + ' · يجب أن يكون الجميع على الواي فاي نفسه أو نقطة الاتصال نفسها';
       el.querySelectorAll('[data-lan]').forEach(b => b.onclick = async () => {
         const h = L.find(x => x.room === b.dataset.lan); this.frMsg('جارٍ الدخول على سيرفر الشبكة…');
         try { const ns = await this.game.joinOnline({ room: h.room, lanHost: h, name: Settings.name, char: Settings.char, loadout: this.matchLoadout(h.info && h.info.mode || Settings.mode), team: Settings.team || 0, onStatus: t => this.frMsg(t) }); this.closeScreens(); this.hud(true); this.game.startOnline(ns); }
@@ -545,7 +545,7 @@ export const UI = {
     const root = $('#s-loadout');
     root.querySelectorAll('[data-goshop]').forEach(b => b.onclick = () => { Audio.play('ui'); this.shopTab = 'wpn'; this.open('shop'); });
     root.querySelectorAll('.wpn[data-w]').forEach(b => b.onclick = () => { Audio.play('ui'); this.loFocus = b.dataset.w; this.buildLoadout(); });
-    const eq = $('#loEquip'); if (eq) eq.onclick = () => { Audio.play('ui'); if (isPrim) { L.primary = focus; L.scope = pend.scope; L.att = { ...(pend.att || {}) }; } else L.secondary = focus; Object.assign(L, validLoadout(L, mode)); this.toast2(`جهّزت ${base.name}` + (this.game.sim && this.game.sim.tdm ? ' — يصير بيدك أول ما ترجع للحياة' : '')); save(); };
+    const eq = $('#loEquip'); if (eq) eq.onclick = () => { Audio.play('ui'); if (isPrim) { L.primary = focus; L.scope = pend.scope; L.att = { ...(pend.att || {}) }; } else L.secondary = focus; Object.assign(L, validLoadout(L, mode)); this.toast2(`جهّزتَ ${base.name}` + (this.game.sim && this.game.sim.tdm ? ' — يصير في يدك عندما تعود إلى الحياة' : '')); save(); };
     root.querySelectorAll('[data-s]').forEach(b => b.onclick = () => { Audio.play('ui'); pend.scope = b.dataset.s; if (equipped) { L.scope = pend.scope; save(); } else this.buildLoadout(); });
     root.querySelectorAll('[data-a]').forEach(b => b.onclick = () => { Audio.play('ui'); pend.att = { ...(pend.att || {}), [b.dataset.a]: b.dataset.v }; if (equipped) { L.att = pend.att; save(); } else this.buildLoadout(); });
     root.querySelectorAll('[data-n]').forEach(b => b.onclick = () => { Audio.play('ui'); if (b.dataset.n) { this.game.menuShow('nade', b.dataset.n); this.loNadePv = 1; } const i = +b.dataset.i; const arr = [L.nades[0], L.nades[1]]; arr[i] = b.dataset.n || undefined; L.nades = arr.filter(Boolean); save(); });
@@ -565,13 +565,13 @@ export const UI = {
       row('حساسية الكاميرا', rng('sens', 0.3, 3, 0.05, 1), 'سرعة الالتفات بالسحب على الشاشة') +
       row('حساسية التصويب القريب', rng('adsSens', 0.3, 2.5, 0.05, 1), 'النقطة الحمراء والهولو و×2') +
       row('حساسية المناظير', rng('scopeSens', 0.3, 2.5, 0.05, 1), '×3 وما فوق — تُقسَّم تلقائياً على قوة التكبير') +
-      row('المنظور', chips('view', [{ id: 'tpp', label: 'الشخص الثالث' }, { id: 'fpp', label: 'الشخص الأول' }]), 'الثالث: الكاميرا ورا كتفك مثل ببجي، والتصويب بالمنظار يحوّل للأول') +
+      row('المنظور', chips('view', [{ id: 'tpp', label: 'الشخص الثالث' }, { id: 'fpp', label: 'الشخص الأول' }]), 'الثالث: الكاميرا خلف كتفك مثل ببجي، والتصويب بالمنظار يحوّلك إلى الأوّل') +
       row('زر التصويب', chips('adsMode', [{ id: 'mixed', label: 'مختلط' }, { id: 'tap', label: 'نقرة' }, { id: 'hold', label: 'ضغط مستمر' }]), 'المختلط: نقرة تثبّت، وضغطة طويلة تصوّب ما دام إصبعك موضوعاً') +
       row('مساعدة التصويب', tog('aimAssist'), 'إبطاء خفيف عند مرور المؤشر على العدو (للمس فقط)') +
       row('زر إطلاق يساري', tog('leftFire')) +
       row('الجيروسكوب', chips('gyro', [{ id: 'off', label: 'مغلق' }, { id: 'scope', label: 'عند التصويب' }, { id: 'always', label: 'دائماً' }])) +
       row('حساسية الجيروسكوب', rng('gyroSens', 0.3, 3, 0.05, 1)) +
-      row('عكس الجيروسكوب الأفقي', tog('gyroInvX'), 'إذا لفّت الكاميرا عكس يدك') + row('عكس الجيروسكوب العمودي', tog('gyroInvY')) +
+      row('عكس الجيروسكوب الأفقي', tog('gyroInvX'), 'إذا دارت الكاميرا عكس يدك') + row('عكس الجيروسكوب العمودي', tog('gyroInvY')) +
       row('عكس المحور العمودي', tog('invertY')) +
       row('حجم أزرار اللمس', rng('touchSize', 0.8, 1.35, 0.05, 1)) + row('شفافية الواجهة', rng('hudAlpha', 0.4, 1, 0.05, 1)) +
       row('لون مؤشر التصويب', chips('crossColor', [{ id: '#5dffb0', label: 'نعناعي' }, { id: '#ffffff', label: 'أبيض' }, { id: '#ffe14a', label: 'أصفر' }, { id: '#ff4a6a', label: 'أحمر' }, { id: '#4ad8ff', label: 'سماوي' }])) +
@@ -585,8 +585,8 @@ export const UI = {
       (Settings.fx ? row('· الانعكاسات', tog('fxSSR')) + row('· ظلال التلاصق', tog('fxAO')) + row('· أشعة الشمس', tog('fxRays')) + row('· التدرّج السينمائي', tog('fxGrade')) : '') +
       row('مجال الرؤية', rng('fov', 70, 110, 1)) +
       row('الطقس الافتراضي', chips('weather', WEATHER_OPTIONS.map(o => ({ id: o.id, label: o.label }))));
-    else h = row('الصوت العام', rng('volume', 0, 1, 0.05, 1)) + row('الموسيقى التراثية', rng('music', 0, 1, 0.05, 1)) + row('أصوات أهل السوق', rng('talk', 0, 1, 0.05, 1), 'يرحّبون بك ويتسولفون بالبغدادي حين تقترب — صفر لإسكاتهم')
-      + `<div class="note credits">الموسيقى التراثية مؤلّفة آلياً داخل اللعبة (مقامات بيات وحجاز بالعود والناي والإيقاع). نماذج «فانوس الشارع الخشبي» و«السمكة» من مستودع Khronos glTF-Sample-Assets برخصة CC0 (الملك العام). أصوات أهل السوق والمقدّمة بصوت عراقي عصبي (Azure ar-IQ)، ومحاضرات الشيخ ونداءات الإمام بصوت فصيح (Azure ar-SA).${window.__ADHAN ? ` تسجيل الأذان: ${esc(window.__ADHAN.title.replace(/^File:/, ''))} — ${esc(window.__ADHAN.artist || '')} · ${esc(window.__ADHAN.license || '')} (ويكيميديا كومنز).` : ''}</div>`
+    else h = row('الصوت العام', rng('volume', 0, 1, 0.05, 1)) + row('الموسيقى التراثية', rng('music', 0, 1, 0.05, 1)) + row('أصوات أهل السوق', rng('talk', 0, 1, 0.05, 1), 'يرحّبون بك ويتحدّثون حين تقترب — صفر لإسكاتهم')
+      + `<div class="note credits">الموسيقى التراثية مؤلّفة آلياً داخل اللعبة (مقامات بيات وحجاز بالعود والناي والإيقاع). نماذج «فانوس الشارع الخشبي» و«السمكة» من مستودع Khronos glTF-Sample-Assets برخصة CC0 (الملك العام). أصوات الشخصيات كلّها بالعربية الفصحى (Azure ar-IQ)، ومحاضرات الشيخ ونداءات الإمام (Azure ar-SA).${window.__ADHAN ? ` تسجيل الأذان: ${esc(window.__ADHAN.title.replace(/^File:/, ''))} — ${esc(window.__ADHAN.artist || '')} · ${esc(window.__ADHAN.license || '')} (ويكيميديا كومنز).` : ''}</div>`
       + `<div style="margin-top:10px"><button class="btn" onclick="window.__R && window.__R.playIntro()">🎬 شاهد المقدّمة من جديد</button></div>`;
     el.innerHTML = h;
     el.querySelectorAll('.chips').forEach(c => c.addEventListener('click', e => { const b = e.target.closest('.chip'); if (!b) return; const v = b.dataset.v; setSetting(c.dataset.k, isNaN(+v) || v === '' ? v : +v); this.buildSettings(); HUD.layout(); }));
@@ -608,7 +608,7 @@ export const UI = {
     const w = sim.winner ?? (sim.score[0] === sim.score[1] ? -1 : sim.score[0] > sim.score[1] ? 0 : 1);
     const win = me && w === me.team, draw = w < 0;
     const all = [...sim.players.values()]; const mvp = all.slice().sort((a, b) => (b.kills * 2 + b.assists - b.deaths * 0.5 + b.dmgDone / 100) - (a.kills * 2 + a.assists - a.deaths * 0.5 + a.dmgDone / 100))[0];
-    $('#endHead').innerHTML = `<h1 class="${draw ? 'draw' : win ? 'win' : 'lose'}">${draw ? 'تعادل' : win ? 'النصر لنا' : 'هُزمنا هذه المرة'}</h1><div class="escore"><span class="t0">${teamName(0, me ? me.team : -1)} <b>${sim.score[0]}</b></span><span class="t1"><b>${sim.score[1]}</b> ${teamName(1, me ? me.team : -1)}</span></div>` + (mvp ? `<div class="mvp">نجم المعركة: <b>${esc(mvp.name)}</b> · ${mvp.kills} إسقاط · ${Math.round(mvp.dmgDone)} ضرر</div>` : '');
+    $('#endHead').innerHTML = `<h1 class="${draw ? 'draw' : win ? 'win' : 'lose'}">${draw ? 'تعادل' : win ? 'النصر لنا' : 'هُزِمنا هذه المرّة'}</h1><div class="escore"><span class="t0">${teamName(0, me ? me.team : -1)} <b>${sim.score[0]}</b></span><span class="t1"><b>${sim.score[1]}</b> ${teamName(1, me ? me.team : -1)}</span></div>` + (mvp ? `<div class="mvp">نجم المعركة: <b>${esc(mvp.name)}</b> · ${mvp.kills} إسقاط · ${Math.round(mvp.dmgDone)} ضرر</div>` : '');
     const tmp = document.createElement('div'); this.renderScore(tmp, sim, me); $('#endBody').innerHTML = tmp.innerHTML;
     $('#eAgain').textContent = sim.online ? 'متابعة' : 'معركة جديدة';
     this.open('end'); Audio.play(draw ? 'roundLose' : win ? 'roundWin' : 'roundLose');

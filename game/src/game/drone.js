@@ -45,7 +45,7 @@ export class Drone {
     const g = this.g, me = g.mp;
     if (this.on) {
       this.t += dt;
-      if (this.t >= DRONE_TIME || !me || !me.alive) { this.stop(); g.ui && g.ui.toast('رجع الدرون'); return; }
+      if (this.t >= DRONE_TIME || !me || !me.alive) { this.stop(); g.ui && g.ui.toast('عاد الدرون'); return; }
       this.scan();
     }
     // علامات الأعداء المكشوفين (حمراء فوق رؤوسهم) — بالدرون بس

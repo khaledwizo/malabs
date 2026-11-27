@@ -31,9 +31,9 @@ export const ITEMS = {
   molotov: { name: 'مولوتوف', price: 1500, kind: 'nade' },
   smoke: { name: 'دخانية', price: 1000, kind: 'nade' },
   flash: { name: 'صاعقة', price: 1000, kind: 'nade' },
-  bandage: { name: 'باندج', price: 500, kind: 'med' },
+  bandage: { name: 'ضِماد', price: 500, kind: 'med' },
   syringe: { name: 'إبرة علاج', price: 2500, kind: 'med' },
-  nvg: { name: 'نظارة رؤية ليلية', price: 200000, kind: 'gear', once: true, desc: 'بالليل تخلّي الرؤية واضحة كالنهار. زر بالمعركة لتشغيلها.' },
+  nvg: { name: 'نظارة رؤية ليلية', price: 200000, kind: 'gear', once: true, desc: 'في الليل تجعل الرؤية واضحة كالنهار. زرٌّ في المعركة لتشغيلها.' },
 };
 // المجاني بكل قيم (ما يتراكم ولا يُسترد)
 export const FREE_MEDS = { b: 4, s: 2 };

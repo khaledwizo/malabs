@@ -6,6 +6,7 @@
 import * as THREE from 'three';
 import { MAJLIS_MEN, MAJLIS, SHEIKH_A, IMAM, IMAM_CALLS, LECTURES, DIGGER, PILGRIM, SHRINE_TALK } from './mudhifdata.js';
 import { Voices, voiceId } from '../core/voices.js';
+import { lite } from '../core/voicekey.js';
 import { Audio } from '../core/audio.js';
 import { Settings } from '../core/settings.js';
 import { Input } from '../core/input.js';
@@ -127,7 +128,7 @@ export class Mudhif {
     if (!this.on || this.sess || !me) return null;
     const near = (p, r) => Math.hypot(p[0] - me.pos[0], p[1] - me.pos[2]) < r;
     const P = this.pray;
-    if (P && !P.me && P.stage !== 'done' && this.inside) return { label: '🕌 التحق بالصلاة', fn: () => this.joinPrayer() };
+    // صلاة اللاعب ملغاة (ROADMAP القسم 1): المصلّون يصلّون ويطلعون، ويبقى أهل المجلس بمكانهم
     if (P) return null;
     const lec = this.lect && !this.out, more = this.S.topic < MAJLIS.length;
     if ((lec || more) && (near(ME_SEAT, 2.6) || near([-63.6, -12], 2.4))) return { label: lec ? '📖 احضر محاضرة الشيخ' : '🪑 اجلس مع المجلس', fn: () => this.sit() };
@@ -147,7 +148,7 @@ export class Mudhif {
     const g = this.g; g.cine = true; Input.reset(); Input.exitLock && Input.exitLock();
     const el = $('cine'); el.classList.add('on', 'mud'); el.querySelector('.cimg').classList.remove('on'); el.querySelector('.cact').classList.remove('on');
     el.querySelector('.cbox').onclick = null;
-    el.querySelector('.cname').textContent = name; el.querySelector('.ctext').textContent = text;
+    el.querySelector('.cname').textContent = name; el.querySelector('.ctext').textContent = lite(text);
     el.querySelector('.copts').innerHTML = buttons || '';
     return el;
   }
@@ -157,9 +158,9 @@ export class Mudhif {
   sit() {
     if (this.sess) return;
     const lec = !!this.lect && !this.out && !this.pray;
-    if (!lec && this.S.topic >= MAJLIS.length) { this.notice({ icon: '🤍', title: 'المجلس ختم سوالفه', sub: 'سمعت كل أحاديث المجلس — الشيخ يحاضر بين فترة وفترة' }); return; }
+    if (!lec && this.S.topic >= MAJLIS.length) { this.notice({ icon: '🤍', title: 'انتهت أحاديث المجلس', sub: 'سمعتَ كلَّ أحاديث المجلس — الشيخ يُلقي محاضرةً بين حينٍ وآخر' }); return; }
     this.sess = { t: 0, wait: 1.4, cur: null, lecture: lec }; if (lec) this.lect.on = true;
-    const el = this.cineOn(this.sess.lecture ? SHEIKH_A.name : 'مجلس المضيف', this.sess.lecture ? 'الحاضرون ينصتون…' : 'جلست ويّا الجماعة…', `<button class="btn" data-a="skip">⏭ تخطّي</button>`);
+    const el = this.cineOn(this.sess.lecture ? SHEIKH_A.name : 'مجلس المضيف', this.sess.lecture ? 'الحاضرون يُنصِتون…' : 'جلستَ مع الجماعة…', `<button class="btn" data-a="skip">⏭ تخطّي</button>`);
     el.querySelector('.cbox').onclick = () => this.skip();
     el.querySelector('[data-a="skip"]').onclick = e => { e.stopPropagation(); Audio.play('ui'); this.skip(); };
     this.closeBtn(() => this.endSession());
@@ -182,23 +183,23 @@ export class Mudhif {
       if (i >= L.lines.length) { this.endSession(); this.closeLecture(true); return; }
       const sp = this.speak(SHEIKH_A, L.lines[i], this.sheikh); this.lect.line++;
       s.cur = { el: sp.el, left: sp.dur, who: this.sheikh }; s.gap = 1.1;
-      el.querySelector('.cname').textContent = SHEIKH_A.name; el.querySelector('.ctext').textContent = L.lines[i];
+      el.querySelector('.cname').textContent = SHEIKH_A.name; el.querySelector('.ctext').textContent = lite(L.lines[i]);
       this.cut(this.sheikh);
       return;
     }
     const T = MAJLIS[this.S.topic];
-    if (!T) { this.endSession(); this.notice({ icon: '🤍', title: 'المجلس ختم سوالفه', sub: 'سمعت كل أحاديث المجلس — ما تتكرر' }); return; }
+    if (!T) { this.endSession(); this.notice({ icon: '🤍', title: 'انتهت أحاديث المجلس', sub: 'سمعتَ كلَّ أحاديث المجلس — لا تتكرّر' }); return; }
     if (this.S.line >= T.lines.length) {
       this.S.topic++; this.S.line = 0; this.save();
-      if (this.S.topic >= MAJLIS.length) { this.endSession(); this.notice({ icon: '🤍', title: 'ختم المجلس سوالفه', sub: 'سمعت كل أحاديث المجلس — بعد ما تتكرر' }); return; }
-      el.querySelector('.cname').textContent = ''; el.querySelector('.ctext').textContent = 'سكتوا شوية… والموضوع الجاي «' + MAJLIS[this.S.topic].title + '»';
+      if (this.S.topic >= MAJLIS.length) { this.endSession(); this.notice({ icon: '🤍', title: 'انتهت أحاديث المجلس', sub: 'سمعتَ كلَّ أحاديث المجلس — لن تتكرّر' }); return; }
+      el.querySelector('.cname').textContent = ''; el.querySelector('.ctext').textContent = 'سكتوا قليلاً… والموضوع القادم «' + MAJLIS[this.S.topic].title + '»';
       s.wait = 6; this.shot = { t: 0, dur: 99, kind: 'wide' }; return;
     }
     const [k, text] = T.lines[this.S.line], per = MAJLIS_MEN[k], w = this.men[k];
     this.S.line++; this.save();
     const sp = this.speak(per, text, w);
     s.cur = { el: sp.el, left: sp.dur, who: w }; s.gap = this.S.line >= T.lines.length ? 1.5 : 1.0;
-    el.querySelector('.cname').textContent = per.name; el.querySelector('.ctext').textContent = text;
+    el.querySelector('.cname').textContent = per.name; el.querySelector('.ctext').textContent = lite(text);
     for (const o of this.men) if (o !== w) o.c.focus(w.n.x, w.n.z, sp.dur + 0.5);
     this.cut(w);
   }
@@ -230,7 +231,7 @@ export class Mudhif {
     if (AD && AD.file) { try { const a = this.adhan = Audio.track(new window.Audio(AD.file)); a.volume = Math.min(1, 0.55 * Math.max(0.4, Settings.volume)); a.onloadedmetadata = () => { if (isFinite(a.duration)) P.adhanEnd = a.duration + 2; }; a.onended = () => { P.adhanEnd = Math.min(P.adhanEnd, P.t + 2); }; a.onerror = () => { P.adhanEnd = Math.min(P.adhanEnd, 30); }; a.play().catch(() => { P.adhanEnd = Math.min(P.adhanEnd, 30); }); } catch (e) { P.adhanEnd = 30; } }
     else P.adhanEnd = 30;
     this.g.folk && this.g.folk.onAdhan();
-    this.notice({ icon: '🕌', title: 'حيّ على الصلاة', sub: 'المصلّون يجتمعون في مضيف الشيخ فاتح الرفاعي — تقدر تلتحق بهم' }, 3000);
+    this.notice({ icon: '🕌', title: 'حيّ على الصلاة', sub: 'المصلّون يجتمعون في مضيف الشيخ فاتح الرفاعي ثم يتفرّقون' }, 3000);
     // الجالسين يقومون، وناس يجون من السوق، والإمام يتقدّم
     for (const w of this.men) w.hidden = true;
     if (this.sheikh) this.sheikh.hidden = true;

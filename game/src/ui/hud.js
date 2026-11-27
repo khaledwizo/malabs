@@ -45,15 +45,15 @@ export const HUD_HTML = `
   <div id="qTrack"></div>
   <div id="lobbyBar" title="ثروتك"><i>💰</i><b id="lobbyMoney"></b></div>
   <div id="mg"><div class="vf"><i></i><i></i><i></i><i></i><b>●REC</b></div><div class="mgbox"><b class="mgt"></b><p class="mgi"></p><div class="mgp"><i></i></div><div class="mgw"><span>0</span><em></em><i></i><b>0 غم</b></div><div class="mgb"></div></div><div class="mgm"></div><div class="fl"></div></div>
-  <div id="droneHud"><div class="dvf"><i></i><i></i><i></i><i></i></div><b class="rec">● REC · درون استطلاع</b><div class="dinfo"><span id="dT">30</span><span id="dAlt">0م</span><span id="dDist">0م</span></div><small>الجويستك للحركة · اسحب للتلفّت · القفز يصعد · الانحناء ينزل</small><button class="btn" id="dBack">↩ رجّع الدرون</button><button class="btn" id="dBomb">💣 ارمِ الرمانة</button></div>
+  <div id="droneHud"><div class="dvf"><i></i><i></i><i></i><i></i></div><b class="rec">● REC · درون استطلاع</b><div class="dinfo"><span id="dT">30</span><span id="dAlt">0م</span><span id="dDist">0م</span></div><small>العصا للحركة · اسحب للالتفات · القفز يصعد · الانحناء ينزل</small><button class="btn" id="dBack">↩ أعِد الدرون</button><button class="btn" id="dBomb">💣 أسقِط الرمّانة</button></div>
   <div id="useHint"><kbd>F</kbd><span id="useHintL"></span></div>
-  <div id="cine"><i class="lb t"></i><i class="lb b"></i><div class="cbox"><img class="cimg" alt=""><b class="cname"></b><p class="ctext"></p><div class="copts"></div><div class="cact"><i></i><em></em><b></b></div><small class="ctap">اضغط للتكملة</small></div></div>
+  <div id="cine"><i class="lb t"></i><i class="lb b"></i><div class="cbox"><img class="cimg" alt=""><b class="cname"></b><p class="ctext"></p><div class="copts"></div><div class="cact"><i></i><em></em><b></b></div><small class="ctap">اضغط للمتابعة</small></div></div>
   <div id="mini"><canvas id="minimap" width="256" height="256"></canvas><span class="mlab">الخريطة</span></div>
   <div id="banner"><b></b><small></small></div>
   <div id="toast"></div>
   <div id="streak"></div>
   <div id="respawn"><b>ستعود بعد <span id="rsT">4</span></b><small id="rsBy"></small><div class="hint">بدّل عتادك الآن — يُطبّق عند عودتك</div><button id="rsLoad" class="btn sm">العتاد</button></div>
-  <div id="warm"><b id="warmT">5</b><small>استعد… المعركة تبدأ</small><button id="warmLoad" class="btn sm">العتاد</button></div>
+  <div id="warm"><b id="warmT">5</b><small>استعدّ… المعركة تبدأ</small><button id="warmLoad" class="btn sm">العتاد</button></div>
   <div id="spec"></div>
   <div id="healov"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="27" class="bg"/><circle cx="32" cy="32" r="27" class="fg" id="healArc"/></svg><b id="healTx">ضمادة</b></div>
   <div id="bottom">
@@ -116,7 +116,7 @@ export const HUD = {
     Input.bindTouch($('touch'), controls, $('stick'), $('knob'));
     // الفأرة على سطح المكتب
     $('dBack').addEventListener('click', e => { e.stopPropagation(); game.toggleDrone(); });
-    $('dBomb').addEventListener('click', e => { e.stopPropagation(); if (game.drone.drop()) HUD.toast('انرمت الرمانة!'); });
+    $('dBomb').addEventListener('click', e => { e.stopPropagation(); if (game.drone.drop()) HUD.toast('رُمِيَت قنبلة!'); });
     $('dBomb').addEventListener('touchstart', e => { e.stopPropagation(); }, { passive: true });
     for (const id of ['hPause', 'hNvg', 'hDrone', 'hScore', 'mini', 'rsLoad', 'warmLoad']) $(id).addEventListener('click', e => { if (Input.isTouch) return; e.stopPropagation(); controls.find(c => c.id === id).tap(); });
     slotsEl.addEventListener('click', e => { if (Input.isTouch) return; const b = e.target.closest('[data-slot]'); if (b) game.queueSlot(+b.dataset.slot); });
@@ -167,7 +167,7 @@ export const HUD = {
     if (this.sc0 !== sim.score[0]) { this.sc0 = sim.score[0]; $('sc0').textContent = sim.score[0]; this.pop('sc0'); }
     if (this.sc1 !== sim.score[1]) { this.sc1 = sim.score[1]; $('sc1').textContent = sim.score[1]; this.pop('sc1'); }
     const tdm = sim.rules ? sim.rules !== 'rounds' : sim.tdm, dom = sim.rules === 'dom' || sim.dom;
-    $('phase').textContent = sim.phase === 'live' ? (dom ? 'سيطر على النقاط — كل ثانية نقطة' : tdm ? 'الأكثر قتلات يفوز عند انتهاء الوقت' : 'الجولة ' + sim.round) : '';
+    $('phase').textContent = sim.phase === 'live' ? (dom ? 'سيطِر على النقاط — كل ثانية نقطة' : tdm ? 'الأكثر قتلاً يفوز عند انتهاء الوقت' : 'الجولة ' + sim.round) : '';
     this.domHud(sim, me); this.nadeWarn(sim, me, g.yaw);
     const nv = !!(g.nvgAvail && g.nvgAvail()); $('hNvg').classList.toggle('on', nv); $('hNvg').classList.toggle('act', !!g.nvgOn);
     this.compass(g.yaw);

@@ -32,7 +32,7 @@ const who = (w, q, st) => {
 };
 const say = (w, t, q, st, tag) => { if (!t || t[0] === '(') return; if (w === 'me') { for (const P of ME) add(P, t, false, tag + ':me'); return; } const P = who(w, q, st); if (P) add(P, t, false, tag); };
 const BAKER_I = 37;
-const expanded = []; for (const q of QUESTS) { if (!q.vars) { expanded.push(q); continue; } for (const v of q.vars) expanded.push({ ...q, giver: v.giver, intro: v.intro, outro: [['g', 'هاي حقّه وهاي حلاوتك، الله يحفظك.']], steps: [{ to: BAKER_I, say: v.say }, { to: 'g', say: v.back }] }); }
+const expanded = []; for (const q of QUESTS) { if (!q.vars) { expanded.push(q); continue; } for (const v of q.vars) expanded.push({ ...q, giver: v.giver, intro: v.intro, outro: [['g', 'هذا ثمنُه وهذهِ مكافأتُك، حفظَكَ الله.']], steps: [{ to: BAKER_I, say: v.say }, { to: 'g', say: v.back }] }); }
 for (const q of expanded) {
   const tag = 'quest:' + q.id;
   for (const [w, t] of q.intro || []) say(w, t, q, null, tag);
@@ -43,7 +43,7 @@ for (const q of expanded) {
     for (const T of (st.hit && st.hit.targets) || []) for (const [w, t] of T.lines || []) say(w, t, q, { ...st, tgt: T }, tag);
     for (const Q of st.quiz || []) { say('g', Q.ok, q, st, tag); say('g', Q.no, q, st, tag); for (const o of Q.opts) say('me', o, q, st, tag); }
     if (st.choose) for (const o of st.choose.opts) say('me', 'هذا ' + o.label + '.', q, st, tag);
-    if (st.choose) say('n', 'اختيار زين! تفضّل.', q, st, tag);
+    if (st.choose) say('n', 'اختيارٌ موفَّق! تفضَّل.', q, st, tag);
   }
 }
 // مضيف الشيخ: المجلس والمحاضرات ونداءات الإمام

@@ -190,7 +190,7 @@ export function buildDistricts(B, H) {
     // الجدران الخارجية (الجنوبي بباب)
     H.box(X0, 0, Z0, X1, R, iz0, 'brickPale'); H.box(X0, 0, iz0, ix0, R, iz1, 'brickPale'); H.box(ix1, 0, iz0, X1, R, iz1, 'brickPale');
     H.box(X0, 0, iz1, DX - DW / 2, R, Z1, 'brickPale'); H.box(DX + DW / 2, 0, iz1, X1, R, Z1, 'brickPale'); H.box(DX - DW / 2, DH, iz1, DX + DW / 2, R, Z1, 'brickPale');
-    H.door({ x: DX, z: Z1 - t / 2, axis: 'x', w: DW, h: DH, swing: 1, mat: 'woodDark', name: 'بيت أبو صگر' });
+    H.door({ x: DX, z: Z1 - t / 2, axis: 'x', w: DW, h: DH, swing: 1, mat: 'woodDark', name: 'بيت أبي صقر' });
     // أرضية الطابق الأول
     if (vis) H.box(ix0, 0, iz0, ix1, 0.03, iz1, 'carpet', { col: false, faces: 'py' });
     // الدرج الأول (جهة الشرق، يصعد للشمال): 10 درجات + بسطة
@@ -533,7 +533,7 @@ export function buildDistricts(B, H) {
   // 31 السائح الأجنبي يصوّر النهر
   B.npc({ x: 12.5, z: 31.6, yaw: 0, pose: 'stand', look: 'tourist' });
   // 32 أبو زينب أبو الموبايلات (خبير تصليح الهواتف) بساحة الساعة
-  if (vis) { B.boxB(71.5, 0, -12.6, 1.2, 0.75, 0.6, 'woodDark', { col: false }); for (let k = 0; k < 4; k++) B.boxB(71.05 + k * 0.3, 0.75, -12.6, 0.1, 0.012, 0.18, k % 2 ? 'glassDark' : 'gunmetal', { col: false }); sign('تصليح موبايلات', 71.5, 1.05, -12.29, 0, 1.2, { bg: '#123a5a', border: '#9fd8ff' }); }
+  if (vis) { B.boxB(71.5, 0, -12.6, 1.2, 0.75, 0.6, 'woodDark', { col: false }); for (let k = 0; k < 4; k++) B.boxB(71.05 + k * 0.3, 0.75, -12.6, 0.1, 0.012, 0.18, k % 2 ? 'glassDark' : 'gunmetal', { col: false }); sign('تصليح هواتف', 71.5, 1.05, -12.29, 0, 1.2, { bg: '#123a5a', border: '#9fd8ff' }); }
   B.col(70.9, 0, -12.9, 72.1, 0.75, -12.3, MAT.wood, F.THIN);
   B.npc({ x: 71.5, z: -13.3, yaw: PI, pose: 'stand', look: 'repair' });
   // 33 حجي مجيد الكبير واقف على باب بيته (مهمة قنينة الغاز)

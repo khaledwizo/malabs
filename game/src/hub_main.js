@@ -199,10 +199,10 @@ async function onReq(d) {
   for (const p of phones.values()) if (p.w && p.mo === mo && p.hid && p.hid !== d.from && t - p.at < 40 && !p.moved) { P = p; break; }
   if (P) {
     const why = admit();
-    if (why) { D.tot.refused++; log(`السيرفر ممتلئ (${why}) — اللاعب انضم لمعركة على هاتف لاعب`, true); P.w = 0; return reply({ k: 'mm', room: P.room, mo, phone: 1 }); }
+    if (why) { D.tot.refused++; log(`السيرفر ممتلئ (${why}) — انضمّ اللاعب إلى معركة على هاتف لاعب`, true); P.w = 0; return reply({ k: 'mm', room: P.room, mo, phone: 1 }); }
     P.moved = true; M = createMatch(mo); M.from = P.room; M.pend.set(d.u, t);
     Net.pub(C + 'to/' + P.hid, await sign({ k: 'move', room: M.room, src: P.room }));
-    log(`لاعب ثاني دخل — معركة ${P.room} تنتقل من الهاتف للسيرفر (${M.room})`);
+    log(`دخل لاعب ثانٍ — معركة ${P.room} تنتقل من الهاتف إلى السيرفر (${M.room})`);
     return reply({ k: 'mm', room: M.room, mo });
   }
   // 3) ما في أحد: اللاعب يبدأ على هاتفه ويّا البوتات (السيرفر يشغّل بس معارك بيها أكثر من لاعب حقيقي)
@@ -212,7 +212,7 @@ async function onReq(d) {
 function admit() {
   const c = capNow || {}, n = liveMatches().length, s = stats.sys || {};
   if (stressing) return 'اختبار تحمّل جارٍ على السيرفر';
-  if (c.safe && n >= c.safe) return `وصل السيرفر لحدّه الآمن (${c.safe} معارك)`;
+  if (c.safe && n >= c.safe) return `وصل السيرفر إلى حدّه الآمن (${c.safe} معارك)`;
   if (stats.cpu > 85) return 'المعالج مشغول';
   if (s.memAvail && s.memTotal && s.memAvail < s.memTotal * 0.12) return 'ذاكرة الهاتف قليلة';
   if (s.thermal >= 3) return 'الهاتف حار جداً';
@@ -334,7 +334,7 @@ async function startServer() {
 async function stopServer() {
   if (!running || stopping) return;
   stopping = true; render();
-  log('إيقاف تدريجي — المعارك تنتقل لهواتف اللاعبين بنفس حالتها');
+  log('إيقاف تدريجي — تنتقل المعارك إلى هواتف اللاعبين بحالتها نفسها');
   await pubState(true);
   for (const M of liveMatches()) stopMatch(M);
   await sleep(2600);
@@ -356,7 +356,7 @@ function render() {
   if (stopping) { st.textContent = 'جارٍ الإيقاف…'; dot.className = 'dot warn'; }
   else if (running) { st.textContent = net ? 'السيرفر يعمل' : 'يعمل — بلا إنترنت'; dot.className = 'dot ' + (net ? 'ok' : 'warn'); }
   else { st.textContent = 'متوقف'; dot.className = 'dot'; }
-  $('#sub').textContent = running ? (net ? `يستقبل اللاعبين · ${L.length} معركة · ${stats.players} لاعب` : 'ننتظر الإنترنت…') + (AND ? ' · يبقى شغّال والشاشة مطفأة' : '') : 'بغيابه: اللعبة تشتغل بنظام المضيف ونقل السلطة، وتُرسل إحصائياتها لما يرجع';
+  $('#sub').textContent = running ? (net ? `يستقبل اللاعبين · ${L.length} معركة · ${stats.players} لاعب` : 'ننتظر الإنترنت…') + (AND ? ' · يبقى يعمل والشاشة مطفأة' : '') : 'في غيابه: تعمل اللعبة بنظام المضيف ونقل السلطة، وتُرسِل إحصاءاتها عندما يعود';
   pw.textContent = running ? 'إيقاف السيرفر' : 'تشغيل السيرفر'; pw.className = running ? 'stop' : 'primary'; pw.disabled = stopping || stressing;
   $('#upt').textContent = running ? 'مدة التشغيل ' + fmtDur(nowS() - startedAt) : '—';
   $('#sPl').textContent = stats.players; $('#sMa').textContent = L.length; $('#sBo').textContent = stats.bots;
@@ -380,7 +380,7 @@ function render() {
   $('#cSafe').textContent = c.safe ?? '—'; $('#cSafeP').textContent = c.safe ? c.safe * 10 : '—';
   $('#cTh').textContent = c.theory ?? '—'; $('#cThP').textContent = c.theory ? c.theory * 10 : '—';
   $('#cPer').textContent = c.per ? c.per.toFixed(1) + 'ms/ث' : '—'; $('#cMb').textContent = (D.cap.mb ? '' : '~') + (c.mb || 45) + ' MB';
-  $('#capSrc').textContent = D.cap.stress ? 'من اختبار التحمّل' + (c.cpuLimited ? ' · المعالج هو الحد' : ' · الذاكرة هي الحد') : D.cap.per ? 'من قياس سريع — اعمل اختبار التحمّل لرقم أدق' : 'تقديري';
+  $('#capSrc').textContent = D.cap.stress ? 'من اختبار التحمّل' + (c.cpuLimited ? ' · المعالج هو الحد' : ' · الذاكرة هي الحد') : D.cap.per ? 'من قياس سريع — شغّل اختبار التحمّل لرقم أدقّ' : 'تقديري';
   $('#cAt').textContent = D.cap.stress ? `${tstr(D.cap.stress.at)} · ${D.cap.stress.best} معارك` : 'لا يوجد';
   $('#stress').disabled = stressing || stopping;
   // المعارك
@@ -388,14 +388,14 @@ function render() {
   for (const M of L) {
     const I = M.I || { hum: [], bots: 0, score: [0, 0], phase: 'wait', busy: 0, tick: 0 };
     rows.push(`<tr class="click" data-r="${M.room}"><td class="mono">${M.room}</td><td>${esc(MN(M.mo))}</td><td><b>${I.hum.length}</b> + ${I.bots} بوت</td><td>${I.score[0]} : ${I.score[1]}</td><td class="hidem">${PH[I.phase] || I.phase}</td><td>${(I.busy || 0).toFixed(1)}ms</td><td class="hidem">${I.tick || 0}Hz</td></tr>`);
-    if (openRoom === M.room) rows.push(`<tr class="det"><td colspan="7">${I.hum.length ? I.hum.map(h => `<div class="row" style="justify-content:space-between;margin:3px 0"><span><i class="tm t${h.tm}"></i>${esc(h.n)} <span class="v ${h.via === 'p2p' ? 'p2p' : ''}">${h.via === 'p2p' ? 'مباشر' : 'وسيط'}</span> · ${h.k}/${h.d} · ${h.rtt ? h.rtt + 'ms' : '…'}</span><span><button class="sm" data-kick="${M.room}|${h.u}">طرد</button> <button class="sm" data-ban="${h.u}">حظر</button></span></div>`).join('') : '<span class="note">ما في لاعبين بعد</span>'}</td></tr>`);
+    if (openRoom === M.room) rows.push(`<tr class="det"><td colspan="7">${I.hum.length ? I.hum.map(h => `<div class="row" style="justify-content:space-between;margin:3px 0"><span><i class="tm t${h.tm}"></i>${esc(h.n)} <span class="v ${h.via === 'p2p' ? 'p2p' : ''}">${h.via === 'p2p' ? 'مباشر' : 'وسيط'}</span> · ${h.k}/${h.d} · ${h.rtt ? h.rtt + 'ms' : '…'}</span><span><button class="sm" data-kick="${M.room}|${h.u}">طرد</button> <button class="sm" data-ban="${h.u}">حظر</button></span></div>`).join('') : '<span class="note">لا لاعبين بعد</span>'}</td></tr>`);
   }
-  $('#mList').innerHTML = rows.join('') || `<tr><td colspan="7" class="empty">${running ? 'ما في معارك — تنفتح تلقائياً لما يضغط اللاعب «أونلاين»' : 'السيرفر متوقف'}</td></tr>`;
+  $('#mList').innerHTML = rows.join('') || `<tr><td colspan="7" class="empty">${running ? 'لا معارك — تُفتَح تلقائياً عندما يضغط اللاعب «أونلاين»' : 'السيرفر متوقف'}</td></tr>`;
   // غياب السيرفر
   const offP = Object.values(D.players).filter(p => p.off > 0).length;
   $('#oPl').textContent = offP; $('#oSe').textContent = D.tot.offSessions; $('#oMa').textContent = D.tot.offMatches; $('#oDup').textContent = D.tot.dup;
-  $('#offSync').textContent = D.lastSync ? 'آخر مزامنة ' + fmtAgo(D.lastSync) : 'ما وصلت مزامنة بعد';
-  $('#offDown').textContent = D.downs.length ? 'فترات الغياب: ' + D.downs.slice(0, 3).map(x => `${tstr(x.from)} ← ${tstr(x.to)}`).join(' · ') : 'اللعبة تسجّل كل معركة تصير على هواتف اللاعبين بمعرّف فريد وترسلها لما يرجع السيرفر — المكرر ينحسب مرة وحدة.';
+  $('#offSync').textContent = D.lastSync ? 'آخر مزامنة ' + fmtAgo(D.lastSync) : 'لم تصل مزامنة بعد';
+  $('#offDown').textContent = D.downs.length ? 'فترات الغياب: ' + D.downs.slice(0, 3).map(x => `${tstr(x.from)} ← ${tstr(x.to)}`).join(' · ') : 'تسجّل اللعبة كل معركة تجري على هواتف اللاعبين بمعرّف فريد وترسلها عندما يعود السيرفر — المكرّر يُحسَب مرّة واحدة.';
   renderPlayers(); $('#fp').textContent = fp;
 }
 function renderPlayers() {
@@ -404,7 +404,7 @@ function renderPlayers() {
   if (q) L = L.filter(([u, p]) => u.includes(q.replace(/\s/g, '')) || p.n.includes(q));
   L.sort((a, b) => (on.has(b[0]) - on.has(a[0])) || (b[1][pSort] || 0) - (a[1][pSort] || 0));
   $('#pCount').textContent = `${total} لاعب · ${on.size} متصل`;
-  $('#pList').innerHTML = L.slice(0, 60).map(([u, p]) => `<tr><td>${on.has(u) ? '<b class="on">●</b> ' : ''}${esc(p.n)}${D.bans.includes(u) ? ' <em>محظور</em>' : ''}</td><td class="hidem mono">${u.slice(0, 4)} ${u.slice(4, 8)} ${u.slice(8)}</td><td>${p.s + p.off}${p.off ? ` <em>${p.off} بغيابه</em>` : ''}</td><td>${p.m}${p.w ? ` <em>${p.w} فوز</em>` : ''}</td><td>${p.k}/${p.d}</td><td class="hidem">${fmtDur(p.pt)}</td><td>${fmtAgo(p.l)}</td><td>${D.bans.includes(u) ? `<button class="sm" data-unban="${u}">فك</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="8" class="empty">ما في لاعبين مسجّلين بعد</td></tr>';
+  $('#pList').innerHTML = L.slice(0, 60).map(([u, p]) => `<tr><td>${on.has(u) ? '<b class="on">●</b> ' : ''}${esc(p.n)}${D.bans.includes(u) ? ' <em>محظور</em>' : ''}</td><td class="hidem mono">${u.slice(0, 4)} ${u.slice(4, 8)} ${u.slice(8)}</td><td>${p.s + p.off}${p.off ? ` <em>${p.off} في غيابه</em>` : ''}</td><td>${p.m}${p.w ? ` <em>${p.w} فوز</em>` : ''}</td><td>${p.k}/${p.d}</td><td class="hidem">${fmtDur(p.pt)}</td><td>${fmtAgo(p.l)}</td><td>${D.bans.includes(u) ? `<button class="sm" data-unban="${u}">فك</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="8" class="empty">لا لاعبين مسجّلين بعد</td></tr>';
 }
 function renderLog() { const el = $('#log'); if (el && D) el.innerHTML = D.log.slice(0, 80).map(l => `<div>${esc(l)}</div>`).join(''); }
 
@@ -422,8 +422,8 @@ $('#backup').onclick = async () => { await DB.save(); const s = JSON.stringify(D
 $('#restore').onclick = async () => {
   const b = $('#restore'); if (!b.dataset.arm) { b.dataset.arm = 1; b.textContent = 'تأكيد الاستعادة؟'; setTimeout(() => { delete b.dataset.arm; b.textContent = 'استعادة'; }, 3000); return; }
   let s = null; try { s = AND && AND.loadBackup ? AND.loadBackup() : localStorage.getItem('rafidain.hub.bak'); } catch (e) { }
-  if (!s) { log('ما لگينا نسخة احتياطية'); return; }
-  try { const d = JSON.parse(s); const run = D.cfg.run; DB.d = D = Object.assign(DB.fresh(), d); D.cfg.run = run; DB.eids = new Set(D.eids); DB.mids = new Set(D.mids); await keys(); DB.mark(); await DB.save(); log('تمت الاستعادة'); render(); } catch (e) { log('النسخة الاحتياطية تالفة'); }
+  if (!s) { log('لم نجد نسخة احتياطية'); return; }
+  try { const d = JSON.parse(s); const run = D.cfg.run; DB.d = D = Object.assign(DB.fresh(), d); D.cfg.run = run; DB.eids = new Set(D.eids); DB.mids = new Set(D.mids); await keys(); DB.mark(); await DB.save(); log('تمّت الاستعادة'); render(); } catch (e) { log('النسخة الاحتياطية تالفة'); }
 };
 function battery() { const el = $('#batt'); if (!AND || !AND.batteryFree) return; let free = true; try { free = AND.batteryFree(); } catch (e) { } el.classList.toggle('hide', free); }
 $('#battBtn').onclick = () => { try { AND.askBattery(); } catch (e) { } setTimeout(battery, 4000); };
@@ -438,8 +438,8 @@ function housekeep() {
   // مراقبة المعارك: معركة متوقفة (ما تبلّغ 12 ثانية) تُنهى — لاعبيها ينتقلون لوضع المضيف بنفس الحالة. وفارغة دقيقة ونص تُغلق لتوفير الموارد
   for (const M of [...matches.values()]) {
     if (M.dead || M.bench) continue;
-    if (M.up && M.at && t - M.at > 12) { killMatch(M, `المعركة ${M.room} توقفت عن الاستجابة — أُنهيت ولاعبيها انتقلوا لوضع المضيف`); continue; }
-    if (!M.up && t - M.st > 25) { killMatch(M, `المعركة ${M.room} ما اشتغلت — أُلغيت`); continue; }
+    if (M.up && M.at && t - M.at > 12) { killMatch(M, `المعركة ${M.room} توقّفت عن الاستجابة — أُنهِيَت وانتقل لاعبوها إلى وضع المضيف`); continue; }
+    if (!M.up && t - M.st > 25) { killMatch(M, `المعركة ${M.room} لم تعمل — أُلغِيَت`); continue; }
     if (M.I && !M.I.hum.length && !pendOf(M) && t - M.st > 90 && (!M.lastHum || t - M.lastHum > 60)) { stopMatch(M); continue; }
     if (M.I && M.I.hum.length) M.lastHum = t;
   }

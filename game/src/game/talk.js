@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { Settings } from '../core/settings.js';
 import { Audio } from '../core/audio.js';
 import { Voices, voiceId } from '../core/voices.js';
+import { lite } from '../core/voicekey.js';
 import { PERSONAS, GROUPS } from './talkdata.js';
 
 const START_R = 14, STORY_R = 7, GREET_R = 4.6, CALL_R = 13, HEAR_R = 26, FLOOR_R = 22;
@@ -182,7 +183,7 @@ export class TalkManager {
   bubble(c, text, dur) {
     for (const b of this.bubbles) if (b.c === c) b.until = Math.min(b.until, this.t);
     const L = this.layerEl; if (!L) return;
-    const el = document.createElement('div'); el.className = 'tb2'; el.innerHTML = `<small>${c.name}</small>${text}`;
+    const el = document.createElement('div'); el.className = 'tb2'; el.innerHTML = `<small>${c.name}</small>${lite(text)}`;
     L.appendChild(el); this.bubbles.push({ c, el, until: this.t + dur + 0.6, born: this.t, vis: true, chk: 0 });
   }
   renderBubbles() {

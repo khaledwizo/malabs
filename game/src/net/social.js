@@ -116,7 +116,7 @@ export const Social = {
         const Q = this.ensureParty(); if (Q.host !== this.id) { this.send(d.from, { k: 'disband' }); return; }
         if (Q.members.length >= 8) { this.send(d.from, { k: 'full' }); return; }
         if (!Q.members.some(m => m.id === d.from)) Q.members.push({ id: d.from, name: clean(d.name), char: d.char });
-        this.syncParty(); this.emit('note', { text: clean(d.name) + ' انضمّ لفرقتك ✓' });
+        this.syncParty(); this.emit('note', { text: clean(d.name) + ' انضمّ إلى فرقتك ✓' });
         if (this.inMatch && this.inMatch()) this.lateJoin && this.lateJoin(d.from);
         break;
       }

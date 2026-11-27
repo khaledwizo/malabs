@@ -66,7 +66,7 @@ export const ATTACH = {
 };
 
 export const NADES = {
-  frag: { name: 'رمّانة', fuse: 4, radius: 4.6, dmg: 150, desc: 'تنفجر بعد 4 ثوانٍ تقريباً — مداها قصير وتگدر تهرب منها.' },
+  frag: { name: 'رمّانة', fuse: 4, radius: 4.6, dmg: 150, desc: 'تنفجر بعد 4 ثوانٍ تقريباً — مداها قصير ويمكنك الهرب منها.' },
   smoke: { name: 'دخانية', fuse: 2, radius: 4.8, life: 18, desc: 'تحجب الرؤية 18 ثانية.' },
   flash: { name: 'صاعقة', fuse: 2.5, radius: 16, desc: 'تعمي من يراها.' },
   molotov: { name: 'مولوتوف', fuse: 2.2, radius: 2.6, life: 8, dps: 22, desc: 'تشعل الأرض 8 ثوانٍ.' },
@@ -77,9 +77,9 @@ export const SECONDARIES = ['dijla', 'nisr', 'zaeem', 'furat'];
 // أوضاع اللعب: كلها على خريطة سوق المجاهدين
 // rules: tdm = إحياء بعد السقوط والفائز الأقل موتاً عند انتهاء الوقت · rounds = جولات بلا إحياء
 export const MODES = {
-  tdm: { name: 'اشتباك الفرق', sub: 'إحياء فوري · الأكثر قتلات يفوز', desc: 'تعود للحياة بعد سقوطك. عند انتهاء الوقت يفوز الفريق اللي أسقط أعداءه أكثر.', rules: 'tdm', time: 600, primaries: PRIM_ALL, icon: 'tdm' },
-  dom: { name: 'السيطرة', sub: 'إحياء · نقاط سيطرة', desc: 'ثلاث نقاط بالخريطة تتغيّر كل قيم (نقطة وحدة إذا 2 ضد 2 أو أقل). قف بالدائرة حتى تسيطر عليها؛ كل ثانية سيطرة نقطة، والأكثر نقاطاً يفوز.', rules: 'dom', time: 600, primaries: PRIM_ALL, icon: 'tdm' },
-  lobby: { name: 'اللوبي', sub: 'تجوّل ومهام', desc: 'تجوّل بالسوق، احچِ ويّا الناس واشتغل بمهامهم.', rules: 'lobby', time: 1e9, primaries: [], icon: 'tdm', hidden: true },
+  tdm: { name: 'اشتباك الفرق', sub: 'إحياء فوري · الأكثر قتلاً يفوز', desc: 'تعود إلى الحياة بعد سقوطك. عند انتهاء الوقت يفوز الفريق الذي أسقط أعداءً أكثر.', rules: 'tdm', time: 600, primaries: PRIM_ALL, icon: 'tdm' },
+  dom: { name: 'السيطرة', sub: 'إحياء · نقاط سيطرة', desc: 'ثلاث نقاط على الخريطة تتغيّر في كل جولة (نقطة واحدة إذا كان 2 ضد 2 أو أقل). قف في الدائرة حتى تسيطر عليها؛ كل ثانية سيطرة نقطة، والأكثر نقاطاً يفوز.', rules: 'dom', time: 600, primaries: PRIM_ALL, icon: 'tdm' },
+  lobby: { name: 'اللوبي', sub: 'تجوّل ومهامّ', desc: 'تجوّل في السوق، وتحدّث مع الناس، واعمل في مهامّهم.', rules: 'lobby', time: 1e9, primaries: [], icon: 'tdm', hidden: true },
   rounds: { name: 'الجولات التكتيكية', sub: 'بلا إحياء · جولات', desc: 'حياة واحدة في كل جولة. خطّط مع فريقك واستعمل القنابل بذكاء.', rules: 'rounds', primaries: PRIM_ALL, icon: 'rounds' },
 };
 export const MODE_ORDER = ['tdm', 'dom', 'rounds'];

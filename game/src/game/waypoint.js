@@ -74,7 +74,7 @@ export class Waypoints {
     for (const [id, b] of this.tb) if (!seen.has(id)) b.hide();
     if (!me || !me.alive) return;
     // الوصول: المسار يُمسح وحده
-    if (this.mine && this.mine.route && Math.hypot(this.mine.x - me.pos[0], this.mine.z - me.pos[2]) < 3) { this.clearMine(); g.ui && g.ui.toast && g.ui.toast('وصلت للعلامة'); }
+    if (this.mine && this.mine.route && Math.hypot(this.mine.x - me.pos[0], this.mine.z - me.pos[2]) < 3) { this.clearMine(); g.ui && g.ui.toast && g.ui.toast('وصلتَ إلى العلامة'); }
     const T = this.target;
     if (!T) { this.path = null; return; }
     if ((this.pathT -= dt) <= 0) { this.pathT = 0.6; this.path = findPath(g.world, me.pos, [T.x, 0, T.z]); this.dist = pathLen(this.path); }

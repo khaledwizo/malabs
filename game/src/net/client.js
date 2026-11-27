@@ -53,7 +53,7 @@ export class NetSim {
       this.pingIv = setInterval(() => { if (this.link) this.link.send({ k: 'pi', c: now(), r: 0 }); }, 1000);
       return this;
     }
-    let err = 'تعذّر الوصول إلى الإنترنت — وما لگينا الغرفة على نفس الشبكة';
+    let err = 'تعذّر الوصول إلى الإنترنت — ولم نجد الغرفة على الشبكة نفسها';
     // أولاً: نفس الشبكة (أسرع وما يحتاج إنترنت)
     const lh = this.opt.lanHost || await Lan.find(this.room, 1500);
     if (lh) {
@@ -64,7 +64,7 @@ export class NetSim {
         await L.open(); this.state = 'joining';
         const ok = await new Promise(res => { this._join = res; this.sayHi(); setTimeout(() => res(false), 5000); });
         this._join = null;
-        if (ok === true) { Lan.scan(false); this.pingIv = setInterval(() => { if (this.link) this.link.send({ k: 'pi', c: now(), r: Math.round(this.ping * 1000) }); if (this.state === 'joined' && now() - this.lastSnap > 8) this.lost('توقف السيرفر عن الرد'); }, 1000); return this; }
+        if (ok === true) { Lan.scan(false); this.pingIv = setInterval(() => { if (this.link) this.link.send({ k: 'pi', c: now(), r: Math.round(this.ping * 1000) }); if (this.state === 'joined' && now() - this.lastSnap > 8) this.lost('توقّف السيرفر عن الردّ'); }, 1000); return this; }
         clearTimeout(this.hiT); L.onclosed = null; L.close();
       } catch (e) { }
     }
@@ -74,17 +74,17 @@ export class NetSim {
       L.onmsg = m => { try { this.onMsg(m); } catch (e) { console.warn(e); } };
       L.onclosed = () => this.lost('انقطع الاتصال بالوسيط');
       try { await L.open(); } catch (e) { continue; }
-      say('متصل · ننتظر ردّ السيرفر…');
+      say('متّصل · ننتظر ردّ السيرفر…');
       this.state = 'joining';
       const ok = await new Promise(res => { this._join = res; this.sayHi(); setTimeout(() => res(false), 6000); });
       this._join = null;
       if (ok === true) {
-        this.pingIv = setInterval(() => { if (this.link) this.link.send({ k: 'pi', c: now(), r: Math.round(this.ping * 1000) }); if (this.state === 'joined' && now() - this.lastSnap > 8) this.lost('توقف السيرفر عن الرد'); }, 1000);
+        this.pingIv = setInterval(() => { if (this.link) this.link.send({ k: 'pi', c: now(), r: Math.round(this.ping * 1000) }); if (this.state === 'joined' && now() - this.lastSnap > 8) this.lost('توقّف السيرفر عن الردّ'); }, 1000);
         return this;
       }
       clearTimeout(this.hiT); L.onclosed = null; L.close();
       if (this.state === 'error') throw new Error(this.status);
-      err = 'لم يردّ السيرفر — تأكد من رمز الغرفة وأن تطبيق السيرفر يعمل ومتصل';
+      err = 'لم يردّ السيرفر — تأكّد من رمز الغرفة ومن أن تطبيق السيرفر يعمل ومتّصل';
     }
     this.state = 'closed';
     throw new Error(err);

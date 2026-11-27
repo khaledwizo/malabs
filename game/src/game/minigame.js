@@ -78,8 +78,8 @@ export class MiniGame {
     const sp = new THREE.Mesh(new THREE.ConeGeometry(0.018, 0.05, 8), S(0xc06a38)); sp.rotation.z = Math.PI / 2; sp.position.set(-0.05, 0.05, 0); jug.add(sp);
     this.stream = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.008, 0.16, 6), S(0x9cc8e8, { transparent: true, opacity: 0.8 })); this.stream.position.set(0.12, 0.12, -0.02); this.stream.visible = false; R.add(this.stream);
     this.hL = hand(); this.hR = hand(); this.hL.position.set(-0.2, 0.16, 0.06); this.hR.position.set(0.2, 0.16, 0.06); this.hL.rotation.x = this.hR.rotation.x = 0.5; this.hL.scale.setScalar(0.8); this.hR.scale.setScalar(0.8); R.add(this.hL, this.hR); R.scale.setScalar(1.25);
-    this.tips = ['اضغط مطوّل على «اسكب الماي» وصبّ شوية شوية — لا تكثّر!', 'هسّه اعجن: اضغط «يسار» و«يمين» بالتناوب'];
-    this.btns = [[{ id: 'pour', label: '💧 اسكب الماي', hold: true }], [{ id: 'L', label: '✋ يسار' }, { id: 'R', label: 'يمين 🤚' }]];
+    this.tips = ['اضغط مطوّلاً على «اسكب الماء» وصُبَّ قليلاً قليلاً — لا تُكثِر!', 'الآن اعجن: اضغط «يسار» و«يمين» بالتناوب'];
+    this.btns = [[{ id: 'pour', label: '💧 اسكب الماء', hold: true }], [{ id: 'L', label: '✋ يسار' }, { id: 'R', label: 'يمين 🤚' }]];
     this.wl = 0; this.kn = 0; this.last = '';
   }
   tick_knead(dt) {
@@ -88,8 +88,8 @@ export class MiniGame {
       if (this.stream.visible) { this.wl += dt / 3.2; if ((this.pt = (this.pt || 0) - dt) <= 0) { this.pt = 0.5; Audio.play('pour'); } }
       this.water.material.opacity = Math.min(0.75, this.wl * 0.9); this.flour.material.color.setHex(this.wl > 0.5 ? 0xe8dcc0 : 0xf2ecdc);
       this.prog(this.wl);
-      if (this.wl > 1.25) { this.wl = 0.85; this.say('كثّرت الماي! أبو حيدر ضاف طحين... كمّل بهدوء'); }
-      if (!p && this.wl >= 1 && this.wl <= 1.25) { this.stage = 1; this.setTip(this.tips[1]); this.setBtns(this.btns[1]); this.prog(0); this.water.visible = false; this.flour.material.color.setHex(0xe9d9b5); this.say('زين! الماي مضبوط'); }
+      if (this.wl > 1.25) { this.wl = 0.85; this.say('أكثرتَ الماء! أضاف أبو حيدر طحيناً... أكمِل بهدوء'); }
+      if (!p && this.wl >= 1 && this.wl <= 1.25) { this.stage = 1; this.setTip(this.tips[1]); this.setBtns(this.btns[1]); this.prog(0); this.water.visible = false; this.flour.material.color.setHex(0xe9d9b5); this.say('جيّد! الماء مضبوط'); }
     } else {
       for (const [h, side] of [[this.hL, 'L'], [this.hR, 'R']]) { const k = h.userData.p || 0; h.userData.p = Math.max(0, k - dt * 4); const e = ease(h.userData.p); h.position.y = 0.16 - e * 0.1; h.position.x = (side === 'L' ? -0.2 : 0.2) * (1 - e * 0.7); h.rotation.x = 0.5 + e * 0.5; }
       const sq = 0.45 - Math.min(0.2, (this.hL.userData.p || 0) * 0.12 + (this.hR.userData.p || 0) * 0.12); this.flour.scale.set(1 + (0.45 - sq), sq, 1 - (0.45 - sq) * 0.5);
@@ -117,8 +117,8 @@ export class MiniGame {
     this.inCup = new THREE.Mesh(new THREE.SphereGeometry(0.034, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), S(c, { roughness: 1 })); this.inCup.scale.y = 0.5; sc.add(this.inCup);
     this.hR = hand(); sc.add(this.hR); this.hR.position.set(0.16, 0.06, 0.05); this.hR.rotation.set(0.2, -0.5, 0);
     this.n = d.n || 5; this.got = 0; this.anim = -1; this.grams = 0;
-    this.tips = [d.tip || 'اضغط «اغرف» حتى تعبّي الكيس', 'اضغط «كفى» لمّا الميزان يوصل المنطقة الخضراء'];
-    this.btns = [d.weigh ? [{ id: 'go', label: '🥄 اغرف' }, { id: 'stop', label: '⚖️ كفى', primary: false }] : [{ id: 'go', label: d.tool === 'shovel' ? '🪣 اشلع بالمسحاة' : '🥄 اغرف' }]];
+    this.tips = [d.tip || 'اضغط «اغرف» حتى تملأ الكيس', 'اضغط «كفى» عندما يصل الميزان إلى المنطقة الخضراء'];
+    this.btns = [d.weigh ? [{ id: 'go', label: '🥄 اغرف' }, { id: 'stop', label: '⚖️ كفى', primary: false }] : [{ id: 'go', label: d.tool === 'shovel' ? '🪣 اقلع بالمِسحاة' : '🥄 اغرف' }]];
     if (d.weigh) { const sc2 = $('mg').querySelector('.mgw'); sc2.classList.add('on'); }
   }
   tick_scoop(dt) {
@@ -127,13 +127,13 @@ export class MiniGame {
       this.anim += dt / 0.8; const a = Math.min(1, this.anim), up = Math.sin(a * Math.PI);
       sc.position.set(-0.17 + 0.34 * ease(a), 0.12 + up * 0.12, -0.05 + 0.05 * a); sc.rotation.z = a > 0.75 ? (a - 0.75) * 4 * 1.6 : 0; this.inCup.visible = a < 0.85;
       if (a >= 1) { this.anim = -1; this.got++; const k = Math.min(1, this.got / this.n); this.fill.position.y = -0.11 + k * 0.17; this.fill.scale.setScalar(1 + k * 0.08);
-        if (this.def.weigh) { this.grams += 140 + Math.floor(Math.random() * 110); this.showW(); if (this.grams > 1150) { this.grams -= 300; this.say('زاد كثير! رجّعت حفنة'); this.showW(); } }
+        if (this.def.weigh) { this.grams += 140 + Math.floor(Math.random() * 110); this.showW(); if (this.grams > 1150) { this.grams -= 300; this.say('زاد كثيراً! أعدتَ حفنة'); this.showW(); } }
         else { this.prog(k); if (this.got >= this.n) this.finish(); } }
     } else { sc.position.set(-0.17, 0.14 + Math.sin(this.t * 2) * 0.01, -0.05); sc.rotation.z = 0; this.inCup.visible = false; }
   }
   showW() { const w = this.grams, el = $('mg').querySelector('.mgw'); el.querySelector('b').textContent = w + ' غم'; el.querySelector('i').style.left = Math.min(100, w / 12) + '%'; this.prog(w / 1000); }
   tap_scoop(id) {
-    if (id === 'stop') { if (this.grams >= 900 && this.grams <= 1100) { $('mg').querySelector('.mgw').classList.remove('on'); this.finish({ grams: this.grams }); } else this.say(this.grams < 900 ? 'بعده ناقص — الكيلو 1000 غم' : 'زايد — شيل شوية'); return; }
+    if (id === 'stop') { if (this.grams >= 900 && this.grams <= 1100) { $('mg').querySelector('.mgw').classList.remove('on'); this.finish({ grams: this.grams }); } else this.say(this.grams < 900 ? 'ما زال ناقصاً — الكيلو 1000 غم' : 'زائد — أزِل قليلاً'); return; }
     if (this.anim >= 0) return; this.anim = 0; Audio.play('scoop');
   }
 
@@ -148,14 +148,14 @@ export class MiniGame {
     this.lvl = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.001, 0.071), S(0x9cd0ff, { emissive: 0x2a5a8a })); this.lvl.position.set(0.062, -0.075, 0); can.add(this.lvl);
     this.hR = hand(); this.hR.position.set(0.02, 0.12, 0.06); this.hR.rotation.set(0.9, 0, 0); can.add(this.hR);
     this.x = 0; this.wl = 0; this.dirty = 0;
-    this.tips = ['حرّك الجلكان بعيد عن البقعة السودة، واضغط مطوّل «املأ»'];
+    this.tips = ['حرِّك الجالون بعيداً عن البقعة السوداء، واضغط مطوّلاً «املأ»'];
     this.btns = [[{ id: 'L', label: '◀', hold: true, primary: false }, { id: 'fill', label: '💧 املأ', hold: true }, { id: 'R', label: '▶', hold: true, primary: false }]];
   }
   tick_water(dt) {
     this.x += ((this.hold.R ? 1 : 0) - (this.hold.L ? 1 : 0)) * dt * 0.5; this.x = Math.max(-0.4, Math.min(0.4, this.x));
     const ox = Math.sin(this.t * 0.9) * 0.3 + Math.sin(this.t * 2.1) * 0.06; this.oil.position.x = ox;
     const f = !!this.hold.fill; this.can.position.set(this.x, f ? -0.05 : 0.04, 0); this.can.rotation.z = f ? -0.5 : 0;
-    if (f) { const inOil = Math.abs(this.x - ox) < 0.2; if (inOil) { this.dirty += dt; if (this.dirty > 0.35) { this.wl = Math.max(0, this.wl - 0.35); this.dirty = 0; this.say('دخل نفط! كبّيت شوية — ابتعد عن البقعة'); } } else this.wl += dt / 4.5; }
+    if (f) { const inOil = Math.abs(this.x - ox) < 0.2; if (inOil) { this.dirty += dt; if (this.dirty > 0.35) { this.wl = Math.max(0, this.wl - 0.35); this.dirty = 0; this.say('دخل النفط! سكبتَ قليلاً — ابتعد عن البقعة'); } } else this.wl += dt / 4.5; }
     this.lvl.scale.y = 1 + this.wl * 150; this.lvl.position.y = -0.075 + this.wl * 0.075; this.prog(this.wl);
     if (this.wl >= 1) this.finish();
   }
@@ -175,8 +175,8 @@ export class MiniGame {
     const bl = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.16, 0.012), new THREE.MeshStandardMaterial({ color: 0x777370, metalness: 0.7, roughness: 0.4 })); sv.add(bl);
     const h1 = hand(); h1.position.set(0, 0.55, 0.03); h1.rotation.set(1.4, 0, 0); sv.add(h1); const h2 = hand(); h2.position.set(0, 0.3, 0.03); h2.rotation.set(1.4, 0, 0); sv.add(h2);
     this.dug = 0; this.filled = 0; this.anim = -1; this.lower = 0;
-    this.tips = ['احفر القبر: اضغط «احفر» مرّة ورا مرّة', 'أنزل الشهيد بهدوء: اضغط مطوّل «أنزل»', 'اهِل التراب على القبر', 'ضع الشاهد على راس القبر'];
-    this.btns = [[{ id: 'go', label: '⛏️ احفر' }], [{ id: 'lower', label: '🤍 أنزل الشهيد', hold: true }], [{ id: 'go', label: '🪣 اهِل التراب' }], [{ id: 'stone', label: '🪦 ضع الشاهد' }]];
+    this.tips = ['احفر القبر: اضغط «احفر» مرّةً بعد مرّة', 'أنزِل الشهيد بهدوء: اضغط مطوّلاً «أنزِل»', 'أهِل التراب على القبر', 'ضَع الشاهد على رأس القبر'];
+    this.btns = [[{ id: 'go', label: '⛏️ احفر' }], [{ id: 'lower', label: '🤍 أنزِل الشهيد', hold: true }], [{ id: 'go', label: '🪣 أهِل التراب' }], [{ id: 'stone', label: '🪦 ضَع الشاهد' }]];
   }
   tick_dig(dt) {
     const sv = this.shovel;
@@ -205,8 +205,8 @@ export class MiniGame {
     this.wraps = []; for (let i = 0; i < 10; i++) { const w = new THREE.Mesh(new THREE.TorusGeometry(0.048, 0.008, 6, 20), S(0xf4f2ea, { roughness: 1 })); w.rotation.y = Math.PI / 2; w.rotation.z = 0.2; w.position.x = -0.09 + i * 0.022; w.visible = false; R.add(w); this.wraps.push(w); }
     this.roll = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.05, 14), S(0xf4f2ea, { roughness: 1 })); this.roll.rotation.z = Math.PI / 2; R.add(this.roll);
     this.n = 0; this.ang = 0;
-    this.tips = ['اضغط «لفّ» حتى تغطّي الجرح كامل'];
-    this.btns = [[{ id: 'go', label: '🩹 لفّ' }]];
+    this.tips = ['اضغط «لُفّ» حتى تُغطّي الجرح كاملاً'];
+    this.btns = [[{ id: 'go', label: '🩹 لُفّ' }]];
   }
   tick_bandage(dt) { this.ang += dt * 1.5; const x = -0.09 + Math.min(9, this.n) * 0.022; this.roll.position.set(x, Math.sin(this.ang * 4) * 0.07, Math.cos(this.ang * 4) * 0.07); }
   tap_bandage() { if (this.n >= 10) return; this.wraps[this.n].visible = true; this.n++; this.ang += 0.4; Audio.play('bandage'); this.prog(this.n / 10); if (this.n >= 10) this.finish(); }
@@ -222,16 +222,16 @@ export class MiniGame {
     const hose = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.008, 6, 20, Math.PI), S(0xd06020)); hose.position.set(0.12, 0, 0); reg.add(hose);
     this.hR = hand(); this.hR.position.set(0.02, 0.06, 0.05); this.hR.rotation.set(1.2, 0, 0); reg.add(this.hR);
     this.turn = 0; this.y = 0.34;
-    this.tips = ['ركّب المنظّم ولفّه ↻ حتى يشدّ زين', 'افتح الصمّام'];
-    this.btns = [[{ id: 'go', label: '↻ لفّ المنظّم' }], [{ id: 'open', label: '🔥 افتح الصمّام' }]];
+    this.tips = ['ركِّب المنظِّم ولُفَّه ↻ حتى يُشَدّ جيّداً', 'افتح الصمّام'];
+    this.btns = [[{ id: 'go', label: '↻ لُفّ المنظِّم' }], [{ id: 'open', label: '🔥 افتح الصمّام' }]];
   }
   tick_gas(dt) { const tg = 0.34 - Math.min(1, this.turn / 6) * 0.11; this.y += (tg - this.y) * Math.min(1, dt * 8); this.reg.position.y = this.y; }
   tap_gas(id) { if (this.stage === 0) { this.turn++; this.reg.rotation.y -= 0.9; Audio.play('ui'); this.prog(this.turn / 6); if (this.turn >= 6) this.next(1); } else if (id === 'open') { Audio.play('fire'); this.finish(); } }
 
   // ================= تصوير السائح والملوية وراه =================
   build_photo(d) {
-    this.tips = ['وجّه الكاميرا: السائح بالنص والملوية بالخلفية، واضغط «صوّر»'];
-    this.btns = [[{ id: 'shot', label: '📸 صوّر' }]];
+    this.tips = ['وجِّه الكاميرا: السائح في الوسط والملويّة في الخلفية، واضغط «صوِّر»'];
+    this.btns = [[{ id: 'shot', label: '📸 صوِّر' }]];
     this.target = d.target; this.bg = d.bg; this.tries = 0;
   }
   tick_photo() {
@@ -247,7 +247,7 @@ export class MiniGame {
   tap_photo() {
     const c = this.check(); Audio.play('ui');
     Audio.play('shutter'); $('mg').classList.add('flash'); setTimeout(() => $('mg').classList.remove('flash'), 220);
-    if (!c.ok) { this.tries++; this.say(!c.inT ? 'جون ما طلع بالصورة! خلّيه بالنص' : !c.inB ? 'الملوية ما طلعت! خلّيها وراه بالخلفية' : c.d <= 2.2 ? 'قريب كلش، ارجع شوية' : 'بعيد، قرّب شوية'); return; }
+    if (!c.ok) { this.tries++; this.say(!c.inT ? 'لم يظهر جون في الصورة! اجعله في الوسط' : !c.inB ? 'لم تظهر الملويّة! اجعلها خلفه في الخلفية' : c.d <= 2.2 ? 'قريبٌ جداً، ارجع قليلاً' : 'بعيد، اقترِب قليلاً'); return; }
     this.g.wantSnap = img => { this.photo = img; this.finish({ photo: img }); };
   }
 }

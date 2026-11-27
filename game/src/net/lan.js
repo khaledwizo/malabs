@@ -24,9 +24,9 @@ export class LanClientLink {
   open() {
     return new Promise((res, rej) => {
       let ws; try { ws = this.ws = new WebSocket(`ws://${this.h.ip}:${this.h.port || 47800}`); } catch (e) { rej(e); return; }
-      const to = setTimeout(() => { try { ws.close(); } catch (e) { } rej(new Error('تعذّر الوصول لسيرفر الشبكة')); }, 4000);
-      ws.onopen = () => { clearTimeout(to); this.onstatus('متصل على نفس الشبكة ✓'); res(this); };
-      ws.onerror = () => { clearTimeout(to); rej(new Error('تعذّر الوصول لسيرفر الشبكة')); };
+      const to = setTimeout(() => { try { ws.close(); } catch (e) { } rej(new Error('تعذّر الوصول إلى سيرفر الشبكة')); }, 4000);
+      ws.onopen = () => { clearTimeout(to); this.onstatus('متّصل على الشبكة نفسها ✓'); res(this); };
+      ws.onerror = () => { clearTimeout(to); rej(new Error('تعذّر الوصول إلى سيرفر الشبكة')); };
       ws.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch (x) { return; } this.onmsg && this.onmsg(m); };
       ws.onclose = () => { if (!this.closed) this.onclosed && this.onclosed(); };
     });
