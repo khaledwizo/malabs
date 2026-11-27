@@ -145,6 +145,8 @@ export class Builder {
       if (ok && (a[1] > 0.5 || b[1] > 0.5)) for (let t = 0.1; t < 0.95 && ok; t += 0.5 / Math.max(d, 0.5)) { const x = a[0] + (b[0] - a[0]) * t, y = a[1] + (b[1] - a[1]) * t, z = a[2] + (b[2] - a[2]) * t; const h = this.w.ray(x, y + 0.45, z, 0, -1, 0, 1.2, F.NOPLAYER, {}); if (!h) ok = false; }
       // لا روابط تمرّ عبر أجساد أهل السوق
       if (ok) for (const q of this.w.npcs) { const ux = b[0] - a[0], uz = b[2] - a[2], t = Math.max(0, Math.min(1, ((q.x - a[0]) * ux + (q.z - a[2]) * uz) / (d * d))); if (Math.hypot(a[0] + ux * t - q.x, a[2] + uz * t - q.z) < 0.62) { ok = false; break; } }
+      // أجسام ما يعبرها الرصاص لكن تمنع المشي (حرمة القبور): نفحص الطريق بجسم عريض
+      if (ok) for (let t = 0; t <= 1 && ok; t += 0.35 / Math.max(d, 0.35)) { const x = a[0] + (b[0] - a[0]) * t, y = a[1] + (b[1] - a[1]) * t, z = a[2] + (b[2] - a[2]) * t; if (this.w.overlap(x, y + 0.45, z, 0.26, 1.0)) ok = false; }
       if (ok) { adj[i].add(j); adj[j].add(i); }
     }
     this.w.nav = { nodes: N, adj: adj.map(s => [...s]) };

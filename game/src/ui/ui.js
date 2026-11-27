@@ -48,7 +48,7 @@ const TEMPLATE = HUD_HTML + `
       <div class="modes" id="modes"></div>
       <div class="mdesc" id="mdesc"></div>
       <div class="mopts" id="mopts"></div>
-      <div class="hbot"><div class="party" id="party"></div><button class="btn big lobbyBtn" id="btnLobby" title="لوبي خاص: تجوّل بالسوق ومهام">${ICON.shop}<span>السوق والمهام</span></button><button class="btn big onlineBtn" id="btnOnline" title="كل شي عن اللعبة"><span>📖</span><span>تعليمات</span></button><button class="btn primary big" id="btnStart">ابدأ المعركة</button></div>
+      <div class="hbot"><div class="party" id="party"></div><button class="btn big lobbyBtn" id="btnLobby" title="طور القصة: تجوّل بالسوق ومهام">${ICON.shop}<span>طور القصة</span></button><button class="btn big onlineBtn" id="btnOnline" title="كل شي عن اللعبة"><span>📖</span><span>تعليمات</span></button><button class="btn primary big" id="btnStart">ابدأ المعركة</button></div>
     </div>
   </div>
 </section>
@@ -86,8 +86,8 @@ const TEMPLATE = HUD_HTML + `
         <p>الأكل والشرب بالمعركة بفلوس، أما اللوبي فكلّه ببلاش. وتگدر تطلق على قناني الغاز حتى تنفجر بالأعداء.</p>
       </article>
       <article data-g="lobby">
-        <h3>السوق والمهام (اللوبي)</h3>
-        <p>زر «السوق والمهام» يدخلك للسوق بحرية بدون قتال. تمشي وتسولف ويّا الناس، وكل شوية يطلبك واحد منهم بمهمة (النقطة الخضراء بالخريطة).</p>
+        <h3>طور القصة (السوق والمهام)</h3>
+        <p>زر «طور القصة» يدخلك للسوق بحرية بدون قتال. تمشي وتسولف ويّا الناس، وكل شوية يطلبك واحد منهم بمهمة (النقطة الخضراء بالخريطة).</p>
         <ul><li><b>مهام تسوّيها بإيدك:</b> تعجن الخبز، تسقي المشتل، تركّب قنينة الغاز، تصوّر السائح ويّا الملوية، وتدفن الشهيد.</li>
         <li><b>أغراض ضايعة:</b> محفظة، دبدوب، سبحة، مفاتيح، نظارات، خاتم. تلگاها وتشيلها وتسلّمها <b>يد بيد</b> لصاحبها.</li>
         <li><b>مهام التصفية:</b> مبتزّين ومهدِّدين يأذون أهل السوق، تخلّص الناس منهم وتاخذ الجائزة.</li>

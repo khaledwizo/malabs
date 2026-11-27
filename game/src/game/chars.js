@@ -167,6 +167,17 @@ export class CharModel {
     this.gun = id ? buildGun(id, scope) : null; this.gunId = id + (scope || '');
     if (this.gun) { this.gun.group.scale.setScalar(1); this.chest.add(this.gun.group); }
   }
+  // المسدس بالجراب على الفخذ اليمين (لمّا ما يكون بالإيد)
+  setHolster(id) {
+    if (this.holsterId === id) return; this.holsterId = id;
+    if (this.holster) { this.legs[1].thigh.remove(this.holster); this.holster = null; }
+    if (!id) return;
+    const h = this.holster = new THREE.Group(), leather = new THREE.MeshStandardMaterial({ color: 0x2a1f17, roughness: 0.85 });
+    const pouch = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.17, 0.11), leather); pouch.position.set(0, -0.06, 0.005); h.add(pouch);
+    const strap = new THREE.Mesh(new THREE.TorusGeometry(0.085, 0.008, 4, 16), leather); strap.rotation.x = Math.PI / 2; strap.position.set(-0.085, -0.1, 0); strap.scale.set(1, 1.05, 0.7); h.add(strap);
+    const gun = buildGun(id).group; gun.scale.setScalar(0.92); gun.rotation.set(-Math.PI / 2, 0, 0); gun.position.set(0, 0.06, 0.015); h.add(gun); // السبطانة لجوّا الجراب، والمقبض طالع
+    h.position.set(0.085, -0.14, 0.01); this.legs[1].thigh.add(h);
+  }
   // st: { yaw, pitch, speed, vx, vz, crouch, onGround, alive, reloading, fireT, ads }
   update(st, dt) {
     const root = this.root;

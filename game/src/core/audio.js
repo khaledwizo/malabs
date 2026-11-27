@@ -26,6 +26,14 @@ export const Audio = {
     setTimeout(() => this.startMusic(), 400);
   },
   setVolume(v) { if (this.master) this.master.gain.value = v; },
+  // التطبيق بالخلفية: نوقف سياق الصوت (الموسيقى والأجواء) ونوقف الأذان والحچي المسجّل، ونرجّعهم بعد الرجوع
+  bgEls: new Set(),
+  track(a) { this.bgEls.add(a); a.addEventListener('ended', () => this.bgEls.delete(a)); if (this.bg) try { a.pause(); a.dataset.bgp = '1'; } catch (e) { } return a; },
+  background(h) {
+    this.bg = !!h; const c = this.ctx;
+    if (c) try { if (h) c.suspend(); else c.resume(); } catch (e) { }
+    for (const a of this.bgEls) try { if (h) { if (!a.paused) { a.dataset.bgp = '1'; a.pause(); } } else if (a.dataset.bgp) { delete a.dataset.bgp; a.play().catch(() => { }); } } catch (e) { }
+  },
   // الموسيقى: أعلى في القوائم، خافتة أثناء القتال
   setMusic(v) { this.musV = v; this.applyMusic(); },
   musicMode(m) { this.musM = m; this.applyMusic(); },

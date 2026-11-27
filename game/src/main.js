@@ -74,7 +74,13 @@ game.onAnim = (dt, t) => {
 UI.init(game);
 const wake = () => Audio.init();
 document.addEventListener('pointerdown', wake); document.addEventListener('touchstart', wake, { passive: true }); document.addEventListener('keydown', wake);
-document.addEventListener('visibilitychange', () => { if (document.hidden && game.sim && !game.paused && !game.sim.online) game.pause(); });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && game.sim && !game.paused && !game.sim.online) game.pause();
+  // طلعت من اللعبة (رجعت للشاشة الرئيسية أو قفلت الشاشة): الموسيقى وكل الأصوات تسكت، وترجع وياك
+  Audio.background(document.hidden);
+});
+window.addEventListener('pagehide', () => Audio.background(true));
+window.addEventListener('pageshow', () => { if (!document.hidden) Audio.background(false); });
 window.__rafidainBack = () => { if (intro && intro.active) { intro.finish(); return true; } if (UI.mapOpen) { UI.closeMap(); return true; } if (game.sim && !game.paused) { game.pause(); return true; } if (UI.screen && UI.screen !== 'home') { UI.back(); return true; } return false; };
 window.__rafidainPause = () => { if (game.sim && !game.paused && !game.sim.online) game.pause(); };
 

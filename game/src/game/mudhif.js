@@ -4,7 +4,7 @@
 // - الأذان كل 15 دقيقة لعب باللوبي، والصلاة بعد ما يخلص الأذان كاملاً (ركعتين ← 3 ← 4)، تتابع الإمام بحركاتك
 // - بعدها الإمام والشيخ يزورون مرقد الشيخ فاتح ويقرون الفاتحة، والناس يطلعون من الباب لبيوتهم
 import * as THREE from 'three';
-import { MAJLIS_MEN, MAJLIS, SHEIKH_A, IMAM, IMAM_CALLS, LECTURES } from './mudhifdata.js';
+import { MAJLIS_MEN, MAJLIS, SHEIKH_A, IMAM, IMAM_CALLS, LECTURES, DIGGER, PILGRIM, SHRINE_TALK } from './mudhifdata.js';
 import { Voices, voiceId } from '../core/voices.js';
 import { Audio } from '../core/audio.js';
 import { Settings } from '../core/settings.js';
@@ -40,13 +40,15 @@ export class Mudhif {
     this.men = MAJLIS_MEN.map((m, i) => this.seat(this.A.spawn(m.look, MEN_AT[i][0], MEN_AT[i][1], { name: m.name, pose: 'sit', stool: false, seed: m.seed }), m));
     // زوّار يجون ويروحون
     this.vis = [0, 1].map(k => { const w = this.A.spawn(k ? 'citizen' : 'pilgrim', -40 - k * 6, -10 + k * 4, { name: 'زائر المضيف', sp: 1.1, seed: 870 + k * 11 }); w.vt = 4 + k * 20; w.vin = false; return w; });
-    if (this.S.lectOpen) this.openLecture(true); // محاضرة ما حضرتها: تبقى قائمة
+    // الشيخ عبد العزيز گاعد بصدر المضيف (شخص واحد: يحاضر، ويصلّي بالناس، ويزور المرقد ويرجع)
+    this.sheikh = this.seat(this.A.spawn(SHEIKH_A.look, SHEIKH_AT[0], SHEIKH_AT[1], { name: SHEIKH_A.name, pose: 'sit', stool: false, seed: SHEIKH_A.seed }), SHEIKH_A);
+    if (this.S.lectOpen && this.S.lect < LECTURES.length) this.openLecture(true); // محاضرة ما حضرتها: تبقى قائمة
   }
   seat(w, per) { w.n.y = SEAT_Y; w.c.root.position.y = SEAT_Y; w.face(w.n.x + 1, w.n.z); w.c.per = per; w.c.name = per.name; return w; }
   stop() {
     this.endSession(true); this.endPrayer(true);
     for (const w of [...this.men, ...this.vis]) w.remove(); this.men = []; this.vis = [];
-    if (this.sheikh) { this.sheikh.remove(); this.sheikh = null; }
+    if (this.sheikh) { this.sheikh.remove(); this.sheikh = null; } if (this.out) { this.out.remove(); this.out = null; }
     this.lect = null; this.on = false; this.save(); this.notice(null); Audio.musicMute(false);
   }
   get inside() { const me = this.g.mp; if (!me) return false; const [x0, z0, x1, z1] = ROOM; return me.pos[0] > x0 && me.pos[0] < x1 + 1.4 && me.pos[2] > z0 && me.pos[2] < z1; }
@@ -55,12 +57,46 @@ export class Mudhif {
   route(w, pts, cb) { w.path = [[w.n.x, w.n.z], ...pts]; w.pi = 1; w.onArrive = cb || null; }
   leaveMudhif(w, then) { this.openDoor(-52.2, -12); this.route(w, [[DOOR_IN[0] - 1.2, w.n.z * 0.3 + DOOR_IN[1] * 0.7], DOOR_IN, DOOR_OUT], then); }
   goHome(w) { const d = this.doors && this.doors.pick(w.n.x, w.n.z, 6); if (d) this.doors.enter(w, d, () => w.remove()); else w.goTo(-30 + Math.random() * 20, -8 + Math.random() * 16, () => w.remove()); }
-  // الإمام أو الشيخ: يزور مرقد أخيه، يقرأ الفاتحة، ثم يرجع لبيته
+  // حچي يُسمع بس إذا اللاعب گريب (والفقاعة فوگ راس المتكلّم)
+  near(x, z, r = 20) { const me = this.g.mp; return me && Math.hypot(me.pos[0] - x, me.pos[2] - z) < r; }
+  talkNear(per, text, w, c) {
+    const x = w ? w.n.x : c.root.position.x, z = w ? w.n.z : c.root.position.z;
+    if (!this.near(x, z)) return 2.6;
+    const sp = this.speak(per, text, w); try { this.g.talk && this.g.talk.bubble(w ? w.c : c, text, sp.dur); } catch (e) { }
+    if (c) c.talkT = sp.dur; return sp.dur;
+  }
+  // الشيخ بعد الصلاة: يسلّم على الدفّان، يدخل المرقد ويسلّم على الزوّار، يقرأ الفاتحة، ثم يرجع يگعد بالمضيف
   visitShrine(w) {
+    this.out = w;
+    const T = (s, f) => setTimeout(() => { if (!w.dead && this.out === w) f(); }, s * 1000);
     this.leaveMudhif(w, () => w.goTo(SHRINE_OUT[0], SHRINE_OUT[1], () => {
-      this.openDoor(-75.3, -4);
-      this.route(w, [SHRINE_IN], () => { w.face(TOMB[0], TOMB[1]); w.c.prayP = 'dua'; setTimeout(() => { if (w.dead) return; w.c.prayP = null; this.openDoor(-75.3, -4); this.route(w, [SHRINE_OUT], () => this.goHome(w)); }, 32000); });
+      const dig = (this.g.civs || []).find(c => c.n.look === 'gravedigger' && c.alive && !c.away && !c.fl);
+      const enter = () => {
+        this.openDoor(-75.3, -4);
+        this.route(w, [SHRINE_IN], () => {
+          w.face(TOMB[0], TOMB[1]);
+          const f = this.g.folk && this.g.folk.list.find(F => F.st === 'home' && F.c.alive);
+          const d1 = this.talkNear(SHEIKH_A, SHRINE_TALK.greetPeople, w);
+          T(d1 + 0.3, () => {
+            const d2 = f ? this.talkNear(PILGRIM, SHRINE_TALK.people, null, f.c) : 0;
+            T(d2 + 0.5, () => {
+              w.c.prayP = 'dua'; // يقرأ الفاتحة (سرّاً) رافع إيديه
+              T(26, () => { w.c.prayP = null; this.openDoor(-75.3, -4); this.route(w, [SHRINE_OUT], () => this.backToSeat(w)); });
+            });
+          });
+        });
+      };
+      if (dig && Math.hypot(dig.n.x - w.n.x, dig.n.z - w.n.z) < 7) {
+        w.face(dig.n.x, dig.n.z); dig.focus && dig.focus(w.n.x, w.n.z, 8);
+        const d1 = this.talkNear(SHEIKH_A, SHRINE_TALK.greetDigger, w);
+        T(d1 + 0.3, () => { const d2 = this.talkNear(DIGGER, SHRINE_TALK.digger, null, dig); T(d2 + 0.6, enter); });
+      } else enter();
     }));
+  }
+  // يرجع للمضيف ويگعد بمكانه (نفس الشخص، ما يتكرر)
+  backToSeat(w) {
+    this.openDoor(-52.2, -12);
+    w.goTo(DOOR_OUT[0], DOOR_OUT[1], () => this.route(w, [DOOR_IN, [-58, -12], [SHEIKH_AT[0] + 1.1, SHEIKH_AT[1]]], () => { w.remove(); if (this.out === w) this.out = null; if (this.sheikh) this.sheikh.hidden = false; }));
   }
   // ---------- تنبيه صغير أنيق ----------
   notice(o, ms = 4200) {
@@ -79,7 +115,7 @@ export class Mudhif {
       if (w.vin) { this.openDoor(-52.2, -12); w.goTo(DOOR_OUT[0], DOOR_OUT[1], () => this.route(w, [DOOR_IN, [DOOR_IN[0] - 1.5 - Math.random() * 2, DOOR_IN[1] + (Math.random() - 0.5) * 3]], () => { w.face(MEN_AT[1][0], MEN_AT[1][1]); w.c.wave = 2.2; })); w.vt = 35 + Math.random() * 30; }
       else { this.leaveMudhif(w, () => w.goTo(-30 + Math.random() * 20, -8 + Math.random() * 16)); w.vt = 25 + Math.random() * 25; }
     }
-    if (!this.lect && !this.pray && this.S.playT >= this.S.nextLect) this.openLecture();
+    if (!this.lect && !this.pray && !this.out && this.S.lect < LECTURES.length && this.S.playT >= this.S.nextLect) this.openLecture(); // المحاضرات ما تتكرر
     if (!this.pray && this.S.playT >= this.S.nextAdhan && !this.sess && !g.cine) this.startAdhan();
     if (this.pray) this.tickPrayer(dt);
     if (this.sess) this.tickSession(dt);
@@ -93,7 +129,8 @@ export class Mudhif {
     const P = this.pray;
     if (P && !P.me && P.stage !== 'done' && this.inside) return { label: '🕌 التحق بالصلاة', fn: () => this.joinPrayer() };
     if (P) return null;
-    if (near(ME_SEAT, 2.6) || near([-63.6, -12], 2.4)) return { label: this.lect ? '📖 احضر محاضرة الشيخ' : '🪑 اجلس مع المجلس', fn: () => this.sit() };
+    const lec = this.lect && !this.out, more = this.S.topic < MAJLIS.length;
+    if ((lec || more) && (near(ME_SEAT, 2.6) || near([-63.6, -12], 2.4))) return { label: lec ? '📖 احضر محاضرة الشيخ' : '🪑 اجلس مع المجلس', fn: () => this.sit() };
     return null;
   }
   speak(per, text, civ) {
@@ -119,7 +156,9 @@ export class Mudhif {
   // ---------- الجلوس بالمجلس / المحاضرة ----------
   sit() {
     if (this.sess) return;
-    this.sess = { t: 0, wait: 1.4, cur: null, lecture: !!this.lect }; if (this.lect) this.lect.on = true;
+    const lec = !!this.lect && !this.out && !this.pray;
+    if (!lec && this.S.topic >= MAJLIS.length) { this.notice({ icon: '🤍', title: 'المجلس ختم سوالفه', sub: 'سمعت كل أحاديث المجلس — الشيخ يحاضر بين فترة وفترة' }); return; }
+    this.sess = { t: 0, wait: 1.4, cur: null, lecture: lec }; if (lec) this.lect.on = true;
     const el = this.cineOn(this.sess.lecture ? SHEIKH_A.name : 'مجلس المضيف', this.sess.lecture ? 'الحاضرون ينصتون…' : 'جلست ويّا الجماعة…', `<button class="btn" data-a="skip">⏭ تخطّي</button>`);
     el.querySelector('.cbox').onclick = () => this.skip();
     el.querySelector('[data-a="skip"]').onclick = e => { e.stopPropagation(); Audio.play('ui'); this.skip(); };
@@ -138,7 +177,8 @@ export class Mudhif {
     if ((s.wait -= dt) > 0) return;
     const el = $('cine');
     if (s.lecture) {
-      const L = LECTURES[this.S.lect % LECTURES.length], i = this.lect.line;
+      const L = LECTURES[this.S.lect], i = this.lect.line;
+      if (!L) { this.endSession(); return; }
       if (i >= L.lines.length) { this.endSession(); this.closeLecture(true); return; }
       const sp = this.speak(SHEIKH_A, L.lines[i], this.sheikh); this.lect.line++;
       s.cur = { el: sp.el, left: sp.dur, who: this.sheikh }; s.gap = 1.1;
@@ -146,9 +186,11 @@ export class Mudhif {
       this.cut(this.sheikh);
       return;
     }
-    const T = MAJLIS[this.S.topic % MAJLIS.length];
+    const T = MAJLIS[this.S.topic];
+    if (!T) { this.endSession(); this.notice({ icon: '🤍', title: 'المجلس ختم سوالفه', sub: 'سمعت كل أحاديث المجلس — ما تتكرر' }); return; }
     if (this.S.line >= T.lines.length) {
-      this.S.topic = (this.S.topic + 1) % MAJLIS.length; this.S.line = 0; this.save();
+      this.S.topic++; this.S.line = 0; this.save();
+      if (this.S.topic >= MAJLIS.length) { this.endSession(); this.notice({ icon: '🤍', title: 'ختم المجلس سوالفه', sub: 'سمعت كل أحاديث المجلس — بعد ما تتكرر' }); return; }
       el.querySelector('.cname').textContent = ''; el.querySelector('.ctext').textContent = 'سكتوا شوية… والموضوع الجاي «' + MAJLIS[this.S.topic].title + '»';
       s.wait = 6; this.shot = { t: 0, dur: 99, kind: 'wide' }; return;
     }
@@ -167,36 +209,35 @@ export class Mudhif {
   }
   // ---------- محاضرات الشيخ عبد العزيز ----------
   openLecture(quiet) {
-    const L = LECTURES[this.S.lect % LECTURES.length];
-    this.lect = { line: 0, on: false }; this.S.lectOpen = 1; this.save();
-    if (!this.sheikh) this.sheikh = this.seat(this.A.spawn(SHEIKH_A.look, SHEIKH_AT[0], SHEIKH_AT[1], { name: SHEIKH_A.name, pose: 'sit', stool: false, seed: SHEIKH_A.seed }), SHEIKH_A);
+    const L = LECTURES[this.S.lect]; if (!L) return;
+    this.lect = { line: 0, on: false }; this.g.folk && this.g.folk.onLecture(); this.S.lectOpen = 1; this.save();
     for (const w of this.men) w.c.focus(SHEIKH_AT[0], SHEIKH_AT[1], 9999);
     if (!quiet) { Audio.play('questNew'); this.notice({ icon: '📜', title: 'مجلس علم في مضيف الشيخ فاتح الرفاعي', sub: `الشيخ عبد العزيز الرفاعي يتحدّث عن «${L.title}» — المجلس قائم حتى تحضره` }, 5000); }
   }
   closeLecture(done) {
     if (!done || !this.lect) return;
-    const L = LECTURES[this.S.lect % LECTURES.length];
-    this.S.lect++; this.S.lectOpen = 0;
+    const L = LECTURES[this.S.lect];
+    this.S.lect++; this.S.lectOpen = 0; this.g.folk && this.g.folk.onLectureEnd();
     this.S.nextLect = this.S.playT + LECT_GAPS[this.S.lectN++ % 2]; this.save();
     Audio.play('questDone'); this.notice({ icon: '✨', title: 'تقبّل الله حضورك', sub: `ختم الشيخ مجلس «${L.title}» بالترحّم على أخيه الشيخ فاتح` });
     this.lect = null; for (const w of this.men) w.c.focusT = 0;
-    const sh = this.sheikh; this.sheikh = null;
-    if (sh) { sh.remove(); const w = this.A.spawn(SHEIKH_A.look, SHEIKH_AT[0] + 1.2, SHEIKH_AT[1], { name: SHEIKH_A.name, sp: 0.95, seed: SHEIKH_A.seed }); this.visitShrine(w); }
   }
   // ---------- الأذان وصلاة الجماعة ----------
   startAdhan() {
     this.S.nextAdhan = this.S.playT + ADHAN_EVERY; const rak = RAKAT[this.S.prayN++ % RAKAT.length]; this.save();
     const P = this.pray = { stage: 'adhan', t: 0, rak, seq: null, i: -1, st: 0, me: null, ws: [], adhanEnd: 75 };
     const AD = window.__ADHAN;
-    if (AD && AD.file) { try { const a = this.adhan = new window.Audio(AD.file); a.volume = Math.min(1, 0.55 * Math.max(0.4, Settings.volume)); a.onloadedmetadata = () => { if (isFinite(a.duration)) P.adhanEnd = a.duration + 2; }; a.onended = () => { P.adhanEnd = Math.min(P.adhanEnd, P.t + 2); }; a.onerror = () => { P.adhanEnd = Math.min(P.adhanEnd, 30); }; a.play().catch(() => { P.adhanEnd = Math.min(P.adhanEnd, 30); }); } catch (e) { P.adhanEnd = 30; } }
+    if (AD && AD.file) { try { const a = this.adhan = Audio.track(new window.Audio(AD.file)); a.volume = Math.min(1, 0.55 * Math.max(0.4, Settings.volume)); a.onloadedmetadata = () => { if (isFinite(a.duration)) P.adhanEnd = a.duration + 2; }; a.onended = () => { P.adhanEnd = Math.min(P.adhanEnd, P.t + 2); }; a.onerror = () => { P.adhanEnd = Math.min(P.adhanEnd, 30); }; a.play().catch(() => { P.adhanEnd = Math.min(P.adhanEnd, 30); }); } catch (e) { P.adhanEnd = 30; } }
     else P.adhanEnd = 30;
+    this.g.folk && this.g.folk.onAdhan();
     this.notice({ icon: '🕌', title: 'حيّ على الصلاة', sub: 'المصلّون يجتمعون في مضيف الشيخ فاتح الرفاعي — تقدر تلتحق بهم' }, 3000);
     // الجالسين يقومون، وناس يجون من السوق، والإمام يتقدّم
     for (const w of this.men) w.hidden = true;
     if (this.sheikh) this.sheikh.hidden = true;
     this.openDoor(-52.2, -12);
-    P.imam = this.A.spawn(IMAM.look, DOOR_IN[0] - 1.5, DOOR_IN[1] + 1, { name: IMAM.name, sp: 0.95, seed: IMAM.seed });
-    this.route(P.imam, [[-56, -11], IMAM_AT], () => P.imam.face(IMAM_AT[0] + QF[0], IMAM_AT[1] + QF[1]));
+    if (this.out) { this.out.remove(); this.out = null; } // إذا بعده بالمرقد: يرجع للصلاة (ما يصير شيخين)
+    P.imam = this.A.spawn(SHEIKH_A.look, SHEIKH_AT[0] + 0.9, SHEIKH_AT[1], { name: SHEIKH_A.name, sp: 0.95, seed: SHEIKH_A.seed });
+    this.route(P.imam, [[-60, -12], IMAM_AT], () => P.imam.face(IMAM_AT[0] + QF[0], IMAM_AT[1] + QF[1]));
     const looks = [...MAJLIS_MEN.map(m => m.look), 'citizen', 'pilgrim', 'youth'];
     P.ws = looks.map((lk, i) => {
       const mine = i < 4, s = rowSlot(i + 1);
@@ -249,11 +290,12 @@ export class Mudhif {
         P.stage = 'pray'; P.seq = this.buildSeq(P.rak); P.i = -1; P.st = 0;
         for (const w of [P.imam, ...P.ws]) if (w.path) { const s = w.slot || IMAM_AT; w.path = null; w.n.x = s[0]; w.n.z = s[1]; w.face(s[0] + QF[0], s[1] + QF[1]); w.c.prayP = 'stand'; }
         if (P.me) $('cine').querySelector('.ctext').textContent = 'أُقيمت الصلاة — تابع الإمام';
+        this.g.folk && this.g.folk.onPrayStart();
       }
       return;
     }
     if (P.stage === 'pray') {
-      if (P.lagT > 0 && (P.lagT -= dt) <= 0) { P.ws.forEach(w => { w.c.prayP = P.cur; }); if (P.me) { if (P.i <= 1) P.me.pose = P.cur; else this.follow(P.cur); } }
+      if (P.lagT > 0 && (P.lagT -= dt) <= 0) { P.ws.forEach(w => { w.c.prayP = P.cur; }); this.g.folk && this.g.folk.setPose(P.cur); if (P.me) { if (P.i <= 1) P.me.pose = P.cur; else this.follow(P.cur); } }
       if ((P.st -= dt) > 0) return;
       P.i++;
       if (P.i >= P.seq.length) { P.stage = 'done'; P.t = 0; for (const w of [P.imam, ...P.ws]) w.c.prayP = null; if (P.me) this.leavePrayer(); this.notice({ icon: '🤍', title: 'تقبّل الله صلاتكم', sub: 'سلّم المصلّون وتفرّقوا إلى بيوتهم' }, 3500); this.disperse(); return; }
@@ -269,18 +311,19 @@ export class Mudhif {
   // بعد السلام: أهل المجلس يرجعون لأماكنهم، والباقين يطلعون من الباب لبيوتهم، والإمام يزور المرقد
   disperse() {
     const P = this.pray;
+    this.g.folk && this.g.folk.onSalam(); // زوّار المرقد يسبقون الشيخ
     P.ws.forEach((w, k) => setTimeout(() => {
       if (w.dead) return;
       if (w.reg) this.route(w, [[MEN_AT[w.idx][0] + 0.8, MEN_AT[w.idx][1]]], () => { w.remove(); if (this.men[w.idx]) this.men[w.idx].hidden = false; });
       else this.leaveMudhif(w, () => this.goHome(w));
     }, 1500 + k * 900));
-    setTimeout(() => { if (!P.imam.dead) this.visitShrine(P.imam); if (this.sheikh) this.sheikh.hidden = false; }, 2500);
+    setTimeout(() => { if (!P.imam.dead) this.visitShrine(P.imam); }, 2500);
   }
   endPrayer() {
     const P = this.pray; if (!P) return; if (P.me) this.leavePrayer();
     if (this.adhan) { try { this.adhan.pause(); } catch (e) { } this.adhan = null; }
     for (const w of [P.imam, ...P.ws]) { w.c.prayP = null; w.remove(); }
-    for (const w of this.men) w.hidden = false;
+    for (const w of this.men) w.hidden = false; if (this.sheikh) this.sheikh.hidden = false;
     this.pray = null;
   }
   // ---------- الكاميرا السينمائية ----------

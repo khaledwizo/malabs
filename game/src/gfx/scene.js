@@ -1,5 +1,6 @@
 // المشهد: سماء الغروب، الشمس والظلال، الماء، توهّج الفوانيس، ولافتات الخط العربي
 import * as THREE from 'three';
+import { EPITAPHS } from '../world/epitaphs.js';
 import { modelParts, emissiveMats } from './models.js';
 import { Batch, boxInto } from './geo.js';
 import { makeMaterials, signMat } from './mats.js';
@@ -139,10 +140,13 @@ export function buildWorldMeshes(B, kit, info) {
     const mesh = new THREE.Mesh(g, wm); mesh.position.set(w.x, w.y, w.z); mesh.receiveShadow = false; group.add(mesh); waters.push(mesh);
   }
   // اللافتات
+  const eps = [];
   for (const s of (B.signs || [])) {
+    if (s.opt && s.opt.epitaph != null) { eps.push(s); continue; }
     const g = new THREE.PlaneGeometry(s.w, s.h || s.w / 4);
     const mesh = new THREE.Mesh(g, signMat(s.text, s.opt || {})); mesh.position.set(s.x, s.y, s.z); mesh.rotation.order = 'YXZ'; mesh.rotation.y = s.ry; if (s.rx) mesh.rotation.x = s.rx; mesh.receiveShadow = Q.shadow > 0; group.add(mesh);
   }
+  if (eps.length) group.add(epitaphMesh(eps, Q));
   // توهّج الفوانيس
   if (B.glows.length) {
     const pos = new Float32Array(B.glows.length * 3), sizes = new Float32Array(B.glows.length), fl = new Float32Array(B.glows.length);
@@ -215,4 +219,36 @@ export function setupLights(scene, info, Q, bounds) {
     sun.position.copy(sun.target.position).addScaledVector(_d, 140); sun.target.updateMatrixWorld();
   };
   return { sun, hemi, amb, sunDir, follow };
+}
+
+// كتابات الشواهد: أطلس واحد (24 شاهد) وشبكة واحدة مدموجة لكل القبور — نص منقوش غامق على الحجر
+function epitaphMesh(eps, Q) {
+  const C = 4, Rn = 6, cw = 256, ch = 340, cv = document.createElement('canvas'); cv.width = cw * C; cv.height = ch * Rn;
+  const x = cv.getContext('2d'); x.textAlign = 'center'; x.textBaseline = 'middle'; x.direction = 'rtl';
+  EPITAPHS.forEach((L, i) => {
+    const ox = (i % C) * cw, oy = Math.floor(i / C) * ch;
+    // لوح رخام قديم مصفرّ بحافة متآكلة، والكتابة منقوشة غامقة
+    const gr = x.createLinearGradient(ox, oy, ox + cw, oy + ch); gr.addColorStop(0, 'rgba(214,204,182,.96)'); gr.addColorStop(1, 'rgba(184,172,150,.96)'); x.fillStyle = gr; x.fillRect(ox + 10, oy + 10, cw - 20, ch - 20);
+    for (let k = 0; k < 40; k++) { x.fillStyle = `rgba(90,80,64,${0.05 + Math.random() * 0.12})`; x.fillRect(ox + 10 + Math.random() * (cw - 24), oy + 10 + Math.random() * (ch - 24), 2 + Math.random() * 6, 1 + Math.random() * 3); }
+    x.strokeStyle = 'rgba(60,50,38,.7)'; x.lineWidth = 5; x.strokeRect(ox + 20, oy + 20, cw - 40, ch - 40);
+    L.forEach((t, k) => {
+      const big = k === 1, y = oy + 62 + k * 66 + (k > 1 ? 6 : 0);
+      x.font = `${big ? 700 : 500} ${big ? 34 : 28}px "Noto Naskh Arabic","Amiri",serif`;
+      x.fillStyle = 'rgba(255,248,232,.35)'; x.fillText(t, ox + cw / 2 + 1.5, y + 1.5, cw - 40); // حافة النقش
+      x.fillStyle = 'rgba(30,24,18,.95)'; x.fillText(t, ox + cw / 2, y, cw - 48);
+    });
+    x.font = '500 24px "Noto Naskh Arabic","Amiri",serif'; x.fillStyle = 'rgba(38,32,26,.85)'; x.fillText('الفاتحة', ox + cw / 2, oy + ch - 40);
+  });
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+  const pos = [], uv = [], idx = [];
+  eps.forEach((s, n) => {
+    const i = s.opt.epitaph % EPITAPHS.length, u0 = (i % C) / C, v1 = 1 - Math.floor(i / C) / Rn, u1 = u0 + 1 / C, v0 = v1 - 1 / Rn;
+    const hw = s.w / 2, hh = s.h / 2, c = Math.cos(s.ry), sn = Math.sin(s.ry), b = pos.length / 3;
+    // مستوي يواجه +z ثم يدور حول y بزاوية ry
+    for (const [lx, ly] of [[-hw, -hh], [hw, -hh], [hw, hh], [-hw, hh]]) pos.push(s.x + lx * c, s.y + ly, s.z - lx * sn);
+    uv.push(u0, v0, u1, v0, u1, v1, u0, v1); idx.push(b, b + 1, b + 2, b, b + 2, b + 3);
+  });
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx); g.computeVertexNormals();
+  const m = new THREE.MeshStandardMaterial({ map: tex, transparent: true, depthWrite: false, roughness: 0.95, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+  const mesh = new THREE.Mesh(g, m); mesh.receiveShadow = Q.shadow > 0; return mesh;
 }

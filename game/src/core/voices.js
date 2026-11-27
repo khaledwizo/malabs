@@ -22,7 +22,7 @@ export const Voices = {
   get ext() { return window.RAFIDAIN_VOICE_EXT || 'ogg'; },
   play(id, vol, onEnd) {
     if (window.RAFIDAIN_IOS && Audio.ctx) return this.playWA(id, vol, onEnd);
-    const a = new window.Audio(this.base + id + '.' + this.ext); let done = false;
+    const a = Audio.track(new window.Audio(this.base + id + '.' + this.ext)); let done = false;
     const fin = () => { if (done) return; done = true; onEnd && onEnd(); };
     a.volume = Math.max(0, Math.min(1, vol)); a.onended = fin; a.onerror = fin;
     const p = a.play(); if (p && p.catch) p.catch(fin);

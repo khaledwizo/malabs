@@ -40,7 +40,7 @@ export const HUD_HTML = `
     <div id="domBar"></div>
     <div id="compass"><div id="compassStrip"></div><i class="needle"></i><span id="bearing">0</span></div>
   </div>
-  <div id="tl"><div class="hb" id="hPause">${I.pause}</div><div class="hb" id="hScore">${I.score}</div><div class="hb" id="hNvg">NV</div><div class="hb" id="hDrone">🛸<i id="hDroneCd"></i></div><div id="fps"></div><div id="net"></div></div>
+  <div id="tl"><div class="hb" id="hPause">${I.pause}</div><div class="hb" id="hScore">${I.score}</div><div class="hb" id="hNvg">NV</div><div class="hb" id="hDrone">🛸<i id="hDroneCd"></i></div></div><div id="perf"><div id="fps"></div><div id="net"></div></div>
   <div id="feed"></div>
   <div id="qTrack"></div>
   <div id="lobbyBar" title="ثروتك"><i>💰</i><b id="lobbyMoney"></b></div>

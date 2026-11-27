@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { Civilian } from './civilians.js';
 import { findPath } from './route.js';
+import { STREET_TALK } from './streettalk.js';
 
 const LOOKS = ['citizen', 'vendor', 'elder', 'youth', 'citizen', 'pilgrim'];
 // أماكن التمشّي: شارع السوق، ساحة الساعة، الشريعة، صحن الجامع، ساحة البئر
@@ -11,8 +12,11 @@ let wid = 900;
 
 // الماشي إذا وصل باب حقيقي (المضيف، البيوت اللي تنفتح) يفتحه ويبقيه مفتوح لحد ما يعبر
 // خطوة مشي بتصادم: ينزلق على الحيطان والبسطات بدل ما يخترقها، ويصعد الدرج والعتبات (ارتفاع الأرض تحته)
-export function walkStep(W, n, dx, dz, st) {
-  const y = n.y || 0, R = 0.2, free = (x, z) => !W.overlap(x, y + 0.44, z, R, 1.2), inside = !free(n.x, n.z);
+// عند فتحة باب: يعبر حتى لو الباب بعده يتسكّر (ما يجشر بالباب)
+function atDoor(W, x, y, z) { for (const d of W.doors || []) { if (Math.abs((d.y || 0) - y) > 1) continue; const b = d.bb, ax = d.axis === 'x'; if (x > b[0] + (ax ? 0.05 : -0.6) && x < b[2] - (ax ? 0.05 : -0.6) && z > b[1] + (ax ? -0.6 : 0.05) && z < b[3] - (ax ? -0.6 : 0.05)) return true; } return false; }
+// hurry: اللي يهرب من الرمي ينطّ فوگ البسطات والمصاطب الواطئة (أقل من متر)
+export function walkStep(W, n, dx, dz, st, hurry) {
+  const y = n.y || 0, R = 0.2, free = (x, z) => !W.overlap(x, y + 0.44, z, R, 1.2) || atDoor(W, x, y, z) || (hurry && !W.overlap(x, y + 1.0, z, R, 0.7)), inside = !free(n.x, n.z);
   let ok = true; const nx = n.x + dx * st, nz = n.z + dz * st;
   if (inside || free(nx, nz)) { n.x = nx; n.z = nz; }
   else if (Math.abs(dx) > 0.15 && free(nx, n.z)) n.x = nx;
@@ -27,6 +31,11 @@ export function freeSpot(W, x, z, y = 0) {
   if (!W || free(x, z)) return [x, z];
   for (let r = 0.3; r < 5; r += 0.3) for (let k = 0; k < 12; k++) { const a = k / 12 * Math.PI * 2, px = x + Math.cos(a) * r, pz = z + Math.sin(a) * r; if (free(px, pz)) return [px, pz]; }
   return [x, z];
+}
+// الأجسام اللي ما يخترقها الماشي: باقي المارّة واللاعب وأهل السوق (تُحسب مرّة كل إطار)
+function bodies(g, self) {
+  const t = g.t || 0; if (g._bT !== t || !g._B) { g._bT = t; const B = g._B = []; const A = g.ambient; if (A) for (const w of A.walkers) if (!w.hidden && !w.dead && !w.ghost) B.push([w.n.x, w.n.z, w.n.y || 0, w]); const me = g.mp; if (me && me.alive !== false) B.push([me.pos[0], me.pos[2], me.pos[1], null]); for (const c of g.civs || []) if (c.alive && !c.away && c.fl) B.push([c.root.position.x, c.root.position.z, c.root.position.y, null]); }
+  return g._B.filter(b => b[3] !== self);
 }
 export function walkerDoors(g, x, y, z) {
   const S = g.sim, W = g.world; if (!S || !S.doors || !W || !W.doors) return;
@@ -56,7 +65,12 @@ export class Walker {
         const st = Math.min(d, this.sp * dt);
         if (this.ghost) { n.x += dx / d * st; n.z += dz / d * st; }
         else {
-          const x0 = n.x, z0 = n.z; walkStep(this.g.world, n, dx / d, dz / d, st);
+          // يتفادى الناس اللي گدّامه (واللاعب): يميل للجنب، ولو لزگ بيه يوگف لحظة
+          let ux = dx / d, uz = dz / d, wait = false; const B = bodies(this.g, this);
+          for (const b of B) { const bx = b[0] - n.x, bz = b[1] - n.z, bd = Math.hypot(bx, bz); if (bd > 1.5 || bd < 0.01 || Math.abs(b[2] - (n.y || 0)) > 1.2) continue; const ah = (bx * ux + bz * uz) / bd; if (ah < 0.25) continue; const lat = bx * -uz + bz * ux, s = lat > 0 ? -1 : 1, k = (1.5 - bd) / 1.5 * ah * 1.4; if (bd < 0.62 && ah > 0.6) wait = true; const px = -uz * s, pz = ux * s; ux += px * k; uz += pz * k; }
+          { const L = Math.hypot(ux, uz) || 1; ux /= L; uz /= L; }
+          if (wait && (this.waitT = (this.waitT || 0) + dt) < 1.6) { c.walkSp = 0; return; } if (!wait) this.waitT = 0;
+          const x0 = n.x, z0 = n.z; walkStep(this.g.world, n, ux, uz, st);
           // علگ؟ نعيد حساب الطريق، وإذا بعده علگان نعتبره وصل (حتى ما يوقف الشغل)
           const pr = Math.hypot(n.x - x0, n.z - z0); this.stuckT = pr < st * 0.3 ? (this.stuckT || 0) + dt : Math.max(0, (this.stuckT || 0) - dt);
           if (this.stuckT > 1.0 && !this.rep) { this.rep = 1; const end = this.path[this.path.length - 1], cb = this.onArrive; this.goTo(end[0], end[1], cb); this.rep = 1; this.stuckT = 0; return; }
@@ -116,7 +130,7 @@ export class Ambient {
     this.fT = 12;
   }
   stop() {
-    if (!this.on) return; this.on = false;
+    if (!this.on) return; this.on = false; if (this.st) this.endStreet();
     for (const w of this.walkers) w.remove(); this.walkers.length = 0;
     for (const s of this.sheep) this.g.scene.remove(s.g); this.sheep.length = 0;
     if (this.friends) for (const o of this.friends.all) o.remove(); this.friends = null;
@@ -142,13 +156,39 @@ export class Ambient {
     const cam = this.g.camera.position, R = this.R;
     for (const w of this.walkers) {
       if (w.hideT > 0) { if ((w.hideT -= dt) <= 0) { w.hidden = false; w.sp = w.sp0 || w.sp; } else if (w.hidden) continue; }
-      if (w.stroll && !w.path) { if ((w.wait -= dt) <= 0) { const s = SPOTS[Math.floor(R() * SPOTS.length)], [sx, sz] = freeSpot(this.g.world, s[0] + (R() - 0.5) * 3, s[1] + (R() - 0.5) * 3); w.goTo(sx, sz, () => { w.wait = 2 + R() * 8; }); } }
+      if (w.stroll && !w.path && !w.talking) { if ((w.wait -= dt) <= 0) { const s = SPOTS[Math.floor(R() * SPOTS.length)], [sx, sz] = freeSpot(this.g.world, s[0] + (R() - 0.5) * 3, s[1] + (R() - 0.5) * 3); w.goTo(sx, sz, () => { w.wait = 2 + R() * 8; }); } }
       w.update(dt, cam);
     }
     this.walkers = this.walkers.filter(w => !w.dead);
     for (const s of this.sheep) if (Math.hypot(s.g.position.x - cam.x, s.g.position.z - cam.z) < 50) s.update(dt);
     this.updateFriends(dt);
+    this.updateStreet(dt);
   }
+  // سوالف المارّة: اللي يمرّ يمّك يوگف ويحچيلك سالفة (تاريخ، جغرافية، ثروات، معارك، أخبار، ناس) — ما تتكرر لحد ما تخلص كلها
+  updateStreet(dt) {
+    const g = this.g, me = g.mp, S = this.st;
+    if (!me || g.cine) { if (S) this.endStreet(); return; }
+    if (S) {
+      const w = S.w, d = Math.hypot(w.n.x - me.pos[0], w.n.z - me.pos[2]);
+      if (w.dead || w.hidden || w.path || d > 9) return this.endStreet();
+      w.c.focus(me.pos[0], me.pos[2], 1.5);
+      if ((S.t -= dt) > 0) return;
+      if (S.i >= S.lines.length) return this.endStreet(true);
+      const text = S.lines[S.i++], sp = g.mudhif.speak(S.per, text, w); S.el = sp.el; S.t = sp.dur + 0.45;
+      try { g.talk && g.talk.bubble(w.c, text, sp.dur); } catch (e) { }
+      return;
+    }
+    if ((this.stCD = (this.stCD ?? 6) - dt) > 0) return;
+    if (g.talk && (g.talk.units || []).some(u => u.cur && u.dd < 14)) return; // أحد ثاني يسولف يمّك
+    let best = null, bd = 4.2; for (const w of this.walkers) { if (!w.stroll || w.hidden || w.hideT > 0 || w.dead) continue; const d = Math.hypot(w.n.x - me.pos[0], w.n.z - me.pos[2]); if (d < bd && Math.abs((w.n.y || 0) - me.pos[1]) < 1.5) { bd = d; best = w; } }
+    if (!best) return;
+    let heard = []; try { heard = JSON.parse(localStorage.getItem('rafidain.street.v1') || '[]'); } catch (e) { }
+    let k = STREET_TALK.findIndex((_, i) => !heard.includes(i)); if (k < 0) { heard = []; k = Math.floor(Math.random() * STREET_TALK.length); }
+    heard.push(k); try { localStorage.setItem('rafidain.street.v1', JSON.stringify(heard)); } catch (e) { }
+    const T = STREET_TALK[k]; best.path = null; best.c.walkSp = 0; best.talking = true; best.face(me.pos[0], me.pos[2]);
+    this.st = { w: best, per: T.per, lines: T.lines, i: 0, t: 0.5 };
+  }
+  endStreet(done) { const S = this.st; this.st = null; if (S) { S.w.talking = false; S.w.wait = 1.5; if (S.el) try { S.el.pause(); } catch (e) { } } this.stCD = done ? 22 : 8; }
   // الأصحاب: كل واحد يجي من صوب، يتلاقون عالطاولة، يسلّمون، يگعدون ويطلبون شاي، وبعدين يمشون
   updateFriends(dt) {
     const g = this.g, talk = g.talk, F = this.friends;

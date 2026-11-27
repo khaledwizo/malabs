@@ -45,6 +45,7 @@ export function findPath(w, from, to, strict) {
 export function clear(w, ax, az, bx, bz, y0 = 0) {
   const dx = bx - ax, dz = bz - az, L = Math.hypot(dx, dz) || 1, px = -dz / L * 0.32, pz = dx / L * 0.32;
   for (const h of [0.45, 1.3]) for (const s of [0, 1, -1]) if (!w.los(ax + px * s, y0 + h, az + pz * s, bx + px * s, y0 + h, bz + pz * s)) return false;
+  for (let t = 0; t <= 1; t += 0.4 / L) if (w.overlap(ax + dx * t, y0 + 0.45, az + dz * t, 0.2, 1.0)) return false; // القبور وأمثالها
   return true;
 }
 

@@ -602,8 +602,9 @@ body.drone #topbar,body.drone #feed{display:none}
 .guide .gcards i{font-style:normal;font-size:22px;display:block}.guide .gcards b{display:block;font:800 14px var(--fd);color:#ffe2a6;margin:2px 0}.guide .gcards small{font:600 11.5px/1.5 var(--fb);color:#c9c0ad}
 /* أعلى الشاشة: الفريمات والشبكة تحت أزرار الزاوية حتى ما تتداخل ويّا لوحة الفرق */
 #tl{flex-wrap:wrap;max-width:min(150px,calc(50vw - 150px))}
-#tl #fps,#tl #net{position:absolute;left:0;font-size:10px;padding:1px 5px}#tl #fps{top:calc(100% + 4px)}#tl #net{top:calc(100% + 22px)}
-body.showfps #lobbyBar{top:calc(var(--sat) + 74px)}
+/* عدّاد الفريمات: تحت الخريطة يمين، ما يغطّي الأزرار ولا الفلوس */
+#perf{position:fixed;top:calc(var(--sat) + 8px + 126px * var(--hs,1));right:calc(var(--sar) + 10px);display:flex;flex-direction:column;align-items:flex-end;gap:3px;pointer-events:none;z-index:6}
+#perf #fps,#perf #net{font-size:10px;padding:1px 5px}
 /* اللوبي: ماكو لوحة نتائج، البوصلة تصعد للأعلى */
 body.lobby #topbar{top:calc(var(--sat) + 6px)}
 #boot .blogo{border-radius:22%;box-shadow:0 10px 30px rgba(0,0,0,.6),0 0 0 1px rgba(232,184,74,.35)}

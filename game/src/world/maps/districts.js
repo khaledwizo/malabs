@@ -115,6 +115,7 @@ export function buildDistricts(B, H) {
     for (let k = 0; k < 5; k++) { const a = R() * 6.28, e = br(x, h * (0.42 + R() * 0.34), z, 1.2 + R() * 1.5, a, 0.3 + R() * 0.65, 0.1); for (let j = 0; j < 2; j++) { const e2 = br(e[0], e[1], e[2], 0.6 + R() * 0.9, a + (R() - 0.5) * 1.6, 0.15 + R() * 0.95, 0.05); if (R() < 0.4) br(e2[0], e2[1], e2[2], 0.4 + R() * 0.5, a + (R() - 0.5) * 2, R() * 0.9, 0.025); } }
   };
   // قبر: قاعدة واطئة وشاهد عند الرأس وشاهد صغير عند القدم (بطوله على x)
+  let epN = 0;
   const tomb = (x, z, kind = 'std') => {
     if (kind === 'big') {
       B.box(x - 1.1, 0, z - 0.62, x + 1.1, 1.05, z + 0.62, 'tomb');
@@ -122,10 +123,11 @@ export function buildDistricts(B, H) {
       return;
     }
     B.box(x - 0.85, 0, z - 0.36, x + 0.85, 0.22, z + 0.36, 'tomb');
+    B.col(x - 0.86, 0.22, z - 0.37, x + 0.86, 1.25, z + 0.37, MAT.stone, F.NOBULLET); // حرمة القبر: ما ينداس عليه (الرصاص يعبر فوگه عادي)
     const broken = R() < 0.16, tilt = !broken && R() < 0.14, hh = broken ? 0.32 + R() * 0.18 : 0.72 + R() * 0.28;
     B.prop('tomb', 140); // الشاهد يتحطم بالرصاص
     if (tilt) { B.col(x - 0.88, 0.22, z - 0.24, x - 0.7, 0.85, z + 0.24, MAT.stone); if (vis) B.geo(() => new THREE.BoxGeometry(0.12, hh, 0.5), T(x - 0.78, 0.22 + hh * 0.48, z, 0, 1, 1, 1, (R() - 0.5) * 0.25, (R() < 0.5 ? -1 : 1) * (0.18 + R() * 0.2)), 'tomb'); }
-    else { B.box(x - 0.85, 0.22, z - 0.25, x - 0.72, 0.22 + hh, z + 0.25, 'tomb'); if (vis && !broken) B.geo(() => new THREE.CylinderGeometry(0.25, 0.25, 0.13, 12), T(x - 0.785, 0.22 + hh, z, 0, 1, 1, 1, 0, PI / 2), 'tomb'); }
+    else { B.box(x - 0.85, 0.22, z - 0.25, x - 0.72, 0.22 + hh, z + 0.25, 'tomb'); if (vis && !broken) { B.geo(() => new THREE.CylinderGeometry(0.25, 0.25, 0.13, 12), T(x - 0.785, 0.22 + hh, z, 0, 1, 1, 1, 0, PI / 2), 'tomb'); signs.push({ text: '', x: x - 0.714, y: 0.22 + hh * 0.52, z, ry: PI / 2, w: 0.46, h: Math.min(0.62, hh * 0.86), opt: { epitaph: (epN++) } }); } }
     B.end();
     if (broken && vis) B.geo(() => new THREE.BoxGeometry(0.12, 0.42, 0.5), T(x - 0.25, 0.28, z + 0.12, R(), 1, 1, 1, PI / 2 - 0.12, 0.3), 'tomb');
     B.prop('tomb', 80); B.box(x + 0.74, 0.22, z - 0.16, x + 0.85, 0.6, z + 0.16, 'tomb'); B.end();
